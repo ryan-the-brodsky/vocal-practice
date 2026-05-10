@@ -7,14 +7,24 @@
   "noteValue": "8n",
   "tempo": 140,
   "voicePartRanges": {
+    "soprano": {
+      "lowest": "C4",
+      "highest": "A4",
+      "step": 1
+    },
+    "alto": {
+      "lowest": "A3",
+      "highest": "D4",
+      "step": 1
+    },
     "tenor": {
-      "lowest": "C3",
-      "highest": "G3",
+      "lowest": "D3",
+      "highest": "A3",
       "step": 1
     },
     "baritone": {
-      "lowest": "A2",
-      "highest": "D3",
+      "lowest": "B2",
+      "highest": "F#3",
       "step": 1
     }
   },

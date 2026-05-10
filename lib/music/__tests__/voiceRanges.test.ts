@@ -8,11 +8,12 @@ import { exerciseLibrary } from "../../exercises/library";
 import { noteToMidi } from "../../exercises/music";
 
 describe("validateDescriptorRanges", () => {
-  it("accepts a sensible tenor five-note scale", () => {
+  it("accepts a sensible tenor five-note scale that pushes past passaggio", () => {
+    // Top tonic F4: peaks F4+7 = C5 (well above tenor passaggio F4 = MIDI 65).
     const desc: DescriptorLike = {
       id: "test",
       scaleDegrees: [0, 2, 4, 5, 7, 5, 4, 2, 0],
-      voicePartRanges: { tenor: { lowest: "G3", highest: "D4", step: 1 } },
+      voicePartRanges: { tenor: { lowest: "G3", highest: "F4", step: 1 } },
     };
     expect(validateDescriptorRanges(desc)).toEqual([]);
   });
@@ -99,32 +100,83 @@ describe("Library audit — every shipped exercise has sensible ranges", () => {
     expect(allIssues).toEqual([]);
   });
 
-  it("tenor and baritone ranges are not identical (sanity check against copy-paste)", () => {
+  it("no two voice-part ranges within a descriptor are byte-identical", () => {
+    const VOICE_PAIRS: ["soprano" | "alto" | "tenor" | "baritone" | "bass" | "mezzo", "soprano" | "alto" | "tenor" | "baritone" | "bass" | "mezzo"][] = [
+      ["soprano", "alto"],
+      ["soprano", "tenor"],
+      ["soprano", "baritone"],
+      ["alto", "tenor"],
+      ["alto", "baritone"],
+      ["tenor", "baritone"],
+    ];
     const identicalCases: string[] = [];
     for (const desc of exerciseLibrary) {
-      const t = desc.voicePartRanges.tenor;
-      const b = desc.voicePartRanges.baritone;
-      if (!t || !b) continue;
-      if (t.lowest === b.lowest && t.highest === b.highest && t.step === b.step) {
-        identicalCases.push(`${desc.id}: tenor and baritone ranges are byte-identical`);
+      for (const [a, b] of VOICE_PAIRS) {
+        const ra = desc.voicePartRanges[a];
+        const rb = desc.voicePartRanges[b];
+        if (!ra || !rb) continue;
+        if (ra.lowest === rb.lowest && ra.highest === rb.highest && ra.step === rb.step) {
+          identicalCases.push(`${desc.id}: ${a} and ${b} ranges are byte-identical`);
+        }
       }
     }
     expect(identicalCases).toEqual([]);
   });
 
-  it("tenor range is consistently HIGHER than baritone (when both defined)", () => {
+  it("voice ranges within each descriptor follow soprano > alto > tenor > baritone (by lowest tonic)", () => {
+    const HIGH_TO_LOW: ("soprano" | "alto" | "tenor" | "baritone")[] = ["soprano", "alto", "tenor", "baritone"];
     const inversions: string[] = [];
     for (const desc of exerciseLibrary) {
-      const t = desc.voicePartRanges.tenor;
-      const b = desc.voicePartRanges.baritone;
-      if (!t || !b) continue;
-      const tLow = noteToMidi(t.lowest);
-      const bLow = noteToMidi(b.lowest);
-      if (tLow <= bLow) {
-        inversions.push(`${desc.id}: tenor lowest (${t.lowest}) is not above baritone lowest (${b.lowest})`);
+      const definedVoices = HIGH_TO_LOW.filter((v) => desc.voicePartRanges[v]);
+      for (let i = 1; i < definedVoices.length; i++) {
+        const higher = definedVoices[i - 1];
+        const lower = definedVoices[i];
+        const hLow = noteToMidi(desc.voicePartRanges[higher]!.lowest);
+        const lLow = noteToMidi(desc.voicePartRanges[lower]!.lowest);
+        if (hLow <= lLow) {
+          inversions.push(
+            `${desc.id}: ${higher} lowest (${desc.voicePartRanges[higher]!.lowest}) is not above ${lower} lowest (${desc.voicePartRanges[lower]!.lowest})`,
+          );
+        }
       }
     }
     expect(inversions).toEqual([]);
+  });
+
+  it("every shipped exercise defines all 4 voice parts (soprano, alto, tenor, baritone)", () => {
+    const missing: string[] = [];
+    const REQUIRED: ("soprano" | "alto" | "tenor" | "baritone")[] = ["soprano", "alto", "tenor", "baritone"];
+    for (const desc of exerciseLibrary) {
+      for (const vp of REQUIRED) {
+        if (!desc.voicePartRanges[vp]) {
+          missing.push(`${desc.id}: missing ${vp} range`);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+
+  it("warns when peaks exceed the native Salamander pitch-shift cap of F#5 (MIDI 78)", () => {
+    // Native player can pitch-shift only ±6 semitones from the nearest sample,
+    // capping playable melody pitches at F#5 (sample C5 + 6). Above this, the
+    // native player produces audible artifacts. Web is unaffected.
+    const NATIVE_CAP = noteToMidi("F#5");
+    const overcap: string[] = [];
+    for (const desc of exerciseLibrary) {
+      const maxDeg = Math.max(...desc.scaleDegrees);
+      for (const [vp, r] of Object.entries(desc.voicePartRanges)) {
+        if (!r) continue;
+        const peak = noteToMidi(r.highest) + maxDeg;
+        if (peak > NATIVE_CAP) {
+          overcap.push(`${desc.id} ${vp}: peaks at MIDI ${peak} (above native cap ${NATIVE_CAP} = F#5)`);
+        }
+      }
+    }
+    // This test asserts the CURRENT scope of native compatibility — not pass/fail.
+    // The list of out-of-cap entries is an explicit follow-up in CLAUDE.md.
+    // Use a snapshot to lock the known cases so a regression (silently introducing
+    // a new out-of-cap entry) is visible in PR diffs.
+    expect(overcap.sort()).toMatchSnapshot();
   });
 });
 

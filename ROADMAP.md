@@ -58,6 +58,12 @@ Personal vocal-warmup app. Goal: pitch detection + accuracy scoring with piano a
 - `SessionRecord` stored via `AsyncStorage` at `vocal-training:sessions:v1`. Includes `parentSessionId` and `coachingFocus` for coaching child sessions.
 - `lib/progress/stats.ts`: `summarizeSessions`, `progressForExercise` (trend, best-key), `thisWeekSummary`, `bestKeyPerExercise`, `rollingAccuracy` — all implemented and now surfaced via the Progress tab.
 
+### Voice Parts
+- All 8 exercises define ranges for soprano, alto, tenor, baritone. Voice picker in `app/(tabs)/index.tsx` shows all four (`VOICE_PARTS = ["soprano", "alto", "tenor", "baritone"]`). Per-exercise tonic memory keys by `${exerciseId}|${voicePart}`, so each voice part has its own remembered tonic position.
+- Pedagogically tuned ranges peak at typical warmup levels per voice: soprano A5 (narrow-span) / A5 (octave-span); alto E5 / D5; tenor C5 / A4; baritone F#4 / F#4. Rossini lip trill goes higher (SOVT-relaxed). Baritone passaggio crossings are tighter than tenor's by design.
+- Validator (`lib/music/voiceRanges.ts`) enforces: (a) every descriptor defines all 4 parts; (b) no two voice-part ranges within a descriptor are byte-identical; (c) ranges follow soprano > alto > tenor > baritone by lowest tonic; (d) sung pitches stay within each voice's anatomical limits with SOVT overshoot allowance; (e) the highest tonic iteration crosses the passaggio (catches off-by-octave bugs).
+- **Native sample-cap caveat:** all 8 soprano configurations peak at A5 (MIDI 81), 3 semitones above the bundled Salamander pitch-shift cap of F#5 (MIDI 78). Audible only on iOS native — web's full Salamander CDN handles up to C8. Snapshot test in `voiceRanges.test.ts` locks the known list of out-of-cap entries so a regression is visible in PR diffs. Resolution: bundle a C6 Salamander sample in `assets/salamander/` to extend native coverage.
+
 ### Notation
 - **MelodyDisplay** (`components/practice/MelodyDisplay.tsx`): SVG staff (5 lines) + noteheads aligned in shared columns above the syllable strip, replacing the bare syllable list on Practice / Guided / Coaching surfaces. Clef chosen per-render from mean MIDI (≥60 → treble with bottom line E4, else bass with bottom line G2). Ledger lines for notes outside the staff. Uses `react-native-svg` (web + native). Syllable font sizes bumped one Typography tier in `SyllableDisplay.tsx`.
 - **Real clef + key-signature glyphs** (2026-05-09 follow-up): bundled BravuraText (SMuFL music font, SIL OFL) at `assets/fonts/BravuraText.{otf,woff2}`, registered via `expo-font` with `Platform.select` (WOFF2 on web because Chrome's font sanitizer rejects Bravura's OTF; OTF on iOS). `metro.config.js` adds `woff2` as a Metro asset extension.
@@ -65,7 +71,7 @@ Personal vocal-warmup app. Goal: pitch detection + accuracy scoring with piano a
 - MelodyDisplay now renders treble (U+E050) and bass (U+E062) clefs as proper SMuFL glyphs at the staff's left edge, followed by the key signature in the conventional zigzag pattern, with on-note accidentals only when the note breaks from the key signature.
 
 ### Automated Testing (Foundation for Agentic Dev) — PR 1 Shipped
-- **Status:** PR 1 of 5 from the testing plan at `~/.claude/plans/glistening-wiggling-hamming.md` is shipped. Suite is 202 tests / 18 suites / 2 projects all green. PRs 2–5 still open (see Slice E below).
+- **Status:** PR 1 of 5 from the testing plan at `~/.claude/plans/glistening-wiggling-hamming.md` is shipped. Suite is 252 tests / 18 suites / 2 projects all green. PRs 2–5 still open (see Slice E below).
 - Jest split into two projects: `unit` (ts-jest, Node) for pure-TS tests; `component` (jest-expo/web, jsdom) for React Native + Expo component tests. Babel config (`babel.config.js`) added for `babel-preset-expo`. `setupFilesAfterEnv` wires up the component setup file.
 - DI seam landed at `lib/audio/index.{ts,native.ts}` and `lib/pitch/index.{ts,native.ts}`: factory variable + `__set/__resetAudioPlayerFactory` and `__set/__resetPitchDetectorFactory`. Production callers unchanged.
 - `test/setup-component.ts` — `installFakeAudio()` + `installFakePitch()` test helpers (recording spies + listener fan-out), plus standard mocks for Reanimated, AsyncStorage, expo-haptics, Tone (via `test/mocks/tone.ts`).
@@ -83,6 +89,7 @@ Personal vocal-warmup app. Goal: pitch detection + accuracy scoring with piano a
 
 ### Gaps
 - iOS dev build not yet generated; Salamander player + native pitch detector both unvalidated on a real device.
+- iOS native pitch-shift cap is F#5 (sample C5 + 6 semitones); soprano warmups peak at A5 across all 8 exercises and would exhibit artifacts on iOS until a C6 Salamander sample is bundled in `assets/salamander/`. Web is unaffected (full CDN range).
 - No standalone Library tab (Progress tab covers history + best-key but not a pedagogy-first browser of all 8 exercises).
 - No session prune/delete — AsyncStorage accumulates indefinitely (coaching saved-tips list also grows unboundedly).
 - Octave errors on male voice >=A3 possible despite postprocessor (pitchy MPM inherent limitation).
@@ -259,11 +266,11 @@ The previous batch (Slices 1–4: iOS native piano, Progress tab, cue+presets, p
 
 ### Slice E: Automated Testing Foundation (M5 — Agentic Autonomy Prereq)
 
-**Scope:** Build a comprehensive test pyramid so an agent's "green build" is a trustworthy signal for autonomous code development. Plan lives in detail at `~/.claude/plans/glistening-wiggling-hamming.md`. Five PRs, ~70 hrs total. **Current state: PR 1 shipped (202 tests / 18 suites passing). PR 2 is the highest-leverage next slice.**
+**Scope:** Build a comprehensive test pyramid so an agent's "green build" is a trustworthy signal for autonomous code development. Plan lives in detail at `~/.claude/plans/glistening-wiggling-hamming.md`. Five PRs, ~70 hrs total. **Current state: PR 1 shipped (252 tests / 18 suites passing). PR 2 is the highest-leverage next slice.**
 
 | PR | Status | Hrs | Outcome |
 |---|---|---|---|
-| **PR 1** | ✅ shipped 2026-05-09 | ~14 | Test infra + DI seams + fixtures. Jest projects split (unit/component), `lib/audio` + `lib/pitch` registry pattern, `test/fixtures/*` synthesizer + scenario builders, `test/setup-component.ts` with `installFakeAudio()` / `installFakePitch()`, smoke tests in both projects. 202 tests / 18 suites passing (existing 150 + 5 fixture smokes + 2 component smokes + 28 keySignature unit tests). |
+| **PR 1** | ✅ shipped 2026-05-09 | ~14 | Test infra + DI seams + fixtures. Jest projects split (unit/component), `lib/audio` + `lib/pitch` registry pattern, `test/fixtures/*` synthesizer + scenario builders, `test/setup-component.ts` with `installFakeAudio()` / `installFakePitch()`, smoke tests in both projects. 252 tests / 18 suites passing (existing 150 + 5 fixture smokes + 2 component smokes + 28 keySignature unit tests). |
 | **PR 2** | open — next | 12–16 | Pure-TS unit coverage for the 4 untested critical files: `lib/scoring/align.ts` (~25 tests, 0 today), `lib/pitch/postprocess.ts` (~12, 0 today), `lib/session/tracker.ts` (~10, 0 today), `lib/progress/stats.ts` (~12, 0 today). `lib/exercises/music.ts` (~10, 0 today) — small but completes the math layer. Coverage gates enforced (>90% line on `lib/scoring/**`, `lib/pitch/postprocess.ts`). |
 | **PR 3** | open | 6–8 | Engine integration tests in `lib/__tests__/integration/engineIntegration.test.ts` — 5 canonical scenarios driven through real `SessionTracker` + `Scorer` + `alignAndScore` + `diagnoseSession` with synthetic `PitchSample[]`. Scenarios: in-tune scale across 2 keys; globally flat 60¢; high-note octave error on octave-leap; false-start wobble; key-fatigue drift. |
 | **PR 4** | open | 16–24 | Component tests (jest-expo + RTL) for Practice happy path, Coaching deep-link, Progress tab tap-to-coach. GitHub Actions CI workflow with typecheck + jest (loose component coverage gate at 50%). |

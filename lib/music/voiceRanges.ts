@@ -65,12 +65,13 @@ export function validateDescriptorRanges(
   const issues: DescriptorRangeIssue[] = [];
   const minDeg = Math.min(...descriptor.scaleDegrees);
   const maxDeg = Math.max(...descriptor.scaleDegrees);
-  // To "traverse the passaggio" the highest sung pitch (at the highest tonic
-  // iteration) must reach AT LEAST passaggio - belowTolerance. For SOVT
-  // exercises (lip trills, sirens) chest-only is fine, so the tolerance is
-  // wide. Catches the canonical bug: tenor warmup that peaks at D4 (chest)
-  // and never crosses the F4 passaggio.
-  const belowTolerance = opts.sovt ? 12 : 1;
+  // The highest tonic iteration must peak above the passaggio by at least
+  // `aboveTarget` semitones. The point of this check is to flag off-by-octave
+  // bugs (warmups that never approach the passaggio at all) — not to dictate
+  // pedagogical aesthetics. Tuned by ear: +2 catches the canonical bug class
+  // while leaving room for individual exercise + voice-part choices.
+  // SOVT exercises (lip trill / siren) get a wide negative tolerance.
+  const aboveTarget = opts.sovt ? -12 : 2;
 
   for (const [vp, range] of Object.entries(descriptor.voicePartRanges)) {
     if (!range) continue;
@@ -132,15 +133,14 @@ export function validateDescriptorRanges(
       });
     }
 
-    // Does the highest tonic iteration reach AT LEAST as high as
-    // passaggio - belowTolerance? For non-SOVT exercises this is tight (1 st)
-    // — the warmup must actually cross the register transition.
-    const reachesPassaggio = highestSung >= limits.passaggio - belowTolerance;
+    // Does the highest tonic iteration peak above passaggio + aboveTarget?
+    const reachesPassaggio = highestSung >= limits.passaggio + aboveTarget;
     if (!reachesPassaggio) {
+      const shortfall = limits.passaggio + aboveTarget - highestSung;
       issues.push({
         voicePart: voice,
         kind: "no-passaggio",
-        message: `${descriptor.id} ${voice}: highest sung pitch ${highestSung} never reaches passaggio ${limits.passaggio} (top tonic ${range.highest} only peaks ${limits.passaggio - highestSung} st below it)`,
+        message: `${descriptor.id} ${voice}: highest sung pitch ${highestSung} doesn't push past passaggio ${limits.passaggio} (need at least ${limits.passaggio + aboveTarget}, short by ${shortfall} st)`,
       });
     }
   }

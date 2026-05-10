@@ -43,7 +43,7 @@ import {
 import { createAsyncStorageStore, type SessionRecord } from "@/lib/progress";
 import { SessionTracker, type SessionTrackerSnapshot } from "@/lib/session/tracker";
 
-const VOICE_PARTS: VoicePart[] = ["tenor", "baritone"];
+const VOICE_PARTS: VoicePart[] = ["soprano", "alto", "tenor", "baritone"];
 const MODE_STORAGE_KEY = "vocal-training:mode:v1";
 const DEMO_ENABLED_KEY = "vocal-training:settings:demo-enabled";
 
