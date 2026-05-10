@@ -1,0 +1,30 @@
+{
+  "id": "five-note-scale-mee-may-mah",
+  "name": "Five-Note Scale: Mee May Mah",
+  "pedagogy": "Unifies vowel resonance and tone across a five-note span by rotating through the Italian vowel series on a single sustained stepwise phrase. The descending return reinforces consistent placement and helps coordinate breath support through the full phrase arc.",
+  "scaleDegrees": [0, 2, 4, 5, 7, 5, 4, 2, 0],
+  "syllables": ["mee", "may", "mah", "moh", "moo", "moh", "mah", "may", "mee"],
+  "noteValue": "8n",
+  "tempo": 88,
+  "voicePartRanges": {
+    "tenor": {
+      "lowest": "C3",
+      "highest": "G3",
+      "step": 1
+    },
+    "baritone": {
+      "lowest": "Ab2",
+      "highest": "Eb3",
+      "step": 1
+    }
+  },
+  "accompaniment": {
+    "pattern": "doubledMelody",
+    "doubleMelody": true,
+    "cueType": "bell",
+    "cueDurationBeats": 1,
+    "voicing": "close"
+  },
+  "direction": "both",
+  "tags": ["resonance", "onset", "passaggio", "sovt"]
+}

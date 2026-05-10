@@ -1,0 +1,31 @@
+{
+  "id": "staccato-arpeggio",
+  "name": "Staccato Arpeggio",
+  "pedagogy": "Develops vocal fold adduction precision and agility by requiring rapid on/off onset on each note of the arpeggio. The crisp staccato release between notes trains the folds to close cleanly on demand, building the physical coordination underlying bright, articulate singing.",
+  "scaleDegrees": [0, 4, 7, 12, 7, 4, 0],
+  "syllables": ["hee", "hee", "hee", "hee", "hee", "hee", "hee"],
+  "noteValue": "8n",
+  "tempo": 140,
+  "voicePartRanges": {
+    "tenor": {
+      "lowest": "C3",
+      "highest": "G3",
+      "step": 1
+    },
+    "baritone": {
+      "lowest": "A2",
+      "highest": "D3",
+      "step": 1
+    }
+  },
+  "accompaniment": {
+    "pattern": "rhythmicStab",
+    "doubleMelody": false,
+    "cueType": "bell",
+    "cueDurationBeats": 1,
+    "voicing": "close"
+  },
+  "direction": "both",
+  "tags": ["agility", "onset", "sovt", "passaggio"],
+  "scoringHints": { "octaveJumpFrames": 2 }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "rossini-lip-trill",
+  "name": "Rossini Lip Trill",
+  "pedagogy": "Builds a full-range SOVT warm-up through the entire passaggio with minimal vocal fold pressure. The octave-and-a-half arc forces smooth register bridging while the lip trill obscures internal pitch monitoring, making the doubled-melody piano doubling essential for pitch reference.",
+  "scaleDegrees": [0, 4, 7, 12, 16, 19, 16, 12, 7, 4, 0],
+  "syllables": ["brr", "brr", "brr", "brr", "brr", "brr", "brr", "brr", "brr", "brr", "brr"],
+  "noteValue": "8n",
+  "tempo": 120,
+  "voicePartRanges": {
+    "tenor": {
+      "lowest": "C3",
+      "highest": "G3",
+      "step": 1
+    },
+    "baritone": {
+      "lowest": "Bb2",
+      "highest": "Eb3",
+      "step": 1
+    }
+  },
+  "accompaniment": {
+    "pattern": "doubledMelody",
+    "doubleMelody": true,
+    "cueType": "ding",
+    "cueDurationBeats": 1,
+    "voicing": "open"
+  },
+  "lockAccompaniment": true,
+  "direction": "both",
+  "tags": ["sovt", "passaggio", "range", "chest-mix"],
+  "scoringHints": {
+    "clarityThreshold": 0.55,
+    "segMinFrames": 3,
+    "segMinDurationMs": 50,
+    "pitchCoherenceCents": 200,
+    "silenceGapMs": 80,
+    "falseStartMaxDurationMs": 100,
+    "falseStartNeighborGapMs": 80
+  }
+}

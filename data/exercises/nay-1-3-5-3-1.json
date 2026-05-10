@@ -1,0 +1,30 @@
+{
+  "id": "nay-1-3-5-3-1",
+  "name": "Nay 1-3-5-3-1",
+  "pedagogy": "A CCM and belt-prep staple drawn from Somatic Voicework and Saunders-Barton pedagogy. The bright, forward /æ/ vowel of 'nay' encourages high larynx and twang resonance, building the chest-mix and belt coordination needed for theatrical and contemporary commercial styles.",
+  "scaleDegrees": [0, 4, 7, 4, 0],
+  "syllables": ["nay", "nay", "nay", "nay", "nay"],
+  "noteValue": "4n",
+  "tempo": 112,
+  "voicePartRanges": {
+    "tenor": {
+      "lowest": "C3",
+      "highest": "G3",
+      "step": 1
+    },
+    "baritone": {
+      "lowest": "B2",
+      "highest": "E3",
+      "step": 1
+    }
+  },
+  "accompaniment": {
+    "pattern": "blockChordOnDownbeat",
+    "doubleMelody": false,
+    "cueType": "bell",
+    "cueDurationBeats": 1,
+    "voicing": "close"
+  },
+  "direction": "both",
+  "tags": ["belt", "chest-mix", "ccm", "speech-level"]
+}

@@ -18,6 +18,17 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  // Practice screen settings icons
+  'slider.horizontal.3': 'tune',
+  'pianokeys': 'piano',
+  'ear': 'hearing',
+  'play.circle': 'play-circle',
+  'metronome': 'timer',
+  'xmark': 'close',
+  'checkmark': 'check',
+  'music.note': 'music-note',
+  'chart.bar.fill': 'bar-chart',
+  'arrow.counterclockwise': 'replay',
 } as IconMapping;
 
 /**
