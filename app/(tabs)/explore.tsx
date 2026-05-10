@@ -9,7 +9,7 @@ import { useRouter } from "expo-router";
 
 import { createAsyncStorageStore, thisWeekSummary, bestKeyPerExercise, progressForExercise, bestSessionAccuracy } from "@/lib/progress";
 import { loadRoutine, saveRoutine, todayStatus } from "@/lib/progress/routine";
-import type { RoutineConfig, RoutineStatus } from "@/lib/progress/routine";
+import type { RoutineConfig } from "@/lib/progress/routine";
 import type { SessionRecord, ExerciseProgress } from "@/lib/progress";
 import { exerciseName, EXERCISE_NAMES } from "@/lib/exercises/names";
 import { getExercise } from "@/lib/exercises/library";
@@ -18,6 +18,7 @@ import type { StoredExtractedExercise } from "@/lib/exercises/userStore";
 import NoteResultsStrip from "@/components/practice/NoteResultsStrip";
 import Sparkline from "@/components/progress/Sparkline";
 import type { SparklinePoint } from "@/components/progress/Sparkline";
+import { TodayRoutineCard } from "@/components/practice/TodayRoutineCard";
 import ImportModal from "@/components/import/ImportModal";
 import { useTheme } from "@/hooks/use-theme";
 import { Spacing, Radii, Typography, Fonts } from "@/constants/theme";
@@ -113,60 +114,6 @@ function RoutineEditModal({
         </ScrollView>
       </View>
     </Modal>
-  );
-}
-
-function TodayRoutineCard({
-  routine,
-  status,
-  onPressEdit,
-}: {
-  routine: RoutineConfig;
-  status: RoutineStatus;
-  onPressEdit: () => void;
-}) {
-  const { colors } = useTheme();
-  const isEmpty = routine.exerciseIds.length === 0;
-
-  return (
-    <View style={[styles.routineCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle, borderRadius: Radii.lg }]}>
-      {/* Header row */}
-      <View style={[styles.routineHeader, { borderBottomColor: colors.borderSubtle, paddingHorizontal: Spacing.md, paddingTop: Spacing.sm, paddingBottom: Spacing.xs }]}>
-        <View style={[styles.routineHeaderLeft, { gap: Spacing.xs }]}>
-          <Text style={{ fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, color: colors.textTertiary, fontFamily: Fonts.bodyMedium, textTransform: "uppercase", letterSpacing: 0.8 }}>
-            TODAY'S ROUTINE
-          </Text>
-          {!isEmpty && (
-            <Text style={{ fontSize: Typography.monoBase.size, lineHeight: Typography.monoBase.lineHeight, color: colors.textSecondary, fontFamily: Fonts.mono }}>
-              {status.done} of {status.total} done
-            </Text>
-          )}
-        </View>
-        <TouchableOpacity onPress={onPressEdit} style={styles.editBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text style={{ fontSize: Typography.base.size, color: colors.textSecondary }}>Edit</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Body */}
-      {isEmpty ? (
-        <Text style={{ paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, color: colors.textTertiary, fontFamily: Fonts.body, fontStyle: "italic" }}>
-          No exercises in your routine. Tap Edit to add some.
-        </Text>
-      ) : (
-        <View style={[styles.routineItems, { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, gap: Spacing.xs }]}>
-          {status.items.map((item) => (
-            <View key={item.id} style={[styles.routineItem, { gap: Spacing.xs }]}>
-              <Text style={{ fontSize: Typography.base.size, color: item.done ? colors.success : colors.textTertiary, width: Spacing.lg, textAlign: "center", fontFamily: Fonts.mono }}>
-                {item.done ? "✓" : "○"}
-              </Text>
-              <Text style={{ fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, color: item.done ? colors.textTertiary : colors.textPrimary, fontFamily: item.done ? Fonts.body : Fonts.bodySemibold, flex: 1 }}>
-                {exerciseName(item.id)}
-              </Text>
-            </View>
-          ))}
-        </View>
-      )}
-    </View>
   );
 }
 
@@ -642,12 +589,6 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: Spacing.xl },
 
   // Today's Routine card
-  routineCard: { borderWidth: 1, overflow: "hidden" },
-  routineHeader: { flexDirection: "row", alignItems: "center", borderBottomWidth: 1 },
-  routineHeaderLeft: { flex: 1, flexDirection: "row", alignItems: "center" },
-  editBtn: { padding: Spacing['2xs'] },
-  routineItems: {},
-  routineItem: { flexDirection: "row", alignItems: "center" },
 
   // Weekly card
   weekCard: { borderWidth: 1 },

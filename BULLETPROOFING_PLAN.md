@@ -114,7 +114,7 @@ Make the post-session Coaching CTA inviting rather than chart-label-ish, and clo
 
 ---
 
-## Slice 4 — Routine on Practice + tappable + auto-advance (M · ~6h)
+## Slice 4 — Routine on Practice + tappable + auto-advance (M · ~6h) ✅ shipped 2026-05-10
 
 **Bundles audit issues 1.1, 1.4. Builds on Slices 2–3 (voice persistence and the Practice param-honoring).**
 
@@ -137,10 +137,18 @@ The biggest UX shift in this plan: today's routine becomes the daily entry point
 - Practice component test (un-skip selectively) — when routine is loaded, tapping a routine row sets `exerciseId` state.
 
 ### Done criteria
-- [ ] Open app cold → Practice tab → today's routine visible at top → tap row 1 → exercise selected, voice part persisted from last session, Start ready in one tap.
-- [ ] After session ends + Log, "Next: <exercise>" CTA appears. Tapping it switches exercise + scrolls to top.
-- [ ] All 4 routine items checked → "Routine done" celebration replaces the Next CTA.
-- [ ] No regression in `explore.test.tsx`.
+- [x] Open app cold → Practice tab → today's routine visible at top → tap row 1 → exercise selected (via `handleExerciseChange`), voice part persisted from last session (Slice 2), Start ready in one tap.
+- [x] After session ends + Log, "Next: <exercise>" CTA appears. Tapping it switches exercise + scrolls to top via `scrollViewRef.current?.scrollTo({ y: 0 })`.
+- [x] All routine items checked → header in TodayRoutineCard shows "Routine done" in success color; body shows a one-line "Routine done for today." banner.
+- [x] No regression — `explore.test.tsx` still passes after the inline-component extraction (just a different import path; rendered tree unchanged).
+- [x] 6 new component tests for `<TodayRoutineCard>` covering header copy, progress count, all-done state, empty state, onItemPress with id, and onPressEdit.
+
+### Slice 4 implementation notes
+- `<TodayRoutineCard>` extracted to `components/practice/TodayRoutineCard.tsx` with optional `onItemPress` prop. When provided, rows render as `Pressable` with a "Practice <exercise>" accessibilityLabel; otherwise as plain `View`s.
+- Progress and Practice both consume the shared component. Edit button on the Practice copy fires `router.push("/explore")`; the Progress copy opens its modal in-place.
+- Practice loads `routine` + `loggedSessions` on mount; `handleLogSession` appends the just-logged record to local state so `todayStatus()` recomputes without a fresh fetch.
+- `nextRoutineItemId` resolves to the first unfinished item in `routineStatus.items`. The "Next: …" Pressable is shown when `status === "idle" && !pendingSession && nextRoutineItemId`. The "Routine done for today." banner takes its place when all items are done.
+- ScrollView ref added at the PracticeScreen root; `handleAutoAdvance` scrolls to top after switching exercises so the user lands on the new exercise's hero card.
 
 ---
 

@@ -26,6 +26,7 @@ import {
 } from "@/lib/coaching";
 import { flattenIterations, planExercise } from "@/lib/exercises/engine";
 import { exerciseLibrary, getAllExercises } from "@/lib/exercises/library";
+import { exerciseName } from "@/lib/exercises/names";
 import { midiToNote, noteToMidi } from "@/lib/exercises/music";
 import ImportModal from "@/components/import/ImportModal";
 import type {
@@ -41,8 +42,10 @@ import {
   type PitchSample,
 } from "@/lib/pitch";
 import { createAsyncStorageStore, type SessionRecord } from "@/lib/progress";
+import { loadRoutine, todayStatus, type RoutineConfig, type RoutineStatus } from "@/lib/progress/routine";
 import { SessionTracker, type SessionTrackerSnapshot } from "@/lib/session/tracker";
 import { loadVoicePart, saveVoicePart } from "@/lib/settings/voicePart";
+import { TodayRoutineCard } from "@/components/practice/TodayRoutineCard";
 
 const VOICE_PARTS: VoicePart[] = ["soprano", "alto", "tenor", "baritone"];
 const MODE_STORAGE_KEY = "vocal-training:mode:v1";
@@ -68,6 +71,11 @@ export default function PracticeScreen() {
   );
   // Async-loaded merged list (built-ins + user-imported); refreshed when an import saves.
   const [availableExercises, setAvailableExercises] = useState<ExerciseDescriptor[]>(exerciseLibrary);
+  // Today's routine + the local copy of logged sessions feed the routine status
+  // and post-session next-up CTA. We append the just-logged record on Log to
+  // recompute todayStatus without re-fetching.
+  const [routine, setRoutine] = useState<RoutineConfig | null>(null);
+  const [loggedSessions, setLoggedSessions] = useState<SessionRecord[]>([]);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [voicePart, setVoicePartState] = useState<VoicePart>("tenor");
   const setVoicePart = useCallback((next: VoicePart) => {
@@ -100,6 +108,13 @@ export default function PracticeScreen() {
     getAllExercises()
       .then((list) => setAvailableExercises(list))
       .catch(() => setAvailableExercises(exerciseLibrary));
+    loadRoutine()
+      .then((r) => setRoutine(r))
+      .catch(() => {});
+    sessionStore
+      .list()
+      .then((list) => setLoggedSessions(list))
+      .catch(() => setLoggedSessions([]));
   }, []);
 
   // Honor exerciseId / voicePart query params (set by Coaching's "Practice this
@@ -165,6 +180,7 @@ export default function PracticeScreen() {
   // Beats remaining until melody starts (null when not in lead-in window).
   const [leadInCountdown, setLeadInCountdown] = useState<number | null>(null);
 
+  const scrollViewRef = useRef<ScrollView | null>(null);
   const playerRef = useRef<AudioPlayer | null>(null);
   const detectorRef = useRef<PitchDetector | null>(null);
   const detectorUnsubRef = useRef<(() => void) | null>(null);
@@ -198,6 +214,19 @@ export default function PracticeScreen() {
       exerciseLibrary[0],
     [availableExercises, exerciseId],
   );
+
+  const activeRoutine: RoutineConfig = routine ?? { exerciseIds: [] };
+  const routineStatus: RoutineStatus = useMemo(
+    () => todayStatus(activeRoutine, loggedSessions),
+    [activeRoutine, loggedSessions],
+  );
+
+  // Resolves the next unfinished routine item, or null when all are done.
+  const nextRoutineItemId = useMemo<string | null>(() => {
+    if (activeRoutine.exerciseIds.length === 0) return null;
+    const next = routineStatus.items.find((it) => !it.done);
+    return next?.id ?? null;
+  }, [activeRoutine.exerciseIds.length, routineStatus.items]);
 
   useEffect(() => {
     return () => {
@@ -262,6 +291,11 @@ export default function PracticeScreen() {
     setLoggedMessage(null);
     setExerciseId(newId);
   }, [exerciseId, snapshot, pendingSession, coachingCta]);
+
+  const handleAutoAdvance = useCallback((newId: string) => {
+    handleExerciseChange(newId);
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+  }, [handleExerciseChange]);
 
   async function handleStart() {
     if (status !== "idle") return;
@@ -520,6 +554,9 @@ export default function PracticeScreen() {
     try {
       await sessionStore.upsert(record);
       setPendingSession(null);
+      // Append to local sessions list so routineStatus / nextRoutineItemId
+      // recompute without a fresh fetch.
+      setLoggedSessions((prev) => [...prev, record]);
       // Keep coachingCta alive — it becomes visible once pendingSession is cleared.
       setLoggedMessage("Logged");
     } catch (e) {
@@ -537,12 +574,24 @@ export default function PracticeScreen() {
 
   return (
     <ScrollView
+      ref={scrollViewRef}
       style={[styles.container, { backgroundColor: colors.canvas }]}
       contentContainerStyle={styles.content}
     >
       <Text style={[styles.h1, { color: colors.textPrimary, fontFamily: Fonts.displaySemibold }]}>
         Vocal Warm-up
       </Text>
+
+      {/* Today's routine — read-only mirror of Progress's config; tap a row
+          to load that exercise into the picker. Edit navigates to Progress. */}
+      {routine && (
+        <TodayRoutineCard
+          routine={activeRoutine}
+          status={routineStatus}
+          onPressEdit={() => router.push("/explore")}
+          onItemPress={status === "idle" ? handleExerciseChange : undefined}
+        />
+      )}
 
       {/* Mode toggle */}
       <View style={[styles.modeRow, { backgroundColor: colors.borderSubtle }]}>
@@ -735,6 +784,9 @@ export default function PracticeScreen() {
           snapshot={snapshot}
           startTonicMidi={startTonicMidi}
           defaultTonicMidi={defaultTonicMidi}
+          nextRoutineItemId={nextRoutineItemId}
+          routineAllDone={routineStatus.total > 0 && routineStatus.done === routineStatus.total}
+          onAutoAdvance={handleAutoAdvance}
           status={status}
           playerRef={playerRef}
           detectorRef={detectorRef}
@@ -1063,6 +1115,9 @@ interface StandardBodyProps {
   snapshot: SessionTrackerSnapshot | null;
   startTonicMidi: number | null;
   defaultTonicMidi: number | null;
+  nextRoutineItemId: string | null;
+  routineAllDone: boolean;
+  onAutoAdvance: (exerciseId: string) => void;
   status: "idle" | "loading" | "demo" | "playing" | "stopping";
   playerRef: React.MutableRefObject<AudioPlayer | null>;
   detectorRef: React.MutableRefObject<PitchDetector | null>;
@@ -1094,6 +1149,9 @@ function StandardModeBody({
   snapshot,
   startTonicMidi,
   defaultTonicMidi,
+  nextRoutineItemId,
+  routineAllDone,
+  onAutoAdvance,
   status,
   playerRef,
   detectorRef,
@@ -1276,6 +1334,28 @@ function StandardModeBody({
         </Pressable>
       )}
 
+      {/* Routine auto-advance: nudge to the next unfinished item, or celebrate
+          when the routine is complete. Visible only when idle and not pending. */}
+      {status === "idle" && !pendingSession && nextRoutineItemId && (
+        <Pressable
+          style={[styles.nextCta, { backgroundColor: colors.accent }]}
+          onPress={() => onAutoAdvance(nextRoutineItemId)}
+          accessibilityRole="button"
+          accessibilityLabel={`Practice next: ${exerciseName(nextRoutineItemId)}`}
+        >
+          <Text style={[styles.nextCtaText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>
+            Next: {exerciseName(nextRoutineItemId)} →
+          </Text>
+        </Pressable>
+      )}
+      {status === "idle" && !pendingSession && !nextRoutineItemId && routineAllDone && (
+        <View style={[styles.routineDoneBanner, { backgroundColor: colors.bgSurface, borderColor: colors.success }]}>
+          <Text style={[styles.routineDoneText, { color: colors.success, fontFamily: Fonts.bodySemibold }]}>
+            Routine done for today.
+          </Text>
+        </View>
+      )}
+
       <View style={styles.actions}>
         {status === "idle" ? (
           <Pressable
@@ -1441,6 +1521,29 @@ const styles = StyleSheet.create({
     lineHeight: Typography.md.lineHeight,
   },
   reviewCtaSubtle: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+  },
+  nextCta: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.md,
+    alignItems: "center",
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  nextCtaText: {
+    fontSize: Typography.md.size,
+    lineHeight: Typography.md.lineHeight,
+  },
+  routineDoneBanner: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  routineDoneText: {
     fontSize: Typography.sm.size,
     lineHeight: Typography.sm.lineHeight,
   },
