@@ -27,9 +27,6 @@ export class SessionTracker {
   private completed: KeyAttemptResult[] = [];
   private currentIdx = 0;
   private finalized = false;
-  // Latency offset now applies only to cosmetic banner display alignment;
-  // it no longer shifts sample timestamps for scoring.
-  private latencyOffsetMs = 0;
 
   constructor(
     private readonly iterations: KeyIteration[],
@@ -46,14 +43,6 @@ export class SessionTracker {
       const syllables = targets.map((e) => e.syllable ?? "");
       this.scorers.push(new Scorer(targets, leadInEndMs, syllables, alignConfig));
     }
-  }
-
-  /**
-   * Store the latency offset.  Under the new scoring model this only affects
-   * cosmetic display (the live coaching banner).  Scoring is timing-agnostic.
-   */
-  setLatencyOffsetMs(ms: number): void {
-    this.latencyOffsetMs = ms;
   }
 
   pushSample(sample: PitchSample): void {

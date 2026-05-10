@@ -1,3 +1,7 @@
+// COMPONENT TEST: app/__tests__/coaching.test.tsx asserts on the rendered
+// headline copy ("Singing flat"), the evidence-line cents tokens, the "Likely
+// causes" section, and the bookmark accessibility labels. Edits to those
+// surfaces here MUST be mirrored in the test file or it will go red.
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";

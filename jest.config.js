@@ -54,4 +54,16 @@ module.exports = {
     "!lib/**/*.native.ts",
     "!lib/**/__tests__/**",
   ],
+  // PR 2: gate the five files brought to >90% by the unit-test pass.
+  // Other files land in PRs 3–5; gates expand then.
+  // Verify with `npm run test:coverage` (scoped to the unit project) — running
+  // coverage across both projects pulls lib/pitch/postprocess.ts coverage down
+  // because the component project loads it without exercising its methods.
+  coverageThreshold: {
+    "lib/scoring/align.ts":     { lines: 90, branches: 85 },
+    "lib/pitch/postprocess.ts": { lines: 90 },
+    "lib/session/tracker.ts":   { lines: 85 },
+    "lib/exercises/music.ts":   { lines: 90 },
+    "lib/progress/stats.ts":    { lines: 80 },
+  },
 };

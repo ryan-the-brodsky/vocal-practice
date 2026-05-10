@@ -51,14 +51,27 @@ app/(tabs)/index.tsx          # Practice screen — Standard/Guided + accompanim
 app/(tabs)/coaching.tsx       # Coaching screen — diagnosis, your-version playback, retry, multi-mistake iteration
 app/(tabs)/explore.tsx        # Progress tab — weekly summary, exercise list, recent sessions
 
-# Test infrastructure (PR 1 of automated-testing slice, 2026-05-09)
+# Test infrastructure (PRs 1–2 of automated-testing slice, 2026-05-09 → 2026-05-10)
 test/setup-component.ts       # installFakeAudio() + installFakePitch() helpers; Reanimated/AsyncStorage/Haptics/Tone mocks
 test/mocks/tone.ts            # no-op Tone stub used by component project
 test/fixtures/pitchSamples.ts # synthetic PitchSample[] — inTune/flat/sharp/octaveOff/falseStart/silence presets
 test/fixtures/keyIterations.ts # buildKeyIterations() calls real WarmupEngine.plan() so fixtures stay schema-aligned
 test/fixtures/sessions.ts     # seedSessionRecord() + inTuneFiveNoteSession() builders
-jest.config.js                # projects: [unit (ts-jest, Node), component (jest-expo/web, jsdom)]
+jest.config.js                # projects: [unit (ts-jest, Node), component (jest-expo/web, jsdom)]; coverageThreshold gates 5 PR-2 files
 babel.config.js               # babel-preset-expo for jest-expo (and Metro)
+# PR 2 unit suites (added 2026-05-10):
+lib/scoring/__tests__/align.test.ts        # 28 tests — segment/filter/match/alignAndScore
+lib/pitch/__tests__/postprocess.test.ts    # 14 tests — clarity gate, median filter, octave-jump constraint
+lib/session/__tests__/tracker.test.ts      # 9 tests — sample routing, key boundaries, snapshots
+lib/progress/__tests__/stats.test.ts       # 15 tests — summarize/progress/thisWeek/bestKey/bestSession/rolling
+lib/exercises/__tests__/music.test.ts      # 18 tests — noteToMidi/midiToNote round-trip, durations, triads, voicing
+# PR 3 integration suite (added 2026-05-10):
+lib/__tests__/integration/engineIntegration.test.ts  # 5 fixture-driven scenarios end-to-end (Tracker → Scorer → align → diagnose)
+# PR 4 component-test scaffolding (added 2026-05-10):
+app/__tests__/coaching.test.tsx           # 3 cases — flat-session diagnosis + bookmark persistence + error states
+app/__tests__/explore.test.tsx            # 3 cases — weekly summary + recent-session "Coach this" router.push
+app/__tests__/practice.test.tsx           # describe.skip — Practice deferred until UX audits stabilize the screen
+.github/workflows/test.yml                # typecheck + jest CI (Playwright e2e lands in PR 5)
 ```
 
 **Data flow per sample:**
@@ -72,7 +85,6 @@ ExerciseDescriptor + voicePart → `planExercise()` → `KeyIteration[]` → `fl
 - Practice screen: pick exercise + voice part (tenor/baritone) + Standard/Guided mode. Session settings (accompaniment / guidance / demo / click-track) collapsed to a 4-icon cluster with tooltips + inline expanders, responsive (icons stack on mobile, ride alongside picks on desktop ≥640 px)
 - Per-exercise tonic memory: each `(exerciseId, voicePart)` pair remembers its last-reached tonic; RESET button above the note chips snaps current exercise back to range lowest
 - Headphones modal: blocks Start until the user confirms once per app session; "Continue without" biases the RMS gate up by 6 dB
-- Timing diagnostics panel (collapsed in standard-mode body): manual latency-offset slider (−500 to +500 ms) feeding `Tracker.setLatencyOffsetMs`, persisted at `vocal-training:settings:latency-offset-ms`. Live: takes effect on the current session. **Calibrate button** inside the panel auto-detects the offset by playing the Five-Note Scale, capturing user's per-note onsets, dropping high+low outliers, taking the median (≥5 of 9 notes required for reliability)
 - Per-note breakdown chip strip under each completed-key row in Standard mode (shared `<NoteResultsStrip>` component); empty windows render `—` not `0¢`
 - Tone.js + hosted Salamander samples on web; bundled Salamander MP3s + `AudioBufferSourceNode` on iOS (code in place; awaiting on-device validation)
 - Cue types (`ding` / `block` / `bell` / `v7` / `tonic-hold`) honored at runtime; descriptors with `lockAccompaniment: true` (Rossini lip trill, Ng siren) ignore preset overrides
@@ -91,7 +103,7 @@ ExerciseDescriptor + voicePart → `planExercise()` → `KeyIteration[]` → `fl
 - Octave-snap-against-target in the scorer rescues pitchy subharmonic latching on high notes (snap if sample is 10.5–13.5 or 22.5–25.5 semitones from target)
 - **Staff notation with proper SMuFL clefs + key signatures** above the syllable strip on Practice / Guided / Coaching surfaces (`components/practice/MelodyDisplay.tsx`). SVG-based via `react-native-svg`. Treble vs bass clef chosen by mean MIDI of the displayed melody. Real treble (U+E050) and bass (U+E062) glyphs from BravuraText (SMuFL music font, SIL OFL). Per-key signature derived via circle of fifths from `lib/music/keySignature.ts`; on-note accidentals appear only when the note breaks from the key signature (chromatic alteration → ♯/♭; in-key letter that's enharmonic to a natural → ♮).
 - **DI registry pattern** at `lib/audio/index.{ts,native.ts}` and `lib/pitch/index.{ts,native.ts}`: factories can be swapped per-test via `__set/__resetAudioPlayerFactory` and `__set/__resetPitchDetectorFactory` (call sites in feature code unchanged).
-- **Automated test pyramid PR 1 shipped**: Jest projects split (unit + component), full fixture infrastructure, smoke tests proving the registry works. 252 tests / 18 suites / 2 projects passing. PRs 2–5 (per `~/.claude/plans/glistening-wiggling-hamming.md`) still open: bring `lib/scoring/align.ts`, `lib/pitch/postprocess.ts`, `lib/session/tracker.ts`, `lib/exercises/music.ts`, `lib/progress/stats.ts` to >90% coverage (PR 2); 5 engine integration scenarios (PR 3); component tests + CI (PR 4); Playwright E2E with Chromium fake-audio (PR 5).
+- **Automated test pyramid PRs 1–4 shipped**: Jest projects split (unit + component), full fixture infrastructure, smoke tests proving the registry works (PR 1). PR 2 added 86 unit tests for the 5 critical pure-TS files (`lib/scoring/align.ts`, `lib/pitch/postprocess.ts`, `lib/session/tracker.ts`, `lib/exercises/music.ts`, `lib/progress/stats.ts`) with `coverageThreshold` gates. PR 3 added 5 engine integration scenarios at `lib/__tests__/integration/engineIntegration.test.ts` that drive synthetic `PitchSample[]` through the real `SessionTracker → Scorer → alignAndScore → diagnoseSession` pipeline. PR 4 shipped scaffolding-only component-test infrastructure (`@testing-library/react` for DOM queries against jest-expo/web's react-native-web output; expo-router mock + `window.matchMedia` polyfill in `test/setup-component.ts`) plus two real screen tests at `app/__tests__/coaching.test.tsx` and `app/__tests__/explore.test.tsx`; Practice deferred via `describe.skip` until the UX audits stabilize the screen. CI lives at `.github/workflows/test.yml` (typecheck + jest jobs). **350 tests / 27 suites / 2 projects passing (1 skipped).** Verify coverage gates with `npm run test:coverage` (scoped to the unit project — running both projects pulls postprocess.ts coverage down because the component project loads it without exercising methods). PR 5 (Playwright E2E + WAV fixture pipeline) is still open, gated on whether the user wants the full Practice happy path covered before UX has hardened.
 - **Voice-range validation** (`lib/music/voiceRanges.ts`): `VOICE_RANGES` table (lowest, highest, passaggio per voice part — Miller / Doscher / Sundberg pedagogy). `validateDescriptorRanges()` checks each exercise's voice-part rows for off-by-octave bugs, copy-paste between voice parts, and whether the highest tonic iteration actually crosses the voice's passaggio (with SOVT exemption for lip-trills/sirens). Library audit asserts every shipped descriptor passes; sanity checks include "tenor and baritone are not byte-identical" and "tenor lowest > baritone lowest". `clampTonicToVoiceRange()` is the extracted testable form of the screen's tonic-memory clamping logic. 17 tests in `lib/music/__tests__/voiceRanges.test.ts`.
 - **Audited + bumped ranges across all 8 exercises (2026-05-09):** Original descriptors had tenor parts an octave below typical warmup territory (e.g. five-note-scale tenor C3-G3 peaked at D4 — sounded like a baritone exercise). Final ranges peak at typical tenor warmup levels: narrow-span exercises (5-note scale, nay 1-3-5-3-1, descending 5-1) tenor G3-F4 → peaks D4-C5; octave-span exercises (Goog, octave-leap, ng-siren, staccato) tenor D3-A3 → peaks D4-A4; rossini-lip-trill kept at C3-G3 (SOVT, peaks G4-D5). Baritone parts shifted up symmetrically. Validator gates against off-by-octave regressions (passaggio + 2 minimum; SOVT-relaxed). Engine regression snapshots refreshed.
 - **Alto + soprano voice parts added (2026-05-09):** all 8 exercises now define ranges for soprano, alto, tenor, baritone. Voice picker in `app/(tabs)/index.tsx` shows all four chips high-to-low. Audit tests enforce: (a) every descriptor defines all 4 parts; (b) no two voice-part ranges within a descriptor are byte-identical; (c) ranges follow soprano > alto > tenor > baritone by lowest tonic; (d) snapshot of out-of-native-cap peaks (8 soprano peaks at A5 = MIDI 81 are above the F#5 native pitch-shift cap — works fine on web, will produce native artifacts until a higher Salamander sample is bundled in `assets/salamander/`).
@@ -107,16 +119,20 @@ ExerciseDescriptor + voicePart → `planExercise()` → `KeyIteration[]` → `fl
 - **Octave errors** still possible on male voice ≥ A3 — pitchy's MPM algorithm can latch onto the second harmonic. Postprocessor mitigates but doesn't eliminate.
 - **`.codeyam/`** directory is legacy (we're not using CodeYam). It's gitignored. Safe to `rm -rf` once the local CodeYam server (port 3111) is stopped.
 
-## Test status (PR 1 shipped — 2026-05-09)
+## Test status (PRs 1–4 shipped — 2026-05-09 → 2026-05-10)
 
-`npm test` → 252 tests / 18 suites / 2 projects passing in ~20s. `tsc --noEmit` clean. CI not yet wired up (lands in PR 4).
+`npm test` → 350 tests / 27 suites / 2 projects (1 skipped) in ~35s. `npm run test:coverage` (scoped to unit project) verifies the configured `coverageThreshold` block. `tsc --noEmit` clean. CI at `.github/workflows/test.yml`.
 
-**What's covered:** the existing pure-TS layers (coaching detectors, exercise planning, session storage, key analysis, melody synthesis, theme constants, key signature theory) plus 7 smoke tests proving the new test infrastructure works (synthesizer round-trip, registry override, listener fan-out).
+**Component-test conventions (PR 4):**
+- Use `@testing-library/react` (DOM-based) — `jest-expo/web` renders RN through `react-native-web` so the tree is HTML in jsdom; `@testing-library/react-native` v13's react-test-renderer path doesn't see the same nodes.
+- Drive `expo-router` via `setMockRouterParams()` / `getMockRouter()` from `test/setup-component.ts`. Reset is automatic in `afterEach`.
+- DI fakes via `installFakeAudio()` / `installFakePitch()`. Same auto-reset.
+- **UI tests stay deliberately sparse until the UX audits land.** The screens are still in flux — picker chips, settings cluster, modal copy, mode toggles, etc. Tightly-coupled assertions today become next month's churn. Each tested screen file carries a top-of-file `// COMPONENT TEST:` comment naming the test file so edits to rendered text or accessibility labels surface during code review. When you add a new screen test, add the same cross-reference comment.
+
+**What's covered:** the existing pure-TS layers (coaching detectors, exercise planning, session storage, key analysis, melody synthesis, theme constants, key signature theory), 7 smoke tests proving the test infrastructure works (PR 1), 86 unit tests across the 5 PR-2 critical files (`align.ts`, `postprocess.ts`, `tracker.ts`, `stats.ts`, `music.ts`), 5 engine integration scenarios driving the full scoring + diagnosis pipeline (PR 3), and 2 component tests covering Coaching diagnosis + bookmarking and Progress tab navigation (PR 4 at `app/__tests__/coaching.test.tsx` + `app/__tests__/explore.test.tsx`).
 
 **What's NOT covered (by PR):**
-- **PR 2:** `lib/scoring/align.ts` (385 LOC, 0 tests — DP segment alignment, false-start filter, NW match), `lib/pitch/postprocess.ts` (173 LOC, 0 tests — clarity gate, median filter, octave-jump constraint), `lib/session/tracker.ts` (138 LOC, 0 tests — sample routing across keys), `lib/progress/stats.ts` (277 LOC, 0 tests — weekly summary, best-key, trend), `lib/exercises/music.ts` (59 LOC, 0 direct tests — round-trip note↔midi, durations, triad voicing).
-- **PR 3:** Engine integration suite at `lib/__tests__/integration/engineIntegration.test.ts` — 5 canonical fixture-driven scenarios.
-- **PR 4:** Component tests for Practice / Coaching / Progress; GitHub Actions CI workflow.
+- **PR 4 deferred:** Practice screen component tests (`app/__tests__/practice.test.tsx` is a `describe.skip` placeholder with the to-do list embedded; unskip after UX audits).
 - **PR 5:** Playwright E2E (5 scenarios) + WAV fixture pipeline + spy on `Tone.Sampler.triggerAttackRelease`.
 - **Phase 5 (after Slice A):** Maestro iOS smoke flows (4 nav-only YAMLs).
 
@@ -142,7 +158,7 @@ Mic access requires HTTPS on iOS Safari, hence ngrok for phone-on-web testing. O
 - **Platform resolution** uses Metro's `.web.ts` / `.native.ts` extension lookup. `index.ts` is the web/default entry; `index.native.ts` overrides on iOS/Android.
 - **Cents** = 1/100 of a semitone (so 100¢ = 1 piano key). The postprocessor returns `PitchSample` with two fields that must be combined: `midi` (rounded to nearest semitone) + `cents` (signed within-semitone deviation, −50..+50). Deviation from a target MIDI is therefore `(sample.midi - targetMidi) * 100 + (sample.cents ?? 0)`. **Forgetting the `+ sample.cents` term is a silent bug** — pass-detection still works on the right semitone, but every recorded cents value collapses to 0, threshold differences (Strict vs Ballpark) become indistinguishable, and the user can never see how flat or sharp they were within the semitone. Search the codebase for any `(sample.midi - …) * 100` pattern that's missing the cents term.
 - **Accuracy %** = fraction of clarity-passed frames within ±50¢ of the target during the inner 60% of the note's duration (skipping attack/release transients).
-- **Scoring is post-pattern, not real-time.** During a key, samples accumulate in a buffer; on key end, `alignAndScore()` finds N stable pitch segments, matches them to the expected pattern via DP alignment, and produces N `NoteScore`s. This eliminates per-exercise latency calibration sensitivity. The latency offset on the Tracker now only affects cosmetic display alignment of the live banner, not scoring.
+- **Scoring is post-pattern, not real-time.** During a key, samples accumulate in a buffer; on key end, `alignAndScore()` finds N stable pitch segments, matches them to the expected pattern via DP alignment, and produces N `NoteScore`s. This eliminates per-exercise latency calibration sensitivity — the Tracker has no latency-offset knob; the calibration UI was removed during the pattern-alignment refactor.
 - **Tone.Transport** is used for scheduling on web so events can be cancelled by ID — never schedule directly via `triggerAttackRelease(time)` if cancellation matters.
 - **Native pitch-shift cap is ±6 semitones** from the nearest sample (`player.native.ts`). Beyond that, decoded `AudioBuffer` artifacts become audible — add a sample, don't widen the cap.
 - **Sub-agent worktrees can't see untracked files.** If you spawn agents in `.claude/worktrees/agent-*` and the main repo has substantial uncommitted code, the worktree branches will be empty parallel-universe scaffolds. Either commit first, or run agents directly in the main working tree (only safe when their file scopes don't overlap).
@@ -152,7 +168,7 @@ Mic access requires HTTPS on iOS Safari, hence ngrok for phone-on-web testing. O
 
 ## Active design questions / next features
 
-**Standard-mode sync investigation resolved architecturally.** After E/F/G/H + POC 1 + sing-along calibration + octave-snap, the system was *still* sensitive to per-exercise tempo and global timing offset. The real fix landed as a model change: pattern-alignment scoring (`lib/scoring/align.ts`) — buffer all samples per key, segment, DP-match to expected pattern, score each segment against its musical-context target. The latency offset is now purely cosmetic (live banner display only). All real-time eval-window logic is gone.
+**Standard-mode sync investigation resolved architecturally.** After E/F/G/H + POC 1 + sing-along calibration + octave-snap, the system was *still* sensitive to per-exercise tempo and global timing offset. The real fix landed as a model change: pattern-alignment scoring (`lib/scoring/align.ts`) — buffer all samples per key, segment, DP-match to expected pattern, score each segment against its musical-context target. The latency-offset slider, the Calibrate button, and `Tracker.setLatencyOffsetMs` were all removed in the post-refactor cleanup; pattern-alignment makes them moot.
 
 See ROADMAP.md §Sprint-Ready Slices for other live candidates:
 

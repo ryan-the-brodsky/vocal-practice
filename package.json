@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "jest"
+    "test": "jest",
+    "test:coverage": "jest --selectProjects unit --coverage"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",
@@ -50,7 +51,9 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-native": "^5.4.3",
+    "@testing-library/react": "^16.3.2",
     "@testing-library/react-native": "~13.0.0",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",

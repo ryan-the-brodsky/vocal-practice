@@ -1,3 +1,8 @@
+// COMPONENT TEST: app/__tests__/explore.test.tsx asserts on the "Progress"
+// title, the "This week" summary header, the empty-state copy ("No sessions
+// yet"), exercise display names, and the "Recent sessions" / "Coach this"
+// labels + the router.push payload `{ pathname: "/coaching", params: { sessionId } }`.
+// Edits to those surfaces here MUST be mirrored in the test file or it will go red.
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -21,12 +26,6 @@ const sessionStore = createAsyncStorageStore();
 
 // All exercise IDs available for the routine editor
 const ALL_EXERCISE_IDS = Object.keys(EXERCISE_NAMES);
-
-const FREQUENCY_OPTIONS: Array<{ value: RoutineConfig["frequency"]; label: string }> = [
-  { value: "daily", label: "Daily" },
-  { value: "3x-weekly", label: "3x Weekly" },
-  { value: "weekly", label: "Weekly" },
-];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -60,13 +59,11 @@ function RoutineEditModal({
 }) {
   const { colors } = useTheme();
   const [selectedIds, setSelectedIds] = useState<string[]>(routine.exerciseIds);
-  const [frequency, setFrequency] = useState<RoutineConfig["frequency"]>(routine.frequency);
 
   // Sync local state when modal opens with a fresh routine
   useEffect(() => {
     if (visible) {
       setSelectedIds(routine.exerciseIds);
-      setFrequency(routine.frequency);
     }
   }, [visible, routine]);
 
@@ -77,7 +74,7 @@ function RoutineEditModal({
   }
 
   function handleDone() {
-    onSave({ exerciseIds: selectedIds, frequency });
+    onSave({ exerciseIds: selectedIds });
     onClose();
   }
 
@@ -113,25 +110,6 @@ function RoutineEditModal({
             );
           })}
 
-          <Text style={[mStyles.sectionLabel, { marginTop: Spacing.md, color: colors.textTertiary, fontFamily: Fonts.bodyMedium, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight }]}>
-            FREQUENCY
-          </Text>
-          <View style={[mStyles.segmentControl, { borderColor: colors.borderStrong, borderRadius: Radii.md }]}>
-            {FREQUENCY_OPTIONS.map((opt) => {
-              const active = frequency === opt.value;
-              return (
-                <Pressable
-                  key={opt.value}
-                  onPress={() => setFrequency(opt.value)}
-                  style={[mStyles.segment, { backgroundColor: active ? colors.textPrimary : colors.bgSurface }]}
-                >
-                  <Text style={[mStyles.segmentText, { color: active ? colors.bgCanvas : colors.textSecondary, fontFamily: active ? Fonts.bodySemibold : Fonts.body, fontSize: Typography.base.size }]}>
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
         </ScrollView>
       </View>
     </Modal>
@@ -319,8 +297,6 @@ function ExerciseRow({
         </View>
       )}
 
-      {/* Imported-exercise expanded sections: structural placeholders only.
-          Slice 5 fills timeline + per-degree stats + range slider; Slice 7 wires edit. */}
       {expanded && imported && (
         <View style={[styles.importedDetail, { borderTopColor: colors.borderSubtle, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, gap: Spacing.sm }]}>
           {progress.trend.length > 0 && (
@@ -328,36 +304,6 @@ function ExerciseRow({
               <Sparkline data={sparkData} avg={allTimeAvg} color={colors.accent} />
             </View>
           )}
-
-          <View style={[styles.importedSection, { gap: Spacing['2xs'] }]}>
-            <Text style={{ fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 0.6 }}>
-              TIMELINE
-            </Text>
-            <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body, color: colors.textTertiary, fontStyle: "italic" }}>
-              {/* TODO Slice 5: render note timeline strip from imported.analysis.notes */}
-              Note timeline coming soon.
-            </Text>
-          </View>
-
-          <View style={[styles.importedSection, { gap: Spacing['2xs'] }]}>
-            <Text style={{ fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 0.6 }}>
-              PER-SCALE-DEGREE STATS
-            </Text>
-            <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body, color: colors.textTertiary, fontStyle: "italic" }}>
-              {/* TODO Slice 5: render PerDegreeTable from imported.analysis.perScaleDegree */}
-              Per-degree intonation table coming soon.
-            </Text>
-          </View>
-
-          <View style={[styles.importedSection, { gap: Spacing['2xs'] }]}>
-            <Text style={{ fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 0.6 }}>
-              RANGE
-            </Text>
-            <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body, color: colors.textTertiary, fontStyle: "italic" }}>
-              {/* TODO Slice 5: range slider for subset practice */}
-              Range slider coming soon.
-            </Text>
-          </View>
 
           <Pressable
             style={[styles.coachMelodyBtn, { backgroundColor: colors.accent, borderRadius: Radii.md, paddingVertical: Spacing.sm, alignItems: "center" }]}
@@ -534,7 +480,7 @@ export default function ProgressScreen() {
   const allSessions = sessions ?? [];
 
   // Compute routine status
-  const activeRoutine = routine ?? { exerciseIds: [], frequency: "daily" as const };
+  const activeRoutine: RoutineConfig = routine ?? { exerciseIds: [] };
   const routineStatus = todayStatus(activeRoutine, allSessions);
 
   // Show empty state only when no sessions AND no routine items AND no imports — anything else, render the screen
@@ -766,7 +712,4 @@ const mStyles = StyleSheet.create({
   checkbox: { width: 22, height: 22, borderRadius: Radii.sm, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   checkmark: {},
   exerciseLabel: { flex: 1 },
-  segmentControl: { flexDirection: "row", borderWidth: 1, overflow: "hidden" },
-  segment: { flex: 1, paddingVertical: Spacing.xs, alignItems: "center" },
-  segmentText: {},
 });

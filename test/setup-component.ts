@@ -4,6 +4,21 @@
 // Each test calls installFakeAudio() / installFakePitch() in beforeEach to get
 // a recording spy back, then __reset…Factory() in afterEach.
 
+// jsdom doesn't ship matchMedia; reanimated 4.x reads it at module load.
+if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).matchMedia = (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+}
+
 import {
   __setAudioPlayerFactory,
   __resetAudioPlayerFactory,
@@ -155,8 +170,50 @@ jest.mock("expo-haptics", () => ({
 // Tone.js — short-circuit transitive imports with a no-op stub.
 jest.mock("tone", () => require("./mocks/tone"));
 
+// expo-router — tests drive route params via setMockRouterParams() and
+// inspect router calls via getMockRouter(). Reset to defaults in afterEach.
+type MockRouter = {
+  push: jest.Mock;
+  back: jest.Mock;
+  replace: jest.Mock;
+  setParams: jest.Mock;
+};
+
+const mockRouterState: { params: Record<string, string | undefined>; router: MockRouter } = {
+  params: {},
+  router: {
+    push: jest.fn(),
+    back: jest.fn(),
+    replace: jest.fn(),
+    setParams: jest.fn(),
+  },
+};
+
+export function setMockRouterParams(params: Record<string, string | undefined>): void {
+  mockRouterState.params = { ...params };
+}
+
+export function getMockRouter(): MockRouter {
+  return mockRouterState.router;
+}
+
+export function resetMockRouter(): void {
+  mockRouterState.params = {};
+  mockRouterState.router.push.mockReset();
+  mockRouterState.router.back.mockReset();
+  mockRouterState.router.replace.mockReset();
+  mockRouterState.router.setParams.mockReset();
+}
+
+jest.mock("expo-router", () => ({
+  useLocalSearchParams: () => mockRouterState.params,
+  useRouter: () => mockRouterState.router,
+  router: mockRouterState.router,
+}));
+
 // Reset registries between tests so a leak doesn't poison the next test.
 afterEach(() => {
   resetFakeAudio();
   resetFakePitch();
+  resetMockRouter();
 });

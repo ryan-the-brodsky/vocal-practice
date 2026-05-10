@@ -5,11 +5,8 @@ import type { SessionRecord } from "./types";
 // Types
 // ---------------------------------------------------------------------------
 
-export type RoutineFrequency = "daily" | "3x-weekly" | "weekly";
-
 export interface RoutineConfig {
   exerciseIds: string[];
-  frequency: RoutineFrequency;
 }
 
 export interface RoutineStatus {
@@ -31,7 +28,6 @@ export const DEFAULT_ROUTINE: RoutineConfig = {
     "goog-octave-arpeggio",
     "rossini-lip-trill",
   ],
-  frequency: "daily",
 };
 
 // ---------------------------------------------------------------------------
@@ -47,10 +43,9 @@ export async function loadRoutine(): Promise<RoutineConfig> {
       parsed !== null &&
       typeof parsed === "object" &&
       "exerciseIds" in parsed &&
-      "frequency" in parsed &&
       Array.isArray((parsed as RoutineConfig).exerciseIds)
     ) {
-      return parsed as RoutineConfig;
+      return { exerciseIds: (parsed as RoutineConfig).exerciseIds };
     }
     return DEFAULT_ROUTINE;
   } catch {

@@ -24,7 +24,7 @@ export {
 } from "./stats";
 
 // Routine
-export type { RoutineFrequency, RoutineConfig, RoutineStatus } from "./routine";
+export type { RoutineConfig, RoutineStatus } from "./routine";
 export {
   DEFAULT_ROUTINE,
   loadRoutine,
