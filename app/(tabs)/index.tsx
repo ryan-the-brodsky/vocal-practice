@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
@@ -53,8 +53,11 @@ type Guidance = "full" | "tonic-only";
 
 const sessionStore = createAsyncStorageStore();
 
+const VALID_VOICE_PARTS: readonly VoicePart[] = ["soprano", "alto", "tenor", "baritone"];
+
 export default function PracticeScreen() {
   const router = useRouter();
+  const navParams = useLocalSearchParams<{ exerciseId?: string; voicePart?: string }>();
   const { width } = useWindowDimensions();
   const isWide = width >= 640;
   const { colors } = useTheme();
@@ -99,6 +102,33 @@ export default function PracticeScreen() {
       .catch(() => setAvailableExercises(exerciseLibrary));
   }, []);
 
+  // Honor exerciseId / voicePart query params (set by Coaching's "Practice this
+  // again" CTA). Lock the consumed key so re-renders don't re-apply, but allow
+  // a fresh navigation with different params to fire again.
+  const lastConsumedNavKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const wantExerciseId = navParams.exerciseId ?? "";
+    const wantVoicePart = navParams.voicePart ?? "";
+    if (!wantExerciseId && !wantVoicePart) return;
+    const key = `${wantExerciseId}|${wantVoicePart}`;
+    if (key === lastConsumedNavKeyRef.current) return;
+
+    let appliedExercise = false;
+    if (wantExerciseId && availableExercises.some((e) => e.id === wantExerciseId)) {
+      setExerciseId(wantExerciseId);
+      appliedExercise = true;
+    }
+    if (wantVoicePart && (VALID_VOICE_PARTS as readonly string[]).includes(wantVoicePart)) {
+      setVoicePartState(wantVoicePart as VoicePart);
+    }
+    // If the requested exerciseId isn't in the exercise list yet (async load
+    // pending), defer locking — the effect re-runs when availableExercises
+    // changes and will retry.
+    if (!wantExerciseId || appliedExercise) {
+      lastConsumedNavKeyRef.current = key;
+    }
+  }, [navParams.exerciseId, navParams.voicePart, availableExercises]);
+
   const handleImportSaved = useCallback(async (newId: string) => {
     try {
       const list = await getAllExercises();
@@ -128,7 +158,7 @@ export default function PracticeScreen() {
   const [progress, setProgress] = useState(0);
   const [snapshot, setSnapshot] = useState<SessionTrackerSnapshot | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
-  const [coachingCta, setCoachingCta] = useState<{ sessionId: string; previewText: string } | null>(null);
+  const [coachingCta, setCoachingCta] = useState<{ sessionId: string; previewText: string; previewSubline?: string } | null>(null);
   // Pending session awaiting user's Log/Discard decision. Not persisted until logged.
   const [pendingSession, setPendingSession] = useState<SessionRecord | null>(null);
   const [loggedMessage, setLoggedMessage] = useState<string | null>(null);
@@ -153,7 +183,7 @@ export default function PracticeScreen() {
     Map<string, {
       snapshot: SessionTrackerSnapshot | null;
       pendingSession: SessionRecord | null;
-      coachingCta: { sessionId: string; previewText: string } | null;
+      coachingCta: { sessionId: string; previewText: string; previewSubline?: string } | null;
     }>
   >(new Map());
   // Resolved when the user taps "Skip demo" during the demo phase.
@@ -448,9 +478,8 @@ export default function PracticeScreen() {
             : null;
           setCoachingCta({
             sessionId: id,
-            previewText: symptomTitle
-              ? `${symptomTitle} — ${top.evidenceText}`
-              : top.evidenceText,
+            previewText: symptomTitle ?? top.evidenceText,
+            previewSubline: symptomTitle ? top.evidenceText : undefined,
           });
         }
 
@@ -1010,7 +1039,7 @@ function ResetButton({ onPress }: { onPress: () => void }) {
 }
 
 interface StandardBodyProps {
-  coachingCta: { sessionId: string; previewText: string } | null;
+  coachingCta: { sessionId: string; previewText: string; previewSubline?: string } | null;
   currentTarget: NoteEvent | null;
   demoSkipRef: React.MutableRefObject<(() => void) | null>;
   error: string | null;
@@ -1233,13 +1262,17 @@ function StandardModeBody({
           onPress={() =>
             router.push({ pathname: "/coaching", params: { sessionId: coachingCta.sessionId } })
           }
+          accessibilityRole="button"
+          accessibilityLabel={`Coach this session: ${coachingCta.previewText}`}
         >
           <Text style={[styles.reviewCtaText, { color: colors.accent, fontFamily: Fonts.bodySemibold }]}>
-            Coach this →
+            {coachingCta.previewText} →
           </Text>
-          <Text style={[styles.reviewCtaSubtle, { color: colors.textSecondary, fontFamily: Fonts.body }]}>
-            {coachingCta.previewText}
-          </Text>
+          {coachingCta.previewSubline && (
+            <Text style={[styles.reviewCtaSubtle, { color: colors.textSecondary, fontFamily: Fonts.body }]}>
+              {coachingCta.previewSubline}
+            </Text>
+          )}
         </Pressable>
       )}
 

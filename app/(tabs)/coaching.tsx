@@ -1,6 +1,8 @@
 // COMPONENT TEST: app/__tests__/coaching.test.tsx asserts on the rendered
 // headline copy ("Singing flat"), the evidence-line cents tokens, the "Likely
-// causes" section, and the bookmark accessibility labels. Edits to those
+// causes" section, the bookmark accessibility labels, and the
+// "Practice this exercise again" button + its router.push payload
+// `{ pathname: "/", params: { exerciseId, voicePart } }`. Edits to those
 // surfaces here MUST be mirrored in the test file or it will go red.
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -729,6 +731,36 @@ export default function CoachingScreen() {
         onSave={handleSaveDiagnosis}
         onUnsave={handleUnsaveDiagnosis}
       />
+
+      <Pressable
+        onPress={() => {
+          const params: Record<string, string> = {};
+          if (contextExerciseId) params.exerciseId = contextExerciseId;
+          if (record?.voicePart) params.voicePart = record.voicePart;
+          router.push({ pathname: "/", params });
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Practice this exercise again"
+        style={{
+          backgroundColor: colors.accent,
+          paddingVertical: Spacing.md,
+          borderRadius: Radii.md,
+          alignItems: "center",
+          minHeight: 44,
+          justifyContent: "center",
+        }}
+      >
+        <Text
+          style={{
+            fontSize: Typography.base.size,
+            lineHeight: Typography.base.lineHeight,
+            fontFamily: Fonts.bodySemibold,
+            color: colors.canvas,
+          }}
+        >
+          Practice this again
+        </Text>
+      </Pressable>
     </ScrollView>
   );
 }

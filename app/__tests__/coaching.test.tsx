@@ -8,7 +8,7 @@ import { render, screen, fireEvent, waitFor, act } from "@testing-library/react"
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import CoachingScreen from "@/app/(tabs)/coaching";
-import { setMockRouterParams } from "@/test/setup-component";
+import { getMockRouter, setMockRouterParams } from "@/test/setup-component";
 import { seedSessionRecord } from "@/test/fixtures/sessions";
 
 const SESSIONS_KEY = "vocal-training:sessions:v1";
@@ -102,6 +102,28 @@ describe("<CoachingScreen />", () => {
     render(<CoachingScreen />);
     await waitFor(() => {
       expect(screen.getByText("No session id provided.")).toBeTruthy();
+    });
+  });
+
+  it("'Practice this again' navigates to / with the source exerciseId and voicePart", async () => {
+    const sessionId = await seedSessions();
+    setMockRouterParams({ sessionId });
+    render(<CoachingScreen />);
+
+    // Wait for the diagnostic surface (which carries the Practice-again button).
+    await waitFor(() => {
+      expect(screen.getByText("Singing flat")).toBeTruthy();
+    });
+
+    const button = screen.getByLabelText("Practice this exercise again");
+    const router = getMockRouter();
+    await act(async () => {
+      fireEvent.click(button);
+    });
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: "/",
+      params: { exerciseId: "five-note-scale-mee-may-mah", voicePart: "tenor" },
     });
   });
 });

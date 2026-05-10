@@ -81,7 +81,7 @@ Two small surfacing fixes: voice part survives cold launches, and the Practice s
 
 ---
 
-## Slice 3 — Coaching CTA copy + Practice-this-again loop-back (S · ~2h)
+## Slice 3 — Coaching CTA copy + Practice-this-again loop-back (S · ~2h) ✅ shipped 2026-05-10
 
 **Bundles audit issues 1.6, 1.7.**
 
@@ -102,9 +102,15 @@ Make the post-session Coaching CTA inviting rather than chart-label-ish, and clo
 - New test or assertion for CTA preview shape — if Practice's component test gains coverage in Slice 2, fold the CTA copy assertion in here.
 
 ### Done criteria
-- [ ] Post-session "Coach this →" shows symptom title large, evidence small.
-- [ ] Coaching screen "Practice this again" navigates to Practice with the exercise + voice part preselected.
-- [ ] Existing 3 coaching-test cases still green.
+- [x] Post-session CTA primary line is the symptom title (with arrow); subline is the evidence text. Falls back to evidence-as-headline when no symptom card exists (e.g. position-consistent diagnosis).
+- [x] Coaching screen "Practice this again" button navigates to `/` with `{ exerciseId, voicePart }` params. Practice screen consumes them on first matching render via `lastConsumedNavKeyRef`; voice-part param sets state directly without triggering AsyncStorage persistence (programmatic transitions don't override the user's persisted choice).
+- [x] Existing 3 coaching-test cases still green; 1 new test asserts the router.push payload. 354 → 355 tests.
+
+### Slice 3 implementation notes
+- `coachingCta` shape extended with optional `previewSubline`. JSX renders `previewText →` as primary and `previewSubline` as subline only when present.
+- Practice param-honoring uses a key ref (`lastConsumedNavKeyRef = "exerciseId|voicePart"`) so re-renders with the same params don't re-apply, but a fresh navigation with different params re-fires.
+- `voicePart` query-param values are validated against `VALID_VOICE_PARTS` before state-setting.
+- Pathname `/` resolves to the Practice tab via the (tabs)/index.tsx route.
 
 ---
 
