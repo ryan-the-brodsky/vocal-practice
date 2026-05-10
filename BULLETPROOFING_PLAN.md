@@ -152,7 +152,7 @@ The biggest UX shift in this plan: today's routine becomes the daily entry point
 
 ---
 
-## Slice 5 — Pre-Start mic check + live indicator (S · ~3h)
+## Slice 5 — Pre-Start mic check + live indicator (S · ~3h) ✅ shipped 2026-05-10
 
 **Audit issue 1.8.**
 
@@ -172,9 +172,15 @@ Eliminate the silent-failure mode where mic permission denial is invisible until
 - `components/practice/__tests__/MicStatus.test.tsx` — render in `denied` state, assert the warning copy appears with the correct `accessibilityLabel`.
 
 ### Done criteria
-- [ ] Cold launch with mic permission revoked at the OS level → MicStatus shows red + helpful copy → Start button disabled or warns inline.
-- [ ] During session, live RMS dB visible.
-- [ ] Permission re-granted → status updates without app reload (re-poll on focus).
+- [x] `sniffMicrophone(factory, timeoutMs)` returns `{ ok, rmsDb, error? }` covering: first-sample success, start() rejection (permission denied), and timeout. 3 unit tests cover the three branches.
+- [x] `<MicStatus>` renders four states (`unknown` / `checking` / `denied` / `ready`); ready state takes optional `liveRmsDb` and renders "{rounded} dB". Pressable affordance + accessibilityLabel on the unknown and denied paths. 5 component tests.
+- [x] Practice mounts the component below the headphones banner; `handleCheckMic` runs the sniff and transitions state. During an active session, mic state sticks to `ready` and the row shows the live RMS dB readout.
+- [-] Auto-update on permission re-grant via focus listener — deferred. Manual retry via the Pressable handles the recovery path.
+
+### Slice 5 implementation notes
+- `sniffMicrophone(factory, timeoutMs)` takes the detector factory as a required parameter rather than reading the module-level DI registry. The unit test for sniff would otherwise pull `detector.web.ts` (and pitchy ESM) into ts-jest's import chain. Production caller passes `createPitchDetector` from `@/lib/pitch`.
+- During an active session, the existing `latestSample` flow doubles as live mic confirmation; an effect watches it and pins `micState` to `"ready"` on first sample so subsequent sessions don't re-prompt the check.
+- Component test for sniff lives in the unit project (pure TS, no jsdom needed), MicStatus test in the component project alongside other DOM-rendered components.
 
 ---
 

@@ -17,6 +17,7 @@ import {
   rmsGateFor,
   summarizeKey,
 } from "@/components/practice";
+import { MicStatus, type MicStatusState } from "@/components/practice/MicStatus";
 import { createAudioPlayer, type AudioPlayer, type SequenceHandle } from "@/lib/audio";
 import {
   ADVICE_CARDS_BY_ID,
@@ -41,6 +42,7 @@ import {
   type PitchDetector,
   type PitchSample,
 } from "@/lib/pitch";
+import { sniffMicrophone } from "@/lib/pitch/sniff";
 import { createAsyncStorageStore, type SessionRecord } from "@/lib/progress";
 import { loadRoutine, todayStatus, type RoutineConfig, type RoutineStatus } from "@/lib/progress/routine";
 import { SessionTracker, type SessionTrackerSnapshot } from "@/lib/session/tracker";
@@ -179,6 +181,9 @@ export default function PracticeScreen() {
   const [loggedMessage, setLoggedMessage] = useState<string | null>(null);
   // Beats remaining until melody starts (null when not in lead-in window).
   const [leadInCountdown, setLeadInCountdown] = useState<number | null>(null);
+  // Tracks the result of the user's mic-check sniff. Reset to "unknown" on
+  // mount; transitions on tap or when a real session sample arrives.
+  const [micState, setMicState] = useState<MicStatusState>("unknown");
 
   const scrollViewRef = useRef<ScrollView | null>(null);
   const playerRef = useRef<AudioPlayer | null>(null);
@@ -296,6 +301,21 @@ export default function PracticeScreen() {
     handleExerciseChange(newId);
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   }, [handleExerciseChange]);
+
+  const handleCheckMic = useCallback(async () => {
+    setMicState("checking");
+    const result = await sniffMicrophone(createPitchDetector);
+    setMicState(result.ok ? "ready" : "denied");
+  }, []);
+
+  // Once an active session is producing samples, mic state can stick to
+  // "ready" — that's a stronger signal than the sniff and survives across
+  // future sessions in this app launch.
+  useEffect(() => {
+    if (status === "playing" && latestSample !== null && micState !== "ready") {
+      setMicState("ready");
+    }
+  }, [status, latestSample, micState]);
 
   async function handleStart() {
     if (status !== "idle") return;
@@ -619,6 +639,18 @@ export default function PracticeScreen() {
 
       {/* Modal shown once per session — gates Start until answered */}
       <HeadphonesBanner onConfirm={setHeadphonesConfirmed} />
+
+      {/* Pre-Start mic check — surfaces silent permission failures before the
+          user discovers them via blank scoring at session end. */}
+      <MicStatus
+        state={micState}
+        liveRmsDb={
+          status === "playing" && typeof latestSample?.rmsDb === "number"
+            ? latestSample.rmsDb
+            : undefined
+        }
+        onCheck={handleCheckMic}
+      />
 
       {/*
         Responsive primary-picks + settings cluster.
