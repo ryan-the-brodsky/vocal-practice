@@ -4,6 +4,27 @@ Implementation plan derived from the 2026-05-10 founder-mode review (HOLD SCOPE 
 
 **Audit issues reference key:** Section.IssueNumber from the review (e.g. 1.4 = Section 1, Issue 4).
 
+## Status — 2026-05-10 wrap
+
+**7 of 8 slices shipped.** Slice 8 (iOS dev build + clock fix + C6 sample) is deferred indefinitely — the user has decided the web app is sufficient as the product and may pursue a PWA shell (add-to-home-screen, web push, offline) instead of going native. Slice 8 stays in this doc as documentation; reopen when (and only when) iOS native is on the table.
+
+| Slice | Status | Test delta |
+|---|---|---|
+| 1. Cleanup pass (frequency / placeholders / dead latency code) | ✅ shipped | -1 |
+| 2. Voice persistence + Resuming-key label | ✅ shipped | +5 |
+| 3. Coaching CTA copy + Practice-this-again loop-back | ✅ shipped | +1 |
+| 4. Routine on Practice + tappable + auto-advance | ✅ shipped | +6 |
+| 5. Pre-Start mic check + live indicator | ✅ shipped | +8 |
+| 6. Saved-tips cap (most of original scope was already shipped) | ✅ shipped | +1 |
+| 7. Wire Guided mode to coaching | ✅ shipped | +10 |
+| 8. iOS dev build + clock fix + C6 sample | 🔒 deferred | — |
+
+Test suite went 350 → 380 (+30 net, +31 added minus 1 removed for the dropped latency-cosmetic test). 31 of 32 suites green; the deliberate Practice screen `describe.skip` placeholder remains as documented.
+
+The daily flow is now one-tap from cold launch → first exercise's first note (per the Section 1.1 audit goal). Coaching surfaces are no longer dead ends. Both practice modes feed the same diagnosis pipeline. Voice part, headphones intent (per-session), routine progress, and tonic memory are all surfaced without the user having to reason about persistence themselves.
+
+---
+
 ---
 
 ## Sequencing rationale
@@ -261,7 +282,9 @@ Guided mode currently produces rich per-note tuning data but never reaches `diag
 
 ---
 
-## Slice 8 — iOS dev build bundle: prebuild + clock fix + C6 sample (M · ~6h, partly manual)
+## Slice 8 — iOS dev build bundle: prebuild + clock fix + C6 sample (M · ~6h, partly manual) 🔒 deferred 2026-05-10
+
+Held pending a deliberate commitment to the iOS native path. The web app is the product; PWA shell (add-to-home-screen, web push, offline) is the more likely deployment direction. The clock fix and C6 sample work documented below stays valid if/when this slice reopens — both are still-correct technical observations about the current native code path.
 
 **Bundles audit issues 2.1, 2.3. Implements the long-standing M1 finisher.**
 
