@@ -42,6 +42,7 @@ import {
 } from "@/lib/pitch";
 import { createAsyncStorageStore, type SessionRecord } from "@/lib/progress";
 import { SessionTracker, type SessionTrackerSnapshot } from "@/lib/session/tracker";
+import { loadVoicePart, saveVoicePart } from "@/lib/settings/voicePart";
 
 const VOICE_PARTS: VoicePart[] = ["soprano", "alto", "tenor", "baritone"];
 const MODE_STORAGE_KEY = "vocal-training:mode:v1";
@@ -65,7 +66,11 @@ export default function PracticeScreen() {
   // Async-loaded merged list (built-ins + user-imported); refreshed when an import saves.
   const [availableExercises, setAvailableExercises] = useState<ExerciseDescriptor[]>(exerciseLibrary);
   const [importModalVisible, setImportModalVisible] = useState(false);
-  const [voicePart, setVoicePart] = useState<VoicePart>("tenor");
+  const [voicePart, setVoicePartState] = useState<VoicePart>("tenor");
+  const setVoicePart = useCallback((next: VoicePart) => {
+    setVoicePartState(next);
+    saveVoicePart(next).catch(() => {});
+  }, []);
   const [accompanimentPreset, setAccompanimentPreset] = useState<AccompanimentPreset | undefined>("classical");
   // null = modal not yet answered; true/false set by HeadphonesModal.
   const [headphonesConfirmed, setHeadphonesConfirmed] = useState<boolean | null>(null);
@@ -82,6 +87,11 @@ export default function PracticeScreen() {
     AsyncStorage.getItem(DEMO_ENABLED_KEY)
       .then((v) => {
         if (v === "false") setDemoEnabled(false);
+      })
+      .catch(() => {});
+    loadVoicePart()
+      .then((vp) => {
+        if (vp) setVoicePartState(vp);
       })
       .catch(() => {});
     getAllExercises()
@@ -695,6 +705,7 @@ export default function PracticeScreen() {
           savedMessage={savedMessage}
           snapshot={snapshot}
           startTonicMidi={startTonicMidi}
+          defaultTonicMidi={defaultTonicMidi}
           status={status}
           playerRef={playerRef}
           detectorRef={detectorRef}
@@ -1022,6 +1033,7 @@ interface StandardBodyProps {
   savedMessage: string | null;
   snapshot: SessionTrackerSnapshot | null;
   startTonicMidi: number | null;
+  defaultTonicMidi: number | null;
   status: "idle" | "loading" | "demo" | "playing" | "stopping";
   playerRef: React.MutableRefObject<AudioPlayer | null>;
   detectorRef: React.MutableRefObject<PitchDetector | null>;
@@ -1052,6 +1064,7 @@ function StandardModeBody({
   savedMessage,
   snapshot,
   startTonicMidi,
+  defaultTonicMidi,
   status,
   playerRef,
   detectorRef,
@@ -1129,7 +1142,9 @@ function StandardModeBody({
         <View style={styles.keyHeaderRow}>
           <Text style={[styles.keyHeaderLabel, { color: colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>
             {startTonicMidi !== null
-              ? `Starting key: ${midiToNote(startTonicMidi)}`
+              ? defaultTonicMidi !== null && startTonicMidi !== defaultTonicMidi
+                ? `Resuming at ${midiToNote(startTonicMidi)}`
+                : `Starting at ${midiToNote(startTonicMidi)}`
               : "Current key"}
           </Text>
           <ResetButton onPress={handleResetTonic} />

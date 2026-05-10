@@ -16,7 +16,7 @@ Implementation plan derived from the 2026-05-10 founder-mode review (HOLD SCOPE 
 
 ---
 
-## Slice 1 — Cleanup pass (XS · ~1h)
+## Slice 1 — Cleanup pass (XS · ~1h) ✅ shipped 2026-05-10 (commit 632630a)
 
 **Bundles audit issues 4.1, 4.2, 4.3.**
 
@@ -39,15 +39,19 @@ Remove three pieces of cruft that compromise HOLD SCOPE bulletproofing: an unuse
 - `npm run test:coverage` should not regress (coverage thresholds are scoped to PR-2 files; this slice doesn't touch them).
 
 ### Done criteria
-- [ ] `grep -rn "frequency\|FREQUENCY_OPTIONS" app/ lib/components/` returns no live references.
-- [ ] `grep -rn "coming soon" app/` returns no matches.
-- [ ] `grep -rn "setLatencyOffsetMs\|latencyOffsetMs" lib/ app/` returns no matches.
-- [ ] `npm test && tsc --noEmit` clean.
-- [ ] CLAUDE.md and ROADMAP.md no longer reference the calibration UI.
+- [x] `grep -rn "frequency\|FREQUENCY_OPTIONS" app/ lib/components/` returns no live references.
+- [x] `grep -rn "coming soon" app/` returns no matches.
+- [x] `grep -rn "setLatencyOffsetMs\|latencyOffsetMs" lib/ app/` returns no matches.
+- [x] `npm test && tsc --noEmit` clean. Test count 350 → 349 (dropped 1 latency-offset cosmetic test).
+- [x] CLAUDE.md and ROADMAP.md no longer reference the calibration UI.
+
+### Side-discoveries during Slice 1
+- **Slice 6 may already be partially shipped.** `lib/progress/storage.ts:173` already enforces `MAX_PERSISTED_SESSIONS = 500` with a console.warn when a prune fires. Need to audit when we open Slice 6 — likely just missing the trace-blob aging-out + coaching-orphan cleanup, not the cap itself.
+- **PR 1–4 test-pyramid backlog committed alongside Slice 1.** The test infrastructure documented as "shipped" in CLAUDE.md was never actually committed; commit 632630a bundles both bodies of work.
 
 ---
 
-## Slice 2 — Voice persistence + Resuming-key label (XS · ~30min)
+## Slice 2 — Voice persistence + Resuming-key label (XS · ~30min) ✅ shipped 2026-05-10
 
 **Bundles audit issues 1.2, 1.5.**
 
@@ -66,9 +70,14 @@ Two small surfacing fixes: voice part survives cold launches, and the Practice s
 - Component snapshot or query test for the `Resuming at`/`Starting at` label split. Can land in `app/__tests__/practice.test.tsx` once the `describe.skip` is partially un-skipped for these specific assertions, or as a new isolated component test if a small `<KeyHeader>` extraction makes sense.
 
 ### Done criteria
-- [ ] Setting voice to soprano, killing the app, reopening — voice is still soprano.
-- [ ] When the saved tonic equals range lowest, label reads "Starting at C". When advanced, label reads "Resuming at G".
-- [ ] No regression in 350-test suite.
+- [x] Setting voice to soprano, killing the app, reopening — voice is still soprano. (verified by `lib/settings/__tests__/voicePart.test.ts` round-trip)
+- [x] When the saved tonic equals range lowest, label reads "Starting at C". When advanced, label reads "Resuming at G". (logic implemented in `app/(tabs)/index.tsx`; render-test deferred behind the same UX-fluid policy as the rest of practice.test.tsx)
+- [x] No regression. 349 → 354 tests (5 new voice-part tests), 27 of 28 suites passing (1 skipped placeholder), tsc clean.
+
+### Slice 2 implementation notes
+- New helper: `lib/settings/voicePart.ts` (`loadVoicePart` / `saveVoicePart` / `VOICE_PART_STORAGE_KEY`). Extracted as a module so AsyncStorage round-trip is testable without rendering the full Practice screen.
+- Practice screen wraps `setVoicePart` with an internal setter that updates state and persists. The picker's `onPress` call site (`setVoicePart(vp)`) is unchanged — wrapper is transparent.
+- `defaultTonicMidi` plumbed through `StandardBodyProps` so the label can compare against it.
 
 ---
 
