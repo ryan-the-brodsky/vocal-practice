@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, useWindowDimensions, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -18,6 +18,7 @@ import {
   summarizeKey,
 } from "@/components/practice";
 import { MicStatus, type MicStatusState } from "@/components/practice/MicStatus";
+import { PostSessionPanel } from "@/components/practice/PostSessionPanel";
 import { createAudioPlayer, type AudioPlayer, type SequenceHandle } from "@/lib/audio";
 import {
   ADVICE_CARDS_BY_ID,
@@ -307,6 +308,32 @@ export default function PracticeScreen() {
     const result = await sniffMicrophone(createPitchDetector);
     setMicState(result.ok ? "ready" : "denied");
   }, []);
+
+  // Guided patterns deliver a fully-formed SessionRecord + synthesized
+  // iterations on completion. Reuse the Standard mode's Log/Discard +
+  // Coaching CTA wiring so Guided gets the same coaching payoff.
+  const handleGuidedPatternComplete = useCallback(
+    (record: SessionRecord, iterations: KeyIteration[]) => {
+      setPendingSession(record);
+      setLoggedMessage(null);
+
+      const sessionInput = fromKeyAttempts(record.keyAttempts, iterations);
+      const ranked = diagnoseSession(sessionInput);
+      if (ranked.length > 0) {
+        const top = ranked[0];
+        const mapping = DETECTOR_MAPPINGS_BY_ID[top.detectorId];
+        const symptomTitle = mapping?.symptomCardId
+          ? ADVICE_CARDS_BY_ID[mapping.symptomCardId]?.title
+          : null;
+        setCoachingCta({
+          sessionId: record.id,
+          previewText: symptomTitle ?? top.evidenceText,
+          previewSubline: symptomTitle ? top.evidenceText : undefined,
+        });
+      }
+    },
+    [],
+  );
 
   // Once an active session is producing samples, mic state can stick to
   // "ready" — that's a stronger signal than the sniff and survives across
@@ -789,7 +816,27 @@ export default function PracticeScreen() {
       />
 
       {mode === "guided" ? (
-        <GuidedSession exercise={exercise} voicePart={voicePart} />
+        <>
+          <GuidedSession
+            exercise={exercise}
+            voicePart={voicePart}
+            onPatternComplete={handleGuidedPatternComplete}
+          />
+          <PostSessionPanel
+            pendingSession={pendingSession}
+            loggedMessage={loggedMessage}
+            onLog={(note) => handleLogSession(note)}
+            onDiscard={handleDiscardSession}
+            coachingCta={coachingCta}
+            onTapCoaching={(sessionId) =>
+              router.push({ pathname: "/coaching", params: { sessionId } })
+            }
+            nextRoutineItemId={nextRoutineItemId}
+            routineAllDone={routineStatus.total > 0 && routineStatus.done === routineStatus.total}
+            onAutoAdvance={handleAutoAdvance}
+            isIdle={true}
+          />
+        </>
       ) : (
         <StandardModeBody
           coachingCta={coachingCta}
@@ -1190,7 +1237,6 @@ function StandardModeBody({
   voicePart,
 }: StandardBodyProps) {
   const { colors } = useTheme();
-  const [sessionNote, setSessionNote] = useState("");
   return (
     <>
       {status === "demo" && (
@@ -1297,96 +1343,20 @@ function StandardModeBody({
       {error && <Text style={[styles.error, { color: colors.error, fontFamily: Fonts.body }]}>{error}</Text>}
       {savedMessage && <Text style={[styles.saved, { color: colors.success, fontFamily: Fonts.body }]}>{savedMessage}</Text>}
 
-      {/* Log / Discard panel — shown when a session has ended but not yet persisted */}
-      {pendingSession && status === "idle" && !loggedMessage && (
-        <View style={[styles.logPanel, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
-          <Text style={[styles.logHint, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
-            This won't count toward your history unless you log it.
-          </Text>
-          <TextInput
-            style={[
-              styles.logNoteInput,
-              {
-                borderColor: colors.borderStrong,
-                color: colors.textPrimary,
-                backgroundColor: colors.canvas,
-                fontFamily: Fonts.body,
-              },
-            ]}
-            placeholder='Note (optional) — e.g. "Felt good on the high notes"'
-            placeholderTextColor={colors.textTertiary}
-            value={sessionNote}
-            onChangeText={setSessionNote}
-            returnKeyType="done"
-            blurOnSubmit
-          />
-          <Pressable
-            style={[styles.btn, { backgroundColor: colors.accent, minHeight: 44 }]}
-            onPress={() => { handleLogSession(sessionNote); setSessionNote(""); }}
-          >
-            <Text style={[styles.btnText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>
-              Log session
-            </Text>
-          </Pressable>
-          <Pressable
-            style={styles.discardLink}
-            onPress={() => { handleDiscardSession(); setSessionNote(""); }}
-          >
-            <Text style={[styles.discardLinkText, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
-              Discard
-            </Text>
-          </Pressable>
-        </View>
-      )}
-
-      {loggedMessage && (
-        <Text style={[styles.loggedConfirm, { color: colors.success, fontFamily: Fonts.bodyMedium }]}>
-          {loggedMessage}
-        </Text>
-      )}
-
-      {/* Coaching CTA: only shown after the session is logged (not while pending) */}
-      {coachingCta && !pendingSession && (
-        <Pressable
-          style={[styles.reviewCta, { backgroundColor: colors.bgSurface, borderColor: colors.accent }]}
-          onPress={() =>
-            router.push({ pathname: "/coaching", params: { sessionId: coachingCta.sessionId } })
-          }
-          accessibilityRole="button"
-          accessibilityLabel={`Coach this session: ${coachingCta.previewText}`}
-        >
-          <Text style={[styles.reviewCtaText, { color: colors.accent, fontFamily: Fonts.bodySemibold }]}>
-            {coachingCta.previewText} →
-          </Text>
-          {coachingCta.previewSubline && (
-            <Text style={[styles.reviewCtaSubtle, { color: colors.textSecondary, fontFamily: Fonts.body }]}>
-              {coachingCta.previewSubline}
-            </Text>
-          )}
-        </Pressable>
-      )}
-
-      {/* Routine auto-advance: nudge to the next unfinished item, or celebrate
-          when the routine is complete. Visible only when idle and not pending. */}
-      {status === "idle" && !pendingSession && nextRoutineItemId && (
-        <Pressable
-          style={[styles.nextCta, { backgroundColor: colors.accent }]}
-          onPress={() => onAutoAdvance(nextRoutineItemId)}
-          accessibilityRole="button"
-          accessibilityLabel={`Practice next: ${exerciseName(nextRoutineItemId)}`}
-        >
-          <Text style={[styles.nextCtaText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>
-            Next: {exerciseName(nextRoutineItemId)} →
-          </Text>
-        </Pressable>
-      )}
-      {status === "idle" && !pendingSession && !nextRoutineItemId && routineAllDone && (
-        <View style={[styles.routineDoneBanner, { backgroundColor: colors.bgSurface, borderColor: colors.success }]}>
-          <Text style={[styles.routineDoneText, { color: colors.success, fontFamily: Fonts.bodySemibold }]}>
-            Routine done for today.
-          </Text>
-        </View>
-      )}
+      <PostSessionPanel
+        pendingSession={pendingSession}
+        loggedMessage={loggedMessage}
+        onLog={(note) => handleLogSession(note)}
+        onDiscard={handleDiscardSession}
+        coachingCta={coachingCta}
+        onTapCoaching={(sessionId) =>
+          router.push({ pathname: "/coaching", params: { sessionId } })
+        }
+        nextRoutineItemId={nextRoutineItemId}
+        routineAllDone={routineAllDone}
+        onAutoAdvance={onAutoAdvance}
+        isIdle={status === "idle"}
+      />
 
       <View style={styles.actions}>
         {status === "idle" ? (
@@ -1539,45 +1509,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
     gap: Spacing["3xs"],
-  },
-  reviewCta: {
-    borderRadius: Radii.md,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderWidth: 1,
-    borderLeftWidth: 3,
-    gap: Spacing["2xs"],
-  },
-  reviewCtaText: {
-    fontSize: Typography.md.size,
-    lineHeight: Typography.md.lineHeight,
-  },
-  reviewCtaSubtle: {
-    fontSize: Typography.sm.size,
-    lineHeight: Typography.sm.lineHeight,
-  },
-  nextCta: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-    alignItems: "center",
-    minHeight: 44,
-    justifyContent: "center",
-  },
-  nextCtaText: {
-    fontSize: Typography.md.size,
-    lineHeight: Typography.md.lineHeight,
-  },
-  routineDoneBanner: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    alignItems: "center",
-  },
-  routineDoneText: {
-    fontSize: Typography.sm.size,
-    lineHeight: Typography.sm.lineHeight,
   },
   actions: { marginTop: Spacing.sm },
   btn: { paddingVertical: Spacing.md, borderRadius: Radii.md, alignItems: "center" },
@@ -1742,34 +1673,4 @@ const styles = StyleSheet.create({
     lineHeight: Typography.xs.lineHeight,
   },
 
-  // Log / Discard panel
-  logPanel: {
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  logHint: {
-    fontSize: Typography.sm.size,
-    lineHeight: Typography.sm.lineHeight,
-  },
-  logNoteInput: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    fontSize: Typography.sm.size,
-    lineHeight: Typography.sm.lineHeight,
-  },
-  discardLink: { alignItems: "center", paddingVertical: Spacing.xs, minHeight: 36 },
-  discardLinkText: {
-    fontSize: Typography.sm.size,
-    lineHeight: Typography.sm.lineHeight,
-    textDecorationLine: "underline",
-  },
-  loggedConfirm: {
-    fontSize: Typography.sm.size,
-    lineHeight: Typography.sm.lineHeight,
-    textAlign: "center",
-  },
 });

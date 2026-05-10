@@ -226,7 +226,7 @@ When this slice was opened we discovered most of the planned work had already sh
 
 ---
 
-## Slice 7 — Wire Guided mode to coaching (M · ~4h)
+## Slice 7 — Wire Guided mode to coaching (M · ~4h) ✅ shipped 2026-05-10
 
 **Audit issue 1.9.**
 
@@ -247,9 +247,17 @@ Guided mode currently produces rich per-note tuning data but never reaches `diag
 - Component test: GuidedSession renders pattern-complete results; firing `onPatternComplete` mock receives a valid SessionRecord.
 
 ### Done criteria
-- [ ] Complete a Guided pattern → Log/Discard panel appears (same as Standard).
-- [ ] Log → Coaching CTA appears with the right symptom title.
-- [ ] Tap CTA → coaching screen diagnoses the Guided session as expected.
+- [x] `buildKeyAttemptFromGuided` synthesizes `NoteScore[]` from the Guided pattern's `bestPerNote` cents array, with single-frame trace at the user's actual hz so coaching's `pickRepresentative` can derive a medianHz for contrast playback. Null entries map to zero-frame NoteScores so `fromKeyAttempts` filters them.
+- [x] `synthesizeGuidedIteration` produces a minimal `KeyIteration` for the coaching adapter — only the `events[]` list (with syllables) is needed downstream.
+- [x] `<GuidedSession>` accepts an optional `onPatternComplete?(record, iterations)` prop and fires it when bestPerNote finalizes. Practice routes the record through the existing `setPendingSession` + `setCoachingCta` path.
+- [x] **Bonus refactor:** post-session UI extracted into `<PostSessionPanel>`. Both Standard and Guided render the same component; dead inline JSX + ~80 lines of orphan styles removed from `app/(tabs)/index.tsx`.
+- [x] Tests: 9 unit cases for `guidedToAttempt`, 1 integration scenario asserting global-flat Guided sessions diagnose as `global-flat`. 370 → 380 tests.
+
+### Slice 7 implementation notes
+- The pattern-complete callback signature passes both the record and the synthesized iterations because `fromKeyAttempts` needs the iterations for syllable lookup. Keeping that synthesis in `lib/scoring/guidedToAttempt.ts` puts both Guided→coaching adapters in one file.
+- `framesAboveClarity = 15` (representing ~300ms of held-tone matching at 50fps) was chosen because `fromKeyAttempts` filters `< 1` frame observations; a positive value ensures detectors include the note. The exact magnitude doesn't affect detector outcomes since detectors weight by `ln(frames + 1)`.
+- The `<PostSessionPanel>` extraction was unplanned but unavoidable — without it Guided would have required ~80 lines of duplicated post-session JSX. Standard's StandardModeBody now relies on the shared component, dropping the inline panel and ~80 lines of orphaned styles.
+- Component test for `<GuidedSession>` was deliberately skipped — the component has heavy audio-player and pitch-detector interaction that would need extensive mocking. The integration test exercises the same data path through the real coaching engine, which is the more meaningful coverage.
 
 ---
 

@@ -213,3 +213,43 @@ describe("Engine integration", () => {
     expect(diagnoses[0]!.detectorId).toBe("key-fatigue-drift");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Guided pipeline: bypass the live tracker — Guided produces synthetic
+// KeyAttemptResults directly via buildKeyAttemptFromGuided. This test verifies
+// the Guided → coaching pipeline diagnoses a uniformly-flat scenario as
+// global-flat, mirroring what the user sees after a Guided pattern completes.
+// ---------------------------------------------------------------------------
+
+describe("Guided → coaching integration", () => {
+  it("globally-flat Guided pattern across 2 keys → top diagnosis is global-flat", async () => {
+    const { buildKeyAttemptFromGuided, synthesizeGuidedIteration } = await import(
+      "@/lib/scoring/guidedToAttempt"
+    );
+    const { exerciseLibrary } = await import("@/lib/exercises/library");
+    const { noteToMidi } = await import("@/lib/exercises/music");
+
+    const exercise = exerciseLibrary.find((e) => e.id === "five-note-scale-mee-may-mah")!;
+
+    // Two patterns (G3 then G#3), every note 60¢ flat — clears the global-flat
+    // detector's gates (mean < -20¢, ≥6 notes, ≥60% of notes flat by ≥10¢).
+    const flat = (n: number) => Array(n).fill(-60) as (number | null)[];
+    const attempts: KeyAttemptResult[] = [
+      buildKeyAttemptFromGuided(flat(exercise.scaleDegrees.length), noteToMidi("G3"), exercise.scaleDegrees),
+      buildKeyAttemptFromGuided(flat(exercise.scaleDegrees.length), noteToMidi("G#3"), exercise.scaleDegrees),
+    ];
+
+    const iterations = [
+      ...synthesizeGuidedIteration(exercise, noteToMidi("G3")),
+      ...synthesizeGuidedIteration(exercise, noteToMidi("G#3")),
+    ];
+
+    const sessionInput = fromKeyAttempts(attempts, iterations);
+    const diagnoses: Diagnosis[] = diagnoseSession(sessionInput);
+
+    expect(diagnoses.length).toBeGreaterThan(0);
+    expect(diagnoses[0]!.detectorId).toBe("global-flat");
+    // Every observed note carries through with -60¢ signedCents.
+    expect(sessionInput.notes.every((n) => n.signedCents === -60)).toBe(true);
+  });
+});

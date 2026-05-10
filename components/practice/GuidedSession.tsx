@@ -6,12 +6,17 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import MelodyDisplay from "./MelodyDisplay";
 import { createAudioPlayer, type AudioPlayer, type NoteHandle } from "@/lib/audio";
 import { midiToNote, noteToMidi } from "@/lib/exercises/music";
-import type { ExerciseDescriptor, VoicePart } from "@/lib/exercises/types";
+import type { ExerciseDescriptor, KeyIteration, VoicePart } from "@/lib/exercises/types";
 import {
   createPitchDetector,
   type PitchDetector,
   type PitchSample,
 } from "@/lib/pitch";
+import type { SessionRecord } from "@/lib/progress";
+import {
+  buildKeyAttemptFromGuided,
+  synthesizeGuidedIteration,
+} from "@/lib/scoring/guidedToAttempt";
 import { useTheme } from "@/hooks/use-theme";
 
 import { rmsGateFor, toneColor } from "./tone-utils";
@@ -51,9 +56,15 @@ interface MatchResult {
 export default function GuidedSession({
   exercise,
   voicePart,
+  onPatternComplete,
 }: {
   exercise: ExerciseDescriptor;
   voicePart: VoicePart;
+  /** Fires when a pattern finishes and bestPerNote has been finalized. The
+   *  Practice screen routes the resulting record through the existing
+   *  Log/Discard + Coaching CTA flow. iterations is a synthesized stub the
+   *  coaching engine's `fromKeyAttempts` adapter consumes for syllables. */
+  onPatternComplete?: (record: SessionRecord, iterations: KeyIteration[]) => void;
 }) {
   const { colors, scheme } = useTheme();
   const [phase, setPhase] = useState<Phase>("idle");
@@ -76,6 +87,9 @@ export default function GuidedSession({
   const abortRef = useRef<{ aborted: boolean }>({ aborted: false });
   const repeatModeRef = useRef<RepeatMode>(repeatMode);
   const toleranceRef = useRef<ToleranceLevel>(tolerance);
+  // Captured at the start of each pattern so the synthesized SessionRecord
+  // carries an accurate startedAt.
+  const patternStartedAtRef = useRef<number>(0);
 
   useEffect(() => {
     repeatModeRef.current = repeatMode;
@@ -217,6 +231,8 @@ export default function GuidedSession({
     const detector = detectorRef.current;
     if (!player || !detector) return;
 
+    patternStartedAtRef.current = Date.now();
+
     // Cue
     setPhase("cue");
     const cueHandle = player.holdNote(midiToNote(tonicMidi), 0.55);
@@ -275,6 +291,32 @@ export default function GuidedSession({
 
     if (!abortRef.current.aborted) {
       setBestPerNoteArr([...bestPerNote]);
+
+      // Synthesize a SessionRecord so Practice can run this through the same
+      // Log/Discard + Coaching CTA flow as Standard mode.
+      if (onPatternComplete) {
+        const attempt = buildKeyAttemptFromGuided(
+          bestPerNote,
+          tonicMidi,
+          exercise.scaleDegrees,
+        );
+        const iterations = synthesizeGuidedIteration(exercise, tonicMidi);
+        const startedAt = patternStartedAtRef.current;
+        const record: SessionRecord = {
+          id:
+            typeof crypto !== "undefined" && "randomUUID" in crypto
+              ? crypto.randomUUID()
+              : `g-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          startedAt,
+          completedAt: Date.now(),
+          exerciseId: exercise.id,
+          voicePart,
+          tempo: exercise.tempo,
+          keyAttempts: [attempt],
+          totalDurationMs: Date.now() - startedAt,
+        };
+        onPatternComplete(record, iterations);
+      }
     }
 
     if (!abortRef.current.aborted) setPhase("complete");
