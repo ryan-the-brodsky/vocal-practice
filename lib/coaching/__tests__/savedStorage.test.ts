@@ -9,6 +9,7 @@ import {
   getSavedCoaching,
   listSavedCoaching,
   saveSavedCoaching,
+  MAX_SAVED_COACHING,
 } from "../savedStorage";
 import type { AdviceCard, SavedCoaching } from "../engine/types";
 
@@ -118,4 +119,29 @@ describe("savedStorage CRUD", () => {
     await AsyncStorage.setItem("vocal-training:coaching:saved:v1", "not-json");
     expect(await listSavedCoaching()).toEqual([]);
   });
+
+  test("cap: upserting MAX_SAVED_COACHING + 50 keeps the most-recent MAX entries", async () => {
+    // Seed by directly writing — far cheaper than 250 sequential upserts.
+    const seeded = Array.from({ length: MAX_SAVED_COACHING }, (_, i) =>
+      makeRecord({ id: `old-${i}`, savedAt: 1_000_000 + i }),
+    );
+    await AsyncStorage.setItem(
+      "vocal-training:coaching:saved:v1",
+      JSON.stringify(seeded),
+    );
+
+    // Now upsert 50 more, each strictly newer than the seeded set.
+    for (let i = 0; i < 50; i++) {
+      await saveSavedCoaching(makeRecord({ id: `new-${i}`, savedAt: 5_000_000 + i }));
+    }
+
+    const items = await listSavedCoaching();
+    expect(items).toHaveLength(MAX_SAVED_COACHING);
+    // All 50 newest must be present.
+    for (let i = 0; i < 50; i++) {
+      expect(items.some((it) => it.id === `new-${i}`)).toBe(true);
+    }
+    // The oldest seeded entries must have been pruned.
+    expect(items.some((it) => it.id === "old-0")).toBe(false);
+  }, 30_000);
 });

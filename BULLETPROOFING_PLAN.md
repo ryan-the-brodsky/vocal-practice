@@ -184,7 +184,7 @@ Eliminate the silent-failure mode where mic permission denial is invisible until
 
 ---
 
-## Slice 6 — Session prune on launch + coaching-orphan cleanup (S · ~2h)
+## Slice 6 — Session prune on launch + coaching-orphan cleanup (S · ~2h) ✅ shipped 2026-05-10
 
 **Audit issue 2.2 (folds in the previously-deferred coaching-orphan cleanup).**
 
@@ -203,9 +203,26 @@ Cap unbounded AsyncStorage growth without losing aggregate stats; clean up orpha
 - `lib/progress/__tests__/prune.test.ts` — table-driven: 600 sessions, 100 of them >30 days old, 50 coaching children orphaned. Assert prune output: 500 kept, traces stripped on the old ones, orphans gone.
 - `lib/progress/__tests__/storage.test.ts` — first `list()` triggers prune; second `list()` doesn't re-prune (track via spy).
 
-### Done criteria
-- [ ] Synthetic 1000-session AsyncStorage seeded → app launch → list returns ≤500, oldest are stat-only (no traces), no orphan coaching records.
-- [ ] Prune logic is pure and unit-tested.
+### Done criteria — and the major audit revision
+
+When this slice was opened we discovered most of the planned work had already shipped in prior PRs. The slice ended up being narrower than the plan called for. Reality:
+
+| Plan item | Reality |
+|---|---|
+| 500-session cap on `upsert` | ✅ Already in `lib/progress/storage.ts` as `MAX_PERSISTED_SESSIONS = 500`. Tested in `storage.test.ts`. In-progress sessions are protected from the cap. |
+| Drop trace blobs > 30 days | ⊝ Moot. `trimSessionForStorage` strips `trace` and `samplesInWindow` on **every** persist, not just aging. Stricter than the plan. |
+| Coaching-orphan cleanup | ⊝ Moot. `parentSessionId` and `coachingFocus` are stripped on every persist; migration on read scrubs legacy records. The orphan concern from CLAUDE.md/ROADMAP no longer applies. |
+| Quota-safe writes | ✅ Already wrapped with helpful "Storage is full" error copy. |
+| Pure `pruneSessions` extraction | Skip — the inline cap logic in `upsert` is already covered by `storage.test.ts` cap tests. Extraction would be churn without test gain. |
+| **Saved-tips cap** | ✅ Added in this slice — `MAX_SAVED_COACHING = 200` in `lib/coaching/savedStorage.ts`. |
+
+- [x] Saved-tips list is now bounded (200 most-recent by `savedAt`); 1 new test verifies the cap behavior.
+- [x] `npm test` clean — 369 → 370 tests.
+
+### Slice 6 implementation notes
+- The audit assumption "AsyncStorage grows unboundedly" turned out to be partly wrong: sessions were already capped, but the parallel saved-coaching-tips list was not. The single addition (`MAX_SAVED_COACHING = 200`) closes that gap.
+- The "Run prune on launch instead of on write" rephrasing from the audit is moot — the existing on-write cap only activates when sessions exceed 500, so the write path stays fast in the common case.
+- Coaching-orphan cleanup is fully moot because parentSessionId is stripped on persist + migrated on read. No further work needed.
 
 ---
 

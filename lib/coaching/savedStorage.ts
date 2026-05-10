@@ -3,6 +3,8 @@ import type { SavedCoaching } from "./engine/types";
 
 const SAVED_KEY = "vocal-training:coaching:saved:v1";
 
+export const MAX_SAVED_COACHING = 200;
+
 // Promise mutex so concurrent writes don't clobber each other (mirrors progress/storage.ts).
 let writeQueue: Promise<void> = Promise.resolve();
 
@@ -43,6 +45,17 @@ export function saveSavedCoaching(record: SavedCoaching): Promise<void> {
     const idx = all.findIndex((s) => s.id === record.id);
     if (idx === -1) all.push(record);
     else all[idx] = record;
+
+    // Cap: keep the MAX_SAVED_COACHING most-recent entries by savedAt.
+    if (all.length > MAX_SAVED_COACHING) {
+      const kept = [...all]
+        .sort((a, b) => b.savedAt - a.savedAt)
+        .slice(0, MAX_SAVED_COACHING);
+      const pruneCount = all.length - kept.length;
+      console.warn(`[savedStorage] Pruned ${pruneCount} old tips (cap=${MAX_SAVED_COACHING})`);
+      await writeAll(kept);
+      return;
+    }
     await writeAll(all);
   });
 }
