@@ -1,13 +1,4 @@
-// Platform-agnostic barrel export for the pitch-detection module.
-//
-// Expo Metro resolves platform extensions at bundle time:
-//   detector.web.ts    → web
-//   detector.native.ts → iOS / Android
-//
-// TypeScript checks against detector.ts (which declares the factory stub).
-// At runtime Metro substitutes the correct platform implementation.
-
-import { createPitchDetector as realCreate } from "./detector.web";
+import { createPitchDetector as realCreate } from "./detector.native";
 import type { PitchDetector, PitchDetectorOptions } from "./detector";
 
 export type {
@@ -21,7 +12,6 @@ let factory: (opts?: PitchDetectorOptions) => PitchDetector = realCreate;
 
 export const createPitchDetector = (opts?: PitchDetectorOptions): PitchDetector => factory(opts);
 
-// Test seam — do not import in feature code.
 export const __setPitchDetectorFactory = (
   f: (opts?: PitchDetectorOptions) => PitchDetector
 ): void => {

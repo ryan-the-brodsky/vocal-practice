@@ -10,13 +10,13 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import GuidedSession from "@/components/practice/GuidedSession";
 import {
   HeadphonesBanner,
+  MelodyDisplay,
   NoteResultsStrip,
   Section,
   Stat,
   rmsGateFor,
   summarizeKey,
 } from "@/components/practice";
-import SyllableDisplay from "@/components/SyllableDisplay";
 import { createAudioPlayer, type AudioPlayer, type SequenceHandle } from "@/lib/audio";
 import {
   ADVICE_CARDS_BY_ID,
@@ -1085,10 +1085,15 @@ function StandardModeBody({
             </Text>
           </View>
         ) : (
-          <SyllableDisplay
-            syllables={currentKeySyllables(iterationsRef.current, snapshot, exercise)}
+          <MelodyDisplay
+            notes={currentKeyMelodyNotes(iterationsRef.current, snapshot, exercise, startTonicMidi)}
             currentIndex={status === "playing" && snapshot ? snapshot.currentNoteIndex : -1}
             noteProgress={noteProgress}
+            tonicMidi={
+              snapshot
+                ? iterationsRef.current[snapshot.currentKeyIndex]?.tonicMidi ?? startTonicMidi ?? undefined
+                : startTonicMidi ?? undefined
+            }
           />
         )}
       </View>
@@ -1256,24 +1261,30 @@ function StandardModeBody({
   );
 }
 
-function currentKeySyllables(
+function currentKeyMelodyNotes(
   iterations: KeyIteration[],
   snapshot: SessionTrackerSnapshot | null,
   exercise: ExerciseDescriptor,
-): string[] {
+  startTonicMidi: number | null,
+): { midi: number; syllable: string }[] {
   if (snapshot && iterations.length > 0) {
     const idx = Math.min(snapshot.currentKeyIndex, iterations.length - 1);
     const iter = iterations[idx];
     if (iter) {
       return iter.events
         .filter((e) => e.type === "melody")
-        .map((e) => e.syllable ?? "");
+        .map((e) => ({ midi: e.midi, syllable: e.syllable ?? "" }));
     }
   }
-  if (exercise.syllables.length === 1) {
-    return Array(exercise.scaleDegrees.length).fill(exercise.syllables[0]);
-  }
-  return [...exercise.syllables];
+  // Idle/static fallback: derive from descriptor + the session's starting tonic.
+  const tonic = startTonicMidi ?? 60;
+  const syllables = exercise.syllables.length === 1
+    ? Array(exercise.scaleDegrees.length).fill(exercise.syllables[0])
+    : exercise.syllables;
+  return exercise.scaleDegrees.map((deg, i) => ({
+    midi: tonic + deg,
+    syllable: syllables[i] ?? "",
+  }));
 }
 
 

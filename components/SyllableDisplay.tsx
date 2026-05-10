@@ -138,11 +138,11 @@ function SyllableItem({ text, relation, isFocus, noteProgress, isDefault, colors
         : colors.textPrimary;
 
   const fontSize = isDefault
-    ? (relation === "active" ? Typography.lg.size : Typography.base.size)
-    : (relation === "active" ? Typography.md.size : Typography.sm.size);
+    ? (relation === "active" ? Typography.xl.size : Typography.lg.size)
+    : (relation === "active" ? Typography.lg.size : Typography.md.size);
   const lineHeight = isDefault
-    ? (relation === "active" ? Typography.lg.lineHeight : Typography.base.lineHeight)
-    : (relation === "active" ? Typography.md.lineHeight : Typography.sm.lineHeight);
+    ? (relation === "active" ? Typography.xl.lineHeight : Typography.lg.lineHeight)
+    : (relation === "active" ? Typography.lg.lineHeight : Typography.md.lineHeight);
 
   return (
     <Animated.View

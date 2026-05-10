@@ -5,6 +5,7 @@ import { buildContrastPlayback, type FocusNote, type PlaybackVariant } from "@/l
 import { createAudioPlayer, type AudioPlayer, type SequenceHandle } from "@/lib/audio";
 import type { NoteEvent } from "@/lib/exercises/types";
 import SyllableDisplay from "@/components/SyllableDisplay";
+import MelodyDisplay from "@/components/practice/MelodyDisplay";
 import { useTheme } from "@/hooks/use-theme";
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
 
@@ -46,6 +47,14 @@ export default function ContrastPlayback({
     return iterationEvents
       .filter((e) => e.type === "melody")
       .map((e) => e.syllable ?? "");
+  }, [iterationEvents, syllablesOverride]);
+
+  // When we have melody events, prefer the staff-aware MelodyDisplay; otherwise fall back to syllable-only.
+  const melodyNotes = useMemo(() => {
+    if (syllablesOverride && syllablesOverride.length > 0) return null;
+    const melody = iterationEvents.filter((e) => e.type === "melody");
+    if (melody.length === 0) return null;
+    return melody.map((e) => ({ midi: e.midi, syllable: e.syllable ?? "" }));
   }, [iterationEvents, syllablesOverride]);
 
   const cancelInFlight = useCallback(() => {
@@ -159,13 +168,24 @@ export default function ContrastPlayback({
           overflow: "hidden",
         }}
       >
-        <SyllableDisplay
-          syllables={syllables}
-          currentIndex={-1}
-          noteProgress={0}
-          focusNoteIndex={focus.positionInIteration}
-          size="compact"
-        />
+        {melodyNotes ? (
+          <MelodyDisplay
+            notes={melodyNotes}
+            currentIndex={-1}
+            noteProgress={0}
+            focusNoteIndex={focus.positionInIteration}
+            tonicMidi={melodyNotes.reduce((m, n) => Math.min(m, n.midi), Infinity)}
+            size="compact"
+          />
+        ) : (
+          <SyllableDisplay
+            syllables={syllables}
+            currentIndex={-1}
+            noteProgress={0}
+            focusNoteIndex={focus.positionInIteration}
+            size="compact"
+          />
+        )}
       </View>
 
       {moreCount > 0 && (

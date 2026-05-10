@@ -3,7 +3,7 @@ import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import SyllableDisplay from "@/components/SyllableDisplay";
+import MelodyDisplay from "./MelodyDisplay";
 import { createAudioPlayer, type AudioPlayer, type NoteHandle } from "@/lib/audio";
 import { midiToNote, noteToMidi } from "@/lib/exercises/music";
 import type { ExerciseDescriptor, VoicePart } from "@/lib/exercises/types";
@@ -467,10 +467,18 @@ export default function GuidedSession({
         </Text>
       </View>
 
-      <SyllableDisplay
-        syllables={syllables}
+      <MelodyDisplay
+        notes={
+          activeTonicMidi != null
+            ? exercise.scaleDegrees.map((deg, i) => ({
+                midi: activeTonicMidi + deg,
+                syllable: syllables[i] ?? "",
+              }))
+            : syllables.map((s) => ({ midi: 60, syllable: s }))
+        }
         currentIndex={isRunning ? noteIndex : -1}
         noteProgress={matchProgress}
+        tonicMidi={activeTonicMidi ?? undefined}
         size="compact"
       />
 

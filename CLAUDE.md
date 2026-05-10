@@ -41,11 +41,24 @@ lib/scoring/score.ts          # Scorer: per-key per-note accumulator with eval w
 lib/progress/{types,storage,stats,index}.ts  # SessionRecord persistence + summaries
 lib/session/tracker.ts        # SessionTracker: routes samples → per-key Scorers
 lib/coaching/diagnose.ts      # diagnoseSession: most-consistent or most-glaring mistake from a SessionRecord
-components/SyllableDisplay.tsx           # karaoke-style syllable strip
+components/SyllableDisplay.tsx           # karaoke-style syllable strip (font sizes bumped one Typography tier 2026-05-09)
+components/practice/MelodyDisplay.tsx    # SVG staff (BravuraText SMuFL clefs + key sigs) + noteheads aligned with syllables in shared columns
+lib/music/keySignature.ts                # major-key signature derivation (circle of fifths) + per-note spelling/accidental decision; 28 tests
+assets/fonts/BravuraText.{otf,woff2}     # SMuFL music notation font (SIL OFL); WOFF2 for web (Chrome rejects Bravura's OTF), OTF for iOS native
+metro.config.js                          # extends Expo defaults to register woff2 as a Metro asset extension
 components/practice/                     # GuidedSession, CoachingBanner, TuningMeter, NoteChip, etc.
 app/(tabs)/index.tsx          # Practice screen — Standard/Guided + accompaniment preset chips
 app/(tabs)/coaching.tsx       # Coaching screen — diagnosis, your-version playback, retry, multi-mistake iteration
 app/(tabs)/explore.tsx        # Progress tab — weekly summary, exercise list, recent sessions
+
+# Test infrastructure (PR 1 of automated-testing slice, 2026-05-09)
+test/setup-component.ts       # installFakeAudio() + installFakePitch() helpers; Reanimated/AsyncStorage/Haptics/Tone mocks
+test/mocks/tone.ts            # no-op Tone stub used by component project
+test/fixtures/pitchSamples.ts # synthetic PitchSample[] — inTune/flat/sharp/octaveOff/falseStart/silence presets
+test/fixtures/keyIterations.ts # buildKeyIterations() calls real WarmupEngine.plan() so fixtures stay schema-aligned
+test/fixtures/sessions.ts     # seedSessionRecord() + inTuneFiveNoteSession() builders
+jest.config.js                # projects: [unit (ts-jest, Node), component (jest-expo/web, jsdom)]
+babel.config.js               # babel-preset-expo for jest-expo (and Metro)
 ```
 
 **Data flow per sample:**
@@ -76,16 +89,38 @@ ExerciseDescriptor + voicePart → `planExercise()` → `KeyIteration[]` → `fl
 - Stop button cancels pending audio events on both platforms
 - RMS noise gate (dynamic, see above) prevents piano-spillover from poisoning scores
 - Octave-snap-against-target in the scorer rescues pitchy subharmonic latching on high notes (snap if sample is 10.5–13.5 or 22.5–25.5 semitones from target)
+- **Staff notation with proper SMuFL clefs + key signatures** above the syllable strip on Practice / Guided / Coaching surfaces (`components/practice/MelodyDisplay.tsx`). SVG-based via `react-native-svg`. Treble vs bass clef chosen by mean MIDI of the displayed melody. Real treble (U+E050) and bass (U+E062) glyphs from BravuraText (SMuFL music font, SIL OFL). Per-key signature derived via circle of fifths from `lib/music/keySignature.ts`; on-note accidentals appear only when the note breaks from the key signature (chromatic alteration → ♯/♭; in-key letter that's enharmonic to a natural → ♮).
+- **DI registry pattern** at `lib/audio/index.{ts,native.ts}` and `lib/pitch/index.{ts,native.ts}`: factories can be swapped per-test via `__set/__resetAudioPlayerFactory` and `__set/__resetPitchDetectorFactory` (call sites in feature code unchanged).
+- **Automated test pyramid PR 1 shipped**: Jest projects split (unit + component), full fixture infrastructure, smoke tests proving the registry works. 202 tests / 18 suites / 2 projects passing. PRs 2–5 (per `~/.claude/plans/glistening-wiggling-hamming.md`) still open: bring `lib/scoring/align.ts`, `lib/pitch/postprocess.ts`, `lib/session/tracker.ts`, `lib/exercises/music.ts`, `lib/progress/stats.ts` to >90% coverage (PR 2); 5 engine integration scenarios (PR 3); component tests + CI (PR 4); Playwright E2E with Chromium fake-audio (PR 5).
+- **Voice-range validation** (`lib/music/voiceRanges.ts`): `VOICE_RANGES` table (lowest, highest, passaggio per voice part — Miller / Doscher / Sundberg pedagogy). `validateDescriptorRanges()` checks each exercise's voice-part rows for off-by-octave bugs, copy-paste between voice parts, and whether the highest tonic iteration actually crosses the voice's passaggio (with SOVT exemption for lip-trills/sirens). Library audit asserts every shipped descriptor passes; sanity checks include "tenor and baritone are not byte-identical" and "tenor lowest > baritone lowest". `clampTonicToVoiceRange()` is the extracted testable form of the screen's tonic-memory clamping logic. 17 tests in `lib/music/__tests__/voiceRanges.test.ts`.
+- **Audited + fixed range bugs (2026-05-09):** `five-note-scale-mee-may-mah` tenor was C3-G3 (peak D4 — never crossed F4 passaggio); now G3-D4 (peak A4). Same exercise's baritone was Ab2-Eb3 (peak Bb3 — below D4 passaggio); now E3-A3 (peak E4). `nay-1-3-5-3-1` had the same shape of bug; fixed to the same ranges. The other 6 exercises had wider intervallic spans (octaves) that already reached passaggio at top tonic. Engine regression snapshots refreshed.
 
 ## Known limitations / non-yet-done
 
 - **iOS dev build** not yet generated. Needs `npx expo prebuild && npx expo run:ios`. The Salamander player and native pitch detector are coded but unvalidated on real hardware. RMS gate threshold may need per-platform tuning.
+- **iOS staff-notation glyph rendering unvalidated.** BravuraText.otf bundles for native, but `react-native-svg`'s `SvgText` with custom `fontFamily` on iOS is unverified. If clefs/accidentals don't render on device, the fallback is to switch to `<Path>` data for the ~5 needed glyphs (treble/bass clef, sharp/flat/natural).
 - **No standalone Library tab** — Progress covers history; a pedagogy-first browser of all 8 exercises (descriptions, PRD references) is still open.
-- **No coaching deep-link from past sessions** — only reachable as the post-session CTA on Practice; tapping a session in Progress should open coaching against its weakest note.
 - **No session prune/delete** — AsyncStorage sessions accumulate indefinitely.
 - **Web SSR disabled** (`web.output: "single"`) due to a `tslib` interop bug in Metro's SSR pipeline. SPA is fine for this app's purpose anyway.
 - **Octave errors** still possible on male voice ≥ A3 — pitchy's MPM algorithm can latch onto the second harmonic. Postprocessor mitigates but doesn't eliminate.
 - **`.codeyam/`** directory is legacy (we're not using CodeYam). It's gitignored. Safe to `rm -rf` once the local CodeYam server (port 3111) is stopped.
+
+## Test status (PR 1 shipped — 2026-05-09)
+
+`npm test` → 202 tests / 18 suites / 2 projects passing in ~20s. `tsc --noEmit` clean. CI not yet wired up (lands in PR 4).
+
+**What's covered:** the existing pure-TS layers (coaching detectors, exercise planning, session storage, key analysis, melody synthesis, theme constants, key signature theory) plus 7 smoke tests proving the new test infrastructure works (synthesizer round-trip, registry override, listener fan-out).
+
+**What's NOT covered (by PR):**
+- **PR 2:** `lib/scoring/align.ts` (385 LOC, 0 tests — DP segment alignment, false-start filter, NW match), `lib/pitch/postprocess.ts` (173 LOC, 0 tests — clarity gate, median filter, octave-jump constraint), `lib/session/tracker.ts` (138 LOC, 0 tests — sample routing across keys), `lib/progress/stats.ts` (277 LOC, 0 tests — weekly summary, best-key, trend), `lib/exercises/music.ts` (59 LOC, 0 direct tests — round-trip note↔midi, durations, triad voicing).
+- **PR 3:** Engine integration suite at `lib/__tests__/integration/engineIntegration.test.ts` — 5 canonical fixture-driven scenarios.
+- **PR 4:** Component tests for Practice / Coaching / Progress; GitHub Actions CI workflow.
+- **PR 5:** Playwright E2E (5 scenarios) + WAV fixture pipeline + spy on `Tone.Sampler.triggerAttackRelease`.
+- **Phase 5 (after Slice A):** Maestro iOS smoke flows (4 nav-only YAMLs).
+
+**Pending cleanups:** obsolete snapshot in `engine.regression.test.ts.snap` (warns every run), `@testing-library/jest-native` is deprecated and should be removed when PR 4 lands, `jest-expo@55.0.17` is one minor ahead of SDK 54's expected version (works fine, emits a warning).
+
+The full plan with rationale, slicing, and risk register is at `~/.claude/plans/glistening-wiggling-hamming.md`. Read that before starting any subsequent PR.
 
 ## Run
 
@@ -109,6 +144,8 @@ Mic access requires HTTPS on iOS Safari, hence ngrok for phone-on-web testing. O
 - **Tone.Transport** is used for scheduling on web so events can be cancelled by ID — never schedule directly via `triggerAttackRelease(time)` if cancellation matters.
 - **Native pitch-shift cap is ±6 semitones** from the nearest sample (`player.native.ts`). Beyond that, decoded `AudioBuffer` artifacts become audible — add a sample, don't widen the cap.
 - **Sub-agent worktrees can't see untracked files.** If you spawn agents in `.claude/worktrees/agent-*` and the main repo has substantial uncommitted code, the worktree branches will be empty parallel-universe scaffolds. Either commit first, or run agents directly in the main working tree (only safe when their file scopes don't overlap).
+- **DI seam, not `moduleNameMapper`.** Audio + pitch factories are swappable per-test via the registry exports (`__setAudioPlayerFactory`, `__setPitchDetectorFactory`). Use this in component tests (`installFakeAudio()` / `installFakePitch()` in `test/setup-component.ts`); reset auto-runs in `afterEach`. Don't add `jest.mock("@/lib/audio")` to test files — it's no longer needed and conflicts with the registry.
+- **Pitch fixtures live in `test/fixtures/pitchSamples.ts`.** When writing a scoring/tracker/diagnose test, prefer `inTune(targets)` / `flat(targets, 50)` / `octaveOff(targets, idx)` / `falseStart(targets)` over hand-rolled `PitchSample[]`. They produce realistic shape (50 fps, clarity 0.92, monotonic timestamps) that matches what a real detector emits.
 - **One short comment max** per non-obvious decision. No multi-line docstrings. No "added for X" / "used by Y" notes.
 
 ## Active design questions / next features

@@ -58,6 +58,22 @@ Personal vocal-warmup app. Goal: pitch detection + accuracy scoring with piano a
 - `SessionRecord` stored via `AsyncStorage` at `vocal-training:sessions:v1`. Includes `parentSessionId` and `coachingFocus` for coaching child sessions.
 - `lib/progress/stats.ts`: `summarizeSessions`, `progressForExercise` (trend, best-key), `thisWeekSummary`, `bestKeyPerExercise`, `rollingAccuracy` — all implemented and now surfaced via the Progress tab.
 
+### Notation
+- **MelodyDisplay** (`components/practice/MelodyDisplay.tsx`): SVG staff (5 lines) + noteheads aligned in shared columns above the syllable strip, replacing the bare syllable list on Practice / Guided / Coaching surfaces. Clef chosen per-render from mean MIDI (≥60 → treble with bottom line E4, else bass with bottom line G2). Ledger lines for notes outside the staff. Uses `react-native-svg` (web + native). Syllable font sizes bumped one Typography tier in `SyllableDisplay.tsx`.
+- **Real clef + key-signature glyphs** (2026-05-09 follow-up): bundled BravuraText (SMuFL music font, SIL OFL) at `assets/fonts/BravuraText.{otf,woff2}`, registered via `expo-font` with `Platform.select` (WOFF2 on web because Chrome's font sanitizer rejects Bravura's OTF; OTF on iOS). `metro.config.js` adds `woff2` as a Metro asset extension.
+- **`lib/music/keySignature.ts`** — pure music-theory module: `keySignatureFor(tonicMidi)` returns the major-key signature via circle of fifths (C/G/D/A/E/B/F# → sharps; F/Bb/Eb/Ab/Db → flats); `spellMidiInKey()` chooses the right letter and decides whether to draw an accidental on the notehead (suppress when the key sig handles it; draw a natural sign when overriding). Standard staff-step lookups for treble/bass × sharp/flat. **28 unit tests** in `lib/music/__tests__/keySignature.test.ts`.
+- MelodyDisplay now renders treble (U+E050) and bass (U+E062) clefs as proper SMuFL glyphs at the staff's left edge, followed by the key signature in the conventional zigzag pattern, with on-note accidentals only when the note breaks from the key signature.
+
+### Automated Testing (Foundation for Agentic Dev) — PR 1 Shipped
+- **Status:** PR 1 of 5 from the testing plan at `~/.claude/plans/glistening-wiggling-hamming.md` is shipped. Suite is 202 tests / 18 suites / 2 projects all green. PRs 2–5 still open (see Slice E below).
+- Jest split into two projects: `unit` (ts-jest, Node) for pure-TS tests; `component` (jest-expo/web, jsdom) for React Native + Expo component tests. Babel config (`babel.config.js`) added for `babel-preset-expo`. `setupFilesAfterEnv` wires up the component setup file.
+- DI seam landed at `lib/audio/index.{ts,native.ts}` and `lib/pitch/index.{ts,native.ts}`: factory variable + `__set/__resetAudioPlayerFactory` and `__set/__resetPitchDetectorFactory`. Production callers unchanged.
+- `test/setup-component.ts` — `installFakeAudio()` + `installFakePitch()` test helpers (recording spies + listener fan-out), plus standard mocks for Reanimated, AsyncStorage, expo-haptics, Tone (via `test/mocks/tone.ts`).
+- `test/fixtures/pitchSamples.ts` — synthesizer for `PitchSample[]` traces with realistic shape (50 fps, clarity ~0.92, monotonic ts). Presets: `inTune`, `flat`, `sharp`, `octaveOff`, `falseStart`, `silence`. This is the workhorse fixture that lets us drive the entire pitch → tracker → scorer → diagnose pipeline without audio I/O.
+- `test/fixtures/keyIterations.ts` — calls real `WarmupEngine.plan()` so fixtures stay schema-aligned with the engine.
+- `test/fixtures/sessions.ts` — `SessionRecord` builders (`seedSessionRecord`, `inTuneFiveNoteSession`).
+- 7 smoke tests verify the wiring (5 unit + 2 component); 28 keySignature tests landed alongside the staff-notation work.
+
 ### Exercise Library
 - 8 JSON descriptors in `data/exercises/`: Rossini lip trill, five-note scale (mee-may-mah), Goog octave arpeggio, Nay 1-3-5-3-1, Ng siren, octave leap (wow), staccato arpeggio, descending 5-to-1. Matches the PRD's recommended v1 set.
 
@@ -238,6 +254,28 @@ The previous batch (Slices 1–4: iOS native piano, Progress tab, cue+presets, p
 - `lib/coaching/diagnose.ts` — verify it returns a ranked list (not just the top mistake); if not, expand to `diagnoseSessionAll(): DiagnosisCandidate[]` and add a `next()` API
 
 **Done looks like:** Coaching feels like a continuous drill — pass a note, the next-worst note loads automatically with a tuning meter visible during retry. No manual stepping unless you want to skip ahead.
+
+---
+
+### Slice E: Automated Testing Foundation (M5 — Agentic Autonomy Prereq)
+
+**Scope:** Build a comprehensive test pyramid so an agent's "green build" is a trustworthy signal for autonomous code development. Plan lives in detail at `~/.claude/plans/glistening-wiggling-hamming.md`. Five PRs, ~70 hrs total. **Current state: PR 1 shipped (202 tests / 18 suites passing). PR 2 is the highest-leverage next slice.**
+
+| PR | Status | Hrs | Outcome |
+|---|---|---|---|
+| **PR 1** | ✅ shipped 2026-05-09 | ~14 | Test infra + DI seams + fixtures. Jest projects split (unit/component), `lib/audio` + `lib/pitch` registry pattern, `test/fixtures/*` synthesizer + scenario builders, `test/setup-component.ts` with `installFakeAudio()` / `installFakePitch()`, smoke tests in both projects. 202 tests / 18 suites passing (existing 150 + 5 fixture smokes + 2 component smokes + 28 keySignature unit tests). |
+| **PR 2** | open — next | 12–16 | Pure-TS unit coverage for the 4 untested critical files: `lib/scoring/align.ts` (~25 tests, 0 today), `lib/pitch/postprocess.ts` (~12, 0 today), `lib/session/tracker.ts` (~10, 0 today), `lib/progress/stats.ts` (~12, 0 today). `lib/exercises/music.ts` (~10, 0 today) — small but completes the math layer. Coverage gates enforced (>90% line on `lib/scoring/**`, `lib/pitch/postprocess.ts`). |
+| **PR 3** | open | 6–8 | Engine integration tests in `lib/__tests__/integration/engineIntegration.test.ts` — 5 canonical scenarios driven through real `SessionTracker` + `Scorer` + `alignAndScore` + `diagnoseSession` with synthetic `PitchSample[]`. Scenarios: in-tune scale across 2 keys; globally flat 60¢; high-note octave error on octave-leap; false-start wobble; key-fatigue drift. |
+| **PR 4** | open | 16–24 | Component tests (jest-expo + RTL) for Practice happy path, Coaching deep-link, Progress tab tap-to-coach. GitHub Actions CI workflow with typecheck + jest (loose component coverage gate at 50%). |
+| **PR 5** | open | 12–16 | Playwright E2E. WAV fixture pipeline (`scripts/synth-wav.ts` → `test/fixtures/audio/*.wav`). 5 critical-path scenarios with Chromium `--use-file-for-fake-audio-capture`. Audio output verified by spying on `Tone.Sampler.prototype.triggerAttackRelease` via `page.addInitScript` (Tone.Offline doesn't work with Sampler). CI extended to install Chromium and run `npm run test:e2e`. |
+| **Phase 5** | deferred behind Slice A | 4–6 | Maestro iOS smoke flows (4 nav-only YAMLs under `.maestro/`). Not CI-gated — manual TestFlight remains the audio-validation line. Gated on the iOS dev build landing in Slice A. |
+
+**Done looks like:** `npm test && npm run test:e2e` is a green-or-broken signal an agent can trust. PR 2 is the next sprint, since unblocking `align.ts` refactors is the biggest agent-leverage win.
+
+**Carryover from PR 1 to address in PR 2 or follow-up:**
+- Obsolete snapshot at `lib/exercises/__tests__/__snapshots__/engine.regression.test.ts.snap` (1 entry) — likely orphaned by the staff-notation work or a prior refactor. Decide: refresh with `npm test -- -u` if behavior is intentional, or restore the missing test. Currently warns on every test run.
+- `@testing-library/jest-native` is deprecated (replaced by RTL v12.4+ built-in matchers). Remove this dep when component tests land in PR 4.
+- `jest-expo@55.0.17` is one minor ahead of Expo SDK 54's expected `~54.0.17` — works fine but emits a "best compatibility" warning on dev-server start. Can be downgraded if it causes friction.
 
 ---
 

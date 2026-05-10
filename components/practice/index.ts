@@ -6,6 +6,7 @@ export { default as NoteChip } from "./NoteChip";
 export { default as HeadphonesBanner } from "./HeadphonesBanner";
 export type { HeadphonesModalProps } from "./HeadphonesBanner";
 export { default as NoteResultsStrip } from "./NoteResultsStrip";
+export { default as MelodyDisplay } from "./MelodyDisplay";
 export type { Tone, Coaching } from "./types";
 export {
   rmsGateFor,

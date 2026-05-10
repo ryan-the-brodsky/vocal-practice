@@ -16,6 +16,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import 'react-native-reanimated';
 
 import { Colors } from '@/constants/theme';
@@ -42,6 +43,12 @@ export default function RootLayout() {
     'GeneralSans-Regular': require('@/assets/fonts/GeneralSans-Regular.otf'),
     'GeneralSans-Medium': require('@/assets/fonts/GeneralSans-Medium.otf'),
     'GeneralSans-Semibold': require('@/assets/fonts/GeneralSans-Semibold.otf'),
+    // Bravura's OTF passes iOS font registration but fails Chrome's font
+    // sanitizer (CFF tables it doesn't accept). WOFF2 build of the same font
+    // loads cleanly in Chromium. iOS doesn't support WOFF2 — split per platform.
+    BravuraText: Platform.OS === 'web'
+      ? require('@/assets/fonts/BravuraText.woff2')
+      : require('@/assets/fonts/BravuraText.otf'),
   });
 
   useEffect(() => {
