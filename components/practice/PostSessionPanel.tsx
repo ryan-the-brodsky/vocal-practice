@@ -1,10 +1,12 @@
-// Shared post-session panel — Log/Discard prompt, coaching CTA, and routine
-// auto-advance. Rendered identically by Standard and Guided modes.
+// Shared post-session panel — Log/Discard prompt, logged-confirmation toast,
+// and coaching CTA. Rendered identically by Standard and Guided modes.
+// (Routine progress is surfaced via the TodayRoutineCard on Practice; the
+// per-session "Next: X →" / "Routine done" banner was removed in favor of
+// keeping Start visually primary at idle.)
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
-import { exerciseName } from "@/lib/exercises/names";
 import type { SessionRecord } from "@/lib/progress";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -23,11 +25,8 @@ interface Props {
   onDiscard: () => void;
   coachingCta: CoachingCta | null;
   onTapCoaching: (sessionId: string) => void;
-  nextRoutineItemId: string | null;
-  routineAllDone: boolean;
-  onAutoAdvance: (exerciseId: string) => void;
-  /** True when the surrounding mode body is in its quiescent state — gates
-   *  the routine auto-advance / done banner so they don't render mid-session. */
+  /** True when the surrounding mode body is in its quiescent state — gates the
+   *  Log/Discard panel so it doesn't render mid-session. */
   isIdle: boolean;
 }
 
@@ -38,9 +37,6 @@ export function PostSessionPanel({
   onDiscard,
   coachingCta,
   onTapCoaching,
-  nextRoutineItemId,
-  routineAllDone,
-  onAutoAdvance,
   isIdle,
 }: Props) {
   const { colors } = useTheme();
@@ -120,29 +116,6 @@ export function PostSessionPanel({
           )}
         </Pressable>
       )}
-
-      {isIdle && !pendingSession && nextRoutineItemId && (
-        <Pressable
-          style={[styles.nextCta, { backgroundColor: colors.accent }]}
-          onPress={() => onAutoAdvance(nextRoutineItemId)}
-          accessibilityRole="button"
-          accessibilityLabel={`Practice next: ${exerciseName(nextRoutineItemId)}`}
-        >
-          <Text style={[styles.nextCtaText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>
-            Next: {exerciseName(nextRoutineItemId)} →
-          </Text>
-        </Pressable>
-      )}
-
-      {isIdle && !pendingSession && !nextRoutineItemId && routineAllDone && (
-        <View
-          style={[styles.routineDoneBanner, { backgroundColor: colors.bgSurface, borderColor: colors.success }]}
-        >
-          <Text style={[styles.routineDoneText, { color: colors.success, fontFamily: Fonts.bodySemibold }]}>
-            Routine done for today.
-          </Text>
-        </View>
-      )}
     </>
   );
 }
@@ -200,29 +173,6 @@ const styles = StyleSheet.create({
     lineHeight: Typography.md.lineHeight,
   },
   reviewCtaSubtle: {
-    fontSize: Typography.sm.size,
-    lineHeight: Typography.sm.lineHeight,
-  },
-  nextCta: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-    alignItems: "center",
-    minHeight: 44,
-    justifyContent: "center",
-  },
-  nextCtaText: {
-    fontSize: Typography.md.size,
-    lineHeight: Typography.md.lineHeight,
-  },
-  routineDoneBanner: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    alignItems: "center",
-  },
-  routineDoneText: {
     fontSize: Typography.sm.size,
     lineHeight: Typography.sm.lineHeight,
   },

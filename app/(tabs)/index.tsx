@@ -28,7 +28,6 @@ import {
 } from "@/lib/coaching";
 import { flattenIterations, planExercise } from "@/lib/exercises/engine";
 import { exerciseLibrary, getAllExercises } from "@/lib/exercises/library";
-import { exerciseName } from "@/lib/exercises/names";
 import { midiToNote, noteToMidi } from "@/lib/exercises/music";
 import ImportModal from "@/components/import/ImportModal";
 import type {
@@ -80,6 +79,10 @@ export default function PracticeScreen() {
   const [routine, setRoutine] = useState<RoutineConfig | null>(null);
   const [loggedSessions, setLoggedSessions] = useState<SessionRecord[]>([]);
   const [importModalVisible, setImportModalVisible] = useState(false);
+  // Collapsed-by-default selectors. Routine queues the exercise; the picker
+  // is a secondary affordance for deviating from the routine.
+  const [exercisePickerOpen, setExercisePickerOpen] = useState(false);
+  const [voicePickerOpen, setVoicePickerOpen] = useState(false);
   const [voicePart, setVoicePartState] = useState<VoicePart>("tenor");
   const setVoicePart = useCallback((next: VoicePart) => {
     setVoicePartState(next);
@@ -186,7 +189,6 @@ export default function PracticeScreen() {
   // mount; transitions on tap or when a real session sample arrives.
   const [micState, setMicState] = useState<MicStatusState>("unknown");
 
-  const scrollViewRef = useRef<ScrollView | null>(null);
   const playerRef = useRef<AudioPlayer | null>(null);
   const detectorRef = useRef<PitchDetector | null>(null);
   const detectorUnsubRef = useRef<(() => void) | null>(null);
@@ -226,13 +228,6 @@ export default function PracticeScreen() {
     () => todayStatus(activeRoutine, loggedSessions),
     [activeRoutine, loggedSessions],
   );
-
-  // Resolves the next unfinished routine item, or null when all are done.
-  const nextRoutineItemId = useMemo<string | null>(() => {
-    if (activeRoutine.exerciseIds.length === 0) return null;
-    const next = routineStatus.items.find((it) => !it.done);
-    return next?.id ?? null;
-  }, [activeRoutine.exerciseIds.length, routineStatus.items]);
 
   useEffect(() => {
     return () => {
@@ -297,11 +292,6 @@ export default function PracticeScreen() {
     setLoggedMessage(null);
     setExerciseId(newId);
   }, [exerciseId, snapshot, pendingSession, coachingCta]);
-
-  const handleAutoAdvance = useCallback((newId: string) => {
-    handleExerciseChange(newId);
-    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-  }, [handleExerciseChange]);
 
   const handleCheckMic = useCallback(async () => {
     setMicState("checking");
@@ -601,8 +591,8 @@ export default function PracticeScreen() {
     try {
       await sessionStore.upsert(record);
       setPendingSession(null);
-      // Append to local sessions list so routineStatus / nextRoutineItemId
-      // recompute without a fresh fetch.
+      // Append to local sessions list so routineStatus recomputes
+      // without a fresh fetch.
       setLoggedSessions((prev) => [...prev, record]);
       // Keep coachingCta alive — it becomes visible once pendingSession is cleared.
       setLoggedMessage("Logged");
@@ -621,18 +611,30 @@ export default function PracticeScreen() {
 
   return (
     <ScrollView
-      ref={scrollViewRef}
       style={[styles.container, { backgroundColor: colors.canvas }]}
       contentContainerStyle={styles.content}
     >
-      <Text style={[styles.h1, { color: colors.textPrimary, fontFamily: Fonts.displaySemibold }]}>
-        Vocal Warm-up
-      </Text>
+      {/* Header row: title left, compact mic-status pill right. */}
+      <View style={styles.headerRow}>
+        <Text style={[styles.h1, { color: colors.textPrimary, fontFamily: Fonts.displaySemibold }]}>
+          Vocal Warm-up
+        </Text>
+        <MicStatus
+          compact
+          state={micState}
+          liveRmsDb={
+            status === "playing" && typeof latestSample?.rmsDb === "number"
+              ? latestSample.rmsDb
+              : undefined
+          }
+          onCheck={handleCheckMic}
+        />
+      </View>
 
-      {/* Today's routine — read-only mirror of Progress's config; tap a row
-          to load that exercise into the picker. Edit navigates to Progress. */}
+      {/* Compact routine summary; taps to expand. Edit goes to Progress. */}
       {routine && (
         <TodayRoutineCard
+          compact
           routine={activeRoutine}
           status={routineStatus}
           onPressEdit={() => router.push("/explore")}
@@ -667,147 +669,6 @@ export default function PracticeScreen() {
       {/* Modal shown once per session — gates Start until answered */}
       <HeadphonesBanner onConfirm={setHeadphonesConfirmed} />
 
-      {/* Pre-Start mic check — surfaces silent permission failures before the
-          user discovers them via blank scoring at session end. */}
-      <MicStatus
-        state={micState}
-        liveRmsDb={
-          status === "playing" && typeof latestSample?.rmsDb === "number"
-            ? latestSample.rmsDb
-            : undefined
-        }
-        onCheck={handleCheckMic}
-      />
-
-      {/*
-        Responsive primary-picks + settings cluster.
-        Wide (>=640px): two columns side by side.
-        Narrow: stacked.
-      */}
-      <View style={isWide ? styles.widePicksRow : undefined}>
-        {/* Primary picks */}
-        <View style={isWide ? styles.widePicksLeft : undefined}>
-          <Section title="Exercise">
-            <View style={styles.row}>
-              {availableExercises.map((e) => {
-                const isImported = e.tags?.includes("imported") ?? false;
-                const active = exerciseId === e.id;
-                return (
-                  <Pressable
-                    key={e.id}
-                    onPress={() => handleExerciseChange(e.id)}
-                    style={[
-                      styles.chip,
-                      styles.chipInline,
-                      {
-                        backgroundColor: active ? colors.accentMuted : colors.bgSurface,
-                        borderColor: active ? colors.accent : colors.borderSubtle,
-                      },
-                    ]}
-                    disabled={status !== "idle"}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium },
-                      ]}
-                    >
-                      {e.name}
-                    </Text>
-                    {isImported && (
-                      <View
-                        style={[
-                          styles.importedPill,
-                          { backgroundColor: active ? colors.accent : colors.accentMuted },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.importedPillText,
-                            { color: active ? colors.canvas : colors.accent, fontFamily: Fonts.bodySemibold },
-                          ]}
-                        >
-                          Imported
-                        </Text>
-                      </View>
-                    )}
-                  </Pressable>
-                );
-              })}
-              <Pressable
-                onPress={() => setImportModalVisible(true)}
-                style={[
-                  styles.chip,
-                  styles.chipAdd,
-                  { backgroundColor: colors.bgSurface, borderColor: colors.accent },
-                ]}
-                disabled={status !== "idle"}
-                accessibilityLabel="Import melody"
-                // @ts-ignore — web title attribute
-                title={Platform.OS === "web" ? "Import a melody" : undefined}
-              >
-                <Text style={[styles.chipAddText, { color: colors.accent, fontFamily: Fonts.bodySemibold }]}>
-                  + Import
-                </Text>
-              </Pressable>
-            </View>
-            <Text style={[styles.subtle, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
-              {exercise.pedagogy}
-            </Text>
-          </Section>
-
-          <Section title="Voice part">
-            <View style={styles.row}>
-              {VOICE_PARTS.map((vp) => {
-                const active = voicePart === vp;
-                return (
-                  <Pressable
-                    key={vp}
-                    onPress={() => setVoicePart(vp)}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: active ? colors.accentMuted : colors.bgSurface,
-                        borderColor: active ? colors.accent : colors.borderSubtle,
-                      },
-                    ]}
-                    disabled={status !== "idle"}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium },
-                      ]}
-                    >
-                      {vp}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            {!supportsVoicePart && (
-              <Text style={[styles.error, { color: colors.error, fontFamily: Fonts.body }]}>
-                No {voicePart} range defined for this exercise.
-              </Text>
-            )}
-          </Section>
-        </View>
-
-        {/* Session settings icon cluster */}
-        <View style={isWide ? styles.widePicksRight : undefined}>
-          <SettingsCluster
-            accompanimentPreset={accompanimentPreset}
-            onAccompanimentSelect={setAccompanimentPreset}
-            accompanimentLocked={exercise.lockAccompaniment ?? false}
-            guidance={guidance}
-            onGuidanceSelect={setGuidance}
-            demoEnabled={demoEnabled}
-            onDemoToggle={handleSetDemoEnabled}
-            disabled={status !== "idle"}
-          />
-        </View>
-      </View>
-
       <ImportModal
         visible={importModalVisible}
         initialVoicePart={voicePart}
@@ -831,9 +692,6 @@ export default function PracticeScreen() {
             onTapCoaching={(sessionId) =>
               router.push({ pathname: "/coaching", params: { sessionId } })
             }
-            nextRoutineItemId={nextRoutineItemId}
-            routineAllDone={routineStatus.total > 0 && routineStatus.done === routineStatus.total}
-            onAutoAdvance={handleAutoAdvance}
             isIdle={true}
           />
         </>
@@ -863,15 +721,196 @@ export default function PracticeScreen() {
           snapshot={snapshot}
           startTonicMidi={startTonicMidi}
           defaultTonicMidi={defaultTonicMidi}
-          nextRoutineItemId={nextRoutineItemId}
-          routineAllDone={routineStatus.total > 0 && routineStatus.done === routineStatus.total}
-          onAutoAdvance={handleAutoAdvance}
           status={status}
           playerRef={playerRef}
           detectorRef={detectorRef}
           voicePart={voicePart}
         />
       )}
+
+      {/* Secondary pickers + settings live below the mode body so the hero
+          card + Start stay above the fold. Pickers collapsed by default. */}
+      <View style={isWide ? styles.widePicksRow : undefined}>
+        <View style={isWide ? styles.widePicksLeft : undefined}>
+          {/* Exercise picker — collapsed by default */}
+          <Pressable
+            onPress={() => setExercisePickerOpen((v) => !v)}
+            style={[
+              styles.collapsibleHeader,
+              { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle },
+            ]}
+            disabled={status !== "idle"}
+            accessibilityRole="button"
+            accessibilityLabel={`Exercise: ${exercise.name}. ${exercisePickerOpen ? "Tap to collapse." : "Tap to change."}`}
+          >
+            <Text style={[styles.collapsibleLabel, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium }]}>
+              Exercise
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[styles.collapsibleValue, { color: colors.textPrimary, fontFamily: Fonts.bodySemibold }]}
+            >
+              {exercise.name}
+            </Text>
+            <Text style={[styles.collapsibleChevron, { color: colors.textTertiary, fontFamily: Fonts.mono }]}>
+              {exercisePickerOpen ? "⌃" : "⌄"}
+            </Text>
+          </Pressable>
+
+          {exercisePickerOpen && (
+            <View style={styles.collapsibleBody}>
+              <View style={styles.row}>
+                {availableExercises.map((e) => {
+                  const isImported = e.tags?.includes("imported") ?? false;
+                  const active = exerciseId === e.id;
+                  return (
+                    <Pressable
+                      key={e.id}
+                      onPress={() => {
+                        handleExerciseChange(e.id);
+                        setExercisePickerOpen(false);
+                      }}
+                      style={[
+                        styles.chip,
+                        styles.chipInline,
+                        {
+                          backgroundColor: active ? colors.accentMuted : colors.bgSurface,
+                          borderColor: active ? colors.accent : colors.borderSubtle,
+                        },
+                      ]}
+                      disabled={status !== "idle"}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium },
+                        ]}
+                      >
+                        {e.name}
+                      </Text>
+                      {isImported && (
+                        <View
+                          style={[
+                            styles.importedPill,
+                            { backgroundColor: active ? colors.accent : colors.accentMuted },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.importedPillText,
+                              { color: active ? colors.canvas : colors.accent, fontFamily: Fonts.bodySemibold },
+                            ]}
+                          >
+                            Imported
+                          </Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  );
+                })}
+                <Pressable
+                  onPress={() => setImportModalVisible(true)}
+                  style={[
+                    styles.chip,
+                    styles.chipAdd,
+                    { backgroundColor: colors.bgSurface, borderColor: colors.accent },
+                  ]}
+                  disabled={status !== "idle"}
+                  accessibilityLabel="Import melody"
+                  // @ts-ignore — web title attribute
+                  title={Platform.OS === "web" ? "Import a melody" : undefined}
+                >
+                  <Text style={[styles.chipAddText, { color: colors.accent, fontFamily: Fonts.bodySemibold }]}>
+                    + Import
+                  </Text>
+                </Pressable>
+              </View>
+              <Text style={[styles.subtle, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
+                {exercise.pedagogy}
+              </Text>
+            </View>
+          )}
+
+          {/* Voice picker — collapsed by default */}
+          <Pressable
+            onPress={() => setVoicePickerOpen((v) => !v)}
+            style={[
+              styles.collapsibleHeader,
+              { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle, marginTop: Spacing.xs },
+            ]}
+            disabled={status !== "idle"}
+            accessibilityRole="button"
+            accessibilityLabel={`Voice: ${voicePart}. ${voicePickerOpen ? "Tap to collapse." : "Tap to change."}`}
+          >
+            <Text style={[styles.collapsibleLabel, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium }]}>
+              Voice
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[styles.collapsibleValue, { color: colors.textPrimary, fontFamily: Fonts.bodySemibold, textTransform: "capitalize" }]}
+            >
+              {voicePart}
+            </Text>
+            <Text style={[styles.collapsibleChevron, { color: colors.textTertiary, fontFamily: Fonts.mono }]}>
+              {voicePickerOpen ? "⌃" : "⌄"}
+            </Text>
+          </Pressable>
+
+          {voicePickerOpen && (
+            <View style={styles.collapsibleBody}>
+              <View style={styles.row}>
+                {VOICE_PARTS.map((vp) => {
+                  const active = voicePart === vp;
+                  return (
+                    <Pressable
+                      key={vp}
+                      onPress={() => {
+                        setVoicePart(vp);
+                        setVoicePickerOpen(false);
+                      }}
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: active ? colors.accentMuted : colors.bgSurface,
+                          borderColor: active ? colors.accent : colors.borderSubtle,
+                        },
+                      ]}
+                      disabled={status !== "idle"}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium },
+                        ]}
+                      >
+                        {vp}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {!supportsVoicePart && (
+                <Text style={[styles.error, { color: colors.error, fontFamily: Fonts.body }]}>
+                  No {voicePart} range defined for this exercise.
+                </Text>
+              )}
+            </View>
+          )}
+        </View>
+
+        <View style={isWide ? styles.widePicksRight : undefined}>
+          <SettingsCluster
+            accompanimentPreset={accompanimentPreset}
+            onAccompanimentSelect={setAccompanimentPreset}
+            accompanimentLocked={exercise.lockAccompaniment ?? false}
+            guidance={guidance}
+            onGuidanceSelect={setGuidance}
+            demoEnabled={demoEnabled}
+            onDemoToggle={handleSetDemoEnabled}
+            disabled={status !== "idle"}
+          />
+        </View>
+      </View>
     </ScrollView>
   );
 }
@@ -1194,9 +1233,6 @@ interface StandardBodyProps {
   snapshot: SessionTrackerSnapshot | null;
   startTonicMidi: number | null;
   defaultTonicMidi: number | null;
-  nextRoutineItemId: string | null;
-  routineAllDone: boolean;
-  onAutoAdvance: (exerciseId: string) => void;
   status: "idle" | "loading" | "demo" | "playing" | "stopping";
   playerRef: React.MutableRefObject<AudioPlayer | null>;
   detectorRef: React.MutableRefObject<PitchDetector | null>;
@@ -1228,9 +1264,6 @@ function StandardModeBody({
   snapshot,
   startTonicMidi,
   defaultTonicMidi,
-  nextRoutineItemId,
-  routineAllDone,
-  onAutoAdvance,
   status,
   playerRef,
   detectorRef,
@@ -1352,9 +1385,6 @@ function StandardModeBody({
         onTapCoaching={(sessionId) =>
           router.push({ pathname: "/coaching", params: { sessionId } })
         }
-        nextRoutineItemId={nextRoutineItemId}
-        routineAllDone={routineAllDone}
-        onAutoAdvance={onAutoAdvance}
         isIdle={status === "idle"}
       />
 
@@ -1421,9 +1451,44 @@ function currentKeyMelodyNotes(
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing['3xl'], gap: Spacing.md },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+  },
   h1: {
     fontSize: Typography.xl.size,
     lineHeight: Typography.xl.lineHeight,
+  },
+  collapsibleHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    minHeight: 40,
+  },
+  collapsibleLabel: {
+    fontSize: Typography.xs.size,
+    lineHeight: Typography.xs.lineHeight,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  collapsibleValue: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+    flex: 1,
+  },
+  collapsibleChevron: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+  },
+  collapsibleBody: {
+    paddingTop: Spacing.xs,
+    gap: Spacing.xs,
   },
   subtle: {
     fontSize: Typography.sm.size,
