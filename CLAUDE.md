@@ -48,13 +48,14 @@ lib/music/keySignature.ts                # major-key signature derivation (circl
 assets/fonts/BravuraText.{otf,woff2}     # SMuFL music notation font (SIL OFL); WOFF2 for web (Chrome rejects Bravura's OTF), OTF for iOS native
 metro.config.js                          # extends Expo defaults to register woff2 as a Metro asset extension
 components/practice/                     # GuidedSession, CoachingBanner, TuningMeter, NoteChip, etc.
-components/practice/TodayRoutineCard.tsx # compact routine summary; whole header bar toggles expand/collapse
+components/practice/TodayRoutineCard.tsx # routine card. compact-collapsed: "TODAY'S ROUTINE" eyebrow + status + next-up line + dot bar + "Show all ⌄" pill + Edit. compact-expanded: header (Edit + collapse-chevron) + per-item rows (chevron-right when onItemPress) + "Edit routine — add or swap exercises" footer. non-compact (Progress): header (Edit) + rows. Practice's Edit deep-links to /explore?editRoutine=1, which auto-opens the editor modal (param then cleared via router.setParams).
+app/(tabs)/_layout.tsx        # Bottom tab bar — dark "brass bookmark": bgEmphasis (#2c2118) bar, active tab amber (accentOnEmphasis) on a faint amber pill, inactive dim-cream (textOnEmphasisDim). Custom TabBarButton wraps each tab in the pill + carries the iOS haptic.
 app/(tabs)/index.tsx          # Practice screen. Desktop ≥1024px: command console (Start + starting-key + Reset + Exercise + Voice + Session Settings, all in one card) on the LEFT, staff card on the RIGHT, one row. <1024px: stacked. Pickers+settings live in the shared <PracticeControls> component.
 app/(tabs)/coaching.tsx       # Coaching screen — diagnosis, your-version playback, retry, multi-mistake iteration
 app/(tabs)/explore.tsx        # Progress tab — weekly summary, exercise list, recent sessions
 
 # Test infrastructure (PRs 1–2 of automated-testing slice, 2026-05-09 → 2026-05-10)
-test/setup-component.ts       # installFakeAudio() + installFakePitch() helpers; Reanimated/AsyncStorage/Haptics/Tone mocks
+test/setup-component.ts       # installFakeAudio() + installFakePitch() helpers; Reanimated/AsyncStorage/Haptics/Tone/@expo/vector-icons mocks (vector-icons mocked because MaterialIcons calls Font.loadAsync on mount → blows up in jsdom)
 test/mocks/tone.ts            # no-op Tone stub used by component project
 test/fixtures/pitchSamples.ts # synthetic PitchSample[] — inTune/flat/sharp/octaveOff/falseStart/silence presets
 test/fixtures/keyIterations.ts # buildKeyIterations() calls real WarmupEngine.plan() so fixtures stay schema-aligned

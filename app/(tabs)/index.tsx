@@ -675,13 +675,13 @@ export default function PracticeScreen() {
         />
       </View>
 
-      {/* Compact routine summary; taps to expand. Edit goes to Progress. */}
+      {/* Compact routine summary; taps to expand. Edit jumps to Progress and opens the editor. */}
       {routine && (
         <TodayRoutineCard
           compact
           routine={activeRoutine}
           status={routineStatus}
-          onPressEdit={() => router.push("/explore")}
+          onPressEdit={() => router.push("/explore?editRoutine=1")}
           onItemPress={status === "idle" ? handleExerciseChange : undefined}
         />
       )}

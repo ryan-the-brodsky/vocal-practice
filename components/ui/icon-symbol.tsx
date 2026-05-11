@@ -18,6 +18,9 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'chevron.down': 'expand-more',
+  'chevron.up': 'expand-less',
+  'pencil': 'edit',
   // Practice screen settings icons
   'slider.horizontal.3': 'tune',
   'pianokeys': 'piano',

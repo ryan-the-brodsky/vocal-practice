@@ -87,6 +87,62 @@ describe("<TodayRoutineCard />", () => {
     expect(screen.getByText("Rossini Lip Trill")).toBeTruthy();
   });
 
+  it("compact: collapsed row shows the routine eyebrow + Show-all affordance, expands to reveal items + Edit", () => {
+    const routine: RoutineConfig = {
+      exerciseIds: ["five-note-scale-mee-may-mah", "rossini-lip-trill"],
+    };
+    const status = makeStatus([
+      { id: "five-note-scale-mee-may-mah", done: false },
+      { id: "rossini-lip-trill", done: false },
+    ]);
+    render(<TodayRoutineCard routine={routine} status={status} onPressEdit={() => {}} compact />);
+
+    expect(screen.getByText("TODAY'S ROUTINE")).toBeTruthy();
+    expect(screen.getByText("Next: Five-Note Scale: Mee May Mah")).toBeTruthy();
+    expect(screen.getByText("Show all")).toBeTruthy();
+    expect(screen.getByLabelText("Edit routine")).toBeTruthy();
+    expect(screen.queryByText("Rossini Lip Trill")).toBeNull();
+
+    act(() => {
+      fireEvent.click(screen.getByText("Show all"));
+    });
+
+    expect(screen.getByText("Five-Note Scale: Mee May Mah")).toBeTruthy();
+    expect(screen.getByText("Rossini Lip Trill")).toBeTruthy();
+    expect(screen.getByText("Edit routine — add or swap exercises")).toBeTruthy();
+    expect(screen.getAllByLabelText("Edit routine").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("compact: tapping an item in the expanded list fires onItemPress and collapses", () => {
+    const onItemPress = jest.fn();
+    const routine: RoutineConfig = {
+      exerciseIds: ["five-note-scale-mee-may-mah", "rossini-lip-trill"],
+    };
+    const status = makeStatus([
+      { id: "five-note-scale-mee-may-mah", done: false },
+      { id: "rossini-lip-trill", done: false },
+    ]);
+    render(
+      <TodayRoutineCard
+        routine={routine}
+        status={status}
+        onPressEdit={() => {}}
+        onItemPress={onItemPress}
+        compact
+      />,
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByText("Show all"));
+    });
+    act(() => {
+      fireEvent.click(screen.getByLabelText("Practice Rossini Lip Trill"));
+    });
+    expect(onItemPress).toHaveBeenCalledWith("rossini-lip-trill");
+    expect(screen.queryByText("Five-Note Scale: Mee May Mah")).toBeNull();
+    expect(screen.getByText("Show all")).toBeTruthy();
+  });
+
   it("fires onPressEdit when the Edit button is tapped", () => {
     const onPressEdit = jest.fn();
     render(

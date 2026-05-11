@@ -1,13 +1,14 @@
 // COMPONENT TEST: components/practice/__tests__/TodayRoutineCard.test.tsx
-// asserts on the "TODAY'S ROUTINE" header (full mode) / "Today:" prefix
-// (compact mode), the "{n} of {m} done" status, the "Routine done"
-// celebration copy when all items complete, the empty state copy, the Edit
-// accessibility label, the per-item Pressable behavior (onItemPress with the
-// right id), and the compact-mode dot bar + tap-to-expand interaction.
+// asserts on the "TODAY'S ROUTINE" eyebrow (every mode), the "{n} of {m} done"
+// / "Routine done" status, the empty-state copy, the "Edit routine" button
+// (present in BOTH the compact-collapsed row AND the compact-expanded header),
+// the "Show all" expand affordance + chevron, the per-item Pressable behavior
+// (onItemPress with the right id), and the collapse/expand interaction.
 // Edits to those surfaces here MUST be mirrored in the test file.
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { exerciseName } from "@/lib/exercises/names";
@@ -30,15 +31,30 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
   const allDone = !isEmpty && status.done === status.total;
   const nextItem = isEmpty ? null : status.items.find((i) => !i.done) ?? status.items[status.items.length - 1];
 
-  // Compact + collapsed: single-row summary with a dot bar.
+  const eyebrow = (
+    <Text
+      style={{
+        fontSize: Typography.xs.size,
+        lineHeight: Typography.xs.lineHeight,
+        color: colors.textTertiary,
+        fontFamily: Fonts.bodyMedium,
+        textTransform: "uppercase",
+        letterSpacing: 0.8,
+      }}
+    >
+      TODAY&apos;S ROUTINE
+    </Text>
+  );
+
+  const statusText = isEmpty ? null : allDone ? "Routine done" : `${status.done} of ${status.total} done`;
+
+  // ── Compact + collapsed: a disclosure row with the routine name front-and-centre.
   if (compact && !expanded) {
-    const summaryText = isEmpty
-      ? "No routine — tap Edit to add"
+    const headline = isEmpty
+      ? "No exercises yet"
       : allDone
-        ? "Routine done"
-        : nextItem
-          ? `Today: ${exerciseName(nextItem.id)}`
-          : "Today's routine";
+        ? "All done — nice work"
+        : `Next: ${exerciseName(nextItem!.id)}`;
 
     return (
       <View
@@ -51,22 +67,42 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
           onPress={() => setExpanded(true)}
           accessibilityRole="button"
           accessibilityLabel={
-            isEmpty ? "Expand routine" : `${summaryText}. Tap to see full routine.`
+            isEmpty
+              ? "Expand routine"
+              : `Today's routine — ${statusText}, ${headline}. Tap to see all exercises.`
           }
           style={styles.compactSummary}
         >
-          <Text
-            numberOfLines={1}
-            style={{
-              fontSize: Typography.sm.size,
-              lineHeight: Typography.sm.lineHeight,
-              color: allDone ? colors.success : colors.textPrimary,
-              fontFamily: Fonts.bodyMedium,
-              flex: 1,
-            }}
-          >
-            {summaryText}
-          </Text>
+          <View style={{ flex: 1, gap: 2 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
+              {eyebrow}
+              {statusText && (
+                <Text
+                  style={{
+                    fontSize: Typography.xs.size,
+                    lineHeight: Typography.xs.lineHeight,
+                    color: allDone ? colors.success : colors.textTertiary,
+                    fontFamily: Fonts.mono,
+                    marginLeft: Spacing.xs,
+                  }}
+                >
+                  · {statusText}
+                </Text>
+              )}
+            </View>
+            <Text
+              numberOfLines={1}
+              style={{
+                fontSize: Typography.sm.size,
+                lineHeight: Typography.sm.lineHeight,
+                color: allDone ? colors.success : colors.textPrimary,
+                fontFamily: Fonts.bodyMedium,
+              }}
+            >
+              {headline}
+            </Text>
+          </View>
+
           {!isEmpty && (
             <Text
               style={{
@@ -75,24 +111,27 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
                 color: allDone ? colors.success : colors.textTertiary,
                 fontFamily: Fonts.mono,
                 letterSpacing: 1,
-                marginLeft: Spacing.xs,
+                marginHorizontal: Spacing.sm,
               }}
             >
               {status.items.map((i) => (i.done ? "●" : "○")).join("")}
             </Text>
           )}
-          <Text
-            style={{
-              fontSize: Typography.sm.size,
-              lineHeight: Typography.sm.lineHeight,
-              color: colors.textTertiary,
-              fontFamily: Fonts.mono,
-              marginLeft: Spacing.xs,
-            }}
-          >
-            ⌄
-          </Text>
+
+          <View style={[styles.expandPill, { borderColor: colors.borderStrong }]}>
+            <Text
+              style={{
+                fontSize: Typography.xs.size,
+                color: colors.textSecondary,
+                fontFamily: Fonts.bodyMedium,
+              }}
+            >
+              Show all
+            </Text>
+            <IconSymbol name="chevron.down" size={16} color={colors.textSecondary} style={{ marginLeft: 2 }} />
+          </View>
         </Pressable>
+
         <TouchableOpacity
           onPress={onPressEdit}
           style={[styles.editBtn, { paddingHorizontal: Spacing.sm }]}
@@ -100,13 +139,15 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
           accessibilityRole="button"
           accessibilityLabel="Edit routine"
         >
-          <Text style={{ fontSize: Typography.sm.size, color: colors.textSecondary }}>Edit</Text>
+          <Text style={{ fontSize: Typography.sm.size, color: colors.textSecondary, fontFamily: Fonts.bodyMedium }}>
+            Edit
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  // Full / expanded view (default for Progress; revealed when compact tapped).
+  // ── Full / expanded view (default for Progress; revealed when a compact row is tapped).
   return (
     <View
       style={[
@@ -114,10 +155,7 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
         { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle, borderRadius: Radii.lg },
       ]}
     >
-      <Pressable
-        onPress={compact ? () => setExpanded(false) : undefined}
-        accessibilityRole={compact ? "button" : undefined}
-        accessibilityLabel={compact ? "Collapse routine" : undefined}
+      <View
         style={[
           styles.header,
           {
@@ -128,20 +166,14 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
           },
         ]}
       >
-        <View style={[styles.headerLeft, { gap: Spacing.xs }]}>
-          <Text
-            style={{
-              fontSize: Typography.xs.size,
-              lineHeight: Typography.xs.lineHeight,
-              color: colors.textTertiary,
-              fontFamily: Fonts.bodyMedium,
-              textTransform: "uppercase",
-              letterSpacing: 0.8,
-            }}
-          >
-            TODAY'S ROUTINE
-          </Text>
-          {!isEmpty && (
+        <Pressable
+          onPress={compact ? () => setExpanded(false) : undefined}
+          accessibilityRole={compact ? "button" : undefined}
+          accessibilityLabel={compact ? "Collapse routine" : undefined}
+          style={[styles.headerLeft, { gap: Spacing.xs }]}
+        >
+          {eyebrow}
+          {statusText && (
             <Text
               style={{
                 fontSize: Typography.monoBase.size,
@@ -150,13 +182,12 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
                 fontFamily: Fonts.mono,
               }}
             >
-              {allDone ? "Routine done" : `${status.done} of ${status.total} done`}
+              {statusText}
             </Text>
           )}
-        </View>
-        {compact ? (
-          <Text style={[styles.editBtn, { fontSize: Typography.base.size, color: colors.textSecondary }]}>⌃</Text>
-        ) : (
+        </Pressable>
+
+        <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }}>
           <TouchableOpacity
             onPress={onPressEdit}
             style={styles.editBtn}
@@ -164,10 +195,22 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
             accessibilityRole="button"
             accessibilityLabel="Edit routine"
           >
-            <Text style={{ fontSize: Typography.base.size, color: colors.textSecondary }}>Edit</Text>
+            <Text style={{ fontSize: Typography.base.size, color: colors.textSecondary, fontFamily: Fonts.bodyMedium }}>
+              Edit
+            </Text>
           </TouchableOpacity>
-        )}
-      </Pressable>
+          {compact && (
+            <Pressable
+              onPress={() => setExpanded(false)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Collapse routine"
+            >
+              <IconSymbol name="chevron.up" size={20} color={colors.textTertiary} />
+            </Pressable>
+          )}
+        </View>
+      </View>
 
       {isEmpty ? (
         <Text
@@ -212,6 +255,9 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
                 >
                   {exerciseName(item.id)}
                 </Text>
+                {onItemPress && (
+                  <IconSymbol name="chevron.right" size={16} color={colors.textTertiary} />
+                )}
               </>
             );
             if (onItemPress) {
@@ -238,6 +284,23 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
           })}
         </View>
       )}
+
+      {compact && (
+        <TouchableOpacity
+          onPress={onPressEdit}
+          style={[
+            styles.editFooter,
+            { borderTopColor: colors.borderSubtle, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, gap: Spacing.xs },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Edit routine"
+        >
+          <IconSymbol name="pencil" size={15} color={colors.accent} />
+          <Text style={{ fontSize: Typography.sm.size, color: colors.accent, fontFamily: Fonts.bodyMedium }}>
+            Edit routine — add or swap exercises
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -247,6 +310,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", borderBottomWidth: 1 },
   headerLeft: { flex: 1, flexDirection: "row", alignItems: "center" },
   editBtn: { padding: Spacing["2xs"] },
+  editFooter: { flexDirection: "row", alignItems: "center", borderTopWidth: 1 },
   items: {},
   item: { flexDirection: "row", alignItems: "center" },
 
@@ -258,12 +322,20 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     paddingLeft: Spacing.sm,
     paddingRight: Spacing["2xs"],
-    minHeight: 40,
+    minHeight: 52,
   },
   compactSummary: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 36,
+    minHeight: 40,
+  },
+  expandPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing["3xs"],
   },
 });

@@ -170,6 +170,21 @@ jest.mock("expo-haptics", () => ({
 // Tone.js — short-circuit transitive imports with a no-op stub.
 jest.mock("tone", () => require("./mocks/tone"));
 
+// @expo/vector-icons — the real MaterialIcons calls Font.loadAsync on mount,
+// which blows up in jsdom (no asset registry). Render a plain Text glyph instead.
+jest.mock("@expo/vector-icons/MaterialIcons", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require("react");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Text } = require("react-native");
+  return {
+    __esModule: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    default: ({ name, color, size, style }: any) =>
+      React.createElement(Text, { style }, `icon:${name ?? ""}`),
+  };
+});
+
 // expo-router — tests drive route params via setMockRouterParams() and
 // inspect router calls via getMockRouter(). Reset to defaults in afterEach.
 type MockRouter = {

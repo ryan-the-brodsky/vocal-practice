@@ -5,7 +5,7 @@
 // Edits to those surfaces here MUST be mirrored in the test file or it will go red.
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { createAsyncStorageStore, thisWeekSummary, bestKeyPerExercise, progressForExercise, bestSessionAccuracy } from "@/lib/progress";
 import { loadRoutine, saveRoutine, todayStatus } from "@/lib/progress/routine";
@@ -389,6 +389,15 @@ export default function ProgressScreen() {
       setLoading(false);
     });
   }, []);
+
+  // Practice's routine "Edit" deep-links here with ?editRoutine=1 — open the editor, then drop the param.
+  const { editRoutine } = useLocalSearchParams<{ editRoutine?: string }>();
+  useEffect(() => {
+    if (editRoutine === "1") {
+      setEditModalVisible(true);
+      router.setParams({ editRoutine: undefined });
+    }
+  }, [editRoutine, router]);
 
   async function handleSaveRoutine(config: RoutineConfig) {
     await saveRoutine(config).catch(() => {});
