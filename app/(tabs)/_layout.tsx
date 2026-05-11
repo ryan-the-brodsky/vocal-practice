@@ -3,7 +3,7 @@ import { PlatformPressable } from '@react-navigation/elements';
 import { Tabs } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -38,19 +38,25 @@ function TabBarButton(props: BottomTabBarButtonProps) {
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  // People look for primary nav at the top on desktop/tablet; only mobile expects
+  // a bottom bar. ≥768 px (iPad-portrait and up) → top, narrower → bottom.
+  const { width } = useWindowDimensions();
+  const position: 'top' | 'bottom' = width >= 768 ? 'top' : 'bottom';
 
   return (
     <Tabs
       screenOptions={{
+        tabBarPosition: position,
         tabBarActiveTintColor: c.accentOnEmphasis,
         tabBarInactiveTintColor: c.textOnEmphasisDim,
         tabBarStyle: {
           backgroundColor: c.bgEmphasis,
-          borderTopColor: c.borderOnEmphasis,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          height: 60 + insets.bottom,
-          paddingTop: 6,
-          paddingBottom: insets.bottom,
+          // react-navigation draws the hairline on the correct edge (bottom edge
+          // when the bar is at the top, top edge when at the bottom) — we only
+          // recolour it. It also adds the safe-area inset as padding, so the
+          // explicit height is content-height + that inset.
+          borderColor: c.borderOnEmphasis,
+          height: 60 + (position === 'top' ? insets.top : insets.bottom),
         },
         tabBarItemStyle: { paddingVertical: 0 },
         tabBarLabelStyle: { fontFamily: Fonts.bodyMedium, fontSize: 12 },
