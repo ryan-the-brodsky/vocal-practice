@@ -13,7 +13,6 @@ import {
   MelodyDisplay,
   NoteResultsStrip,
   Section,
-  Stat,
   rmsGateFor,
   summarizeKey,
 } from "@/components/practice";
@@ -123,6 +122,10 @@ export default function PracticeScreen() {
   // Honor exerciseId / voicePart query params (set by Coaching's "Practice this
   // again" CTA). Lock the consumed key so re-renders don't re-apply, but allow
   // a fresh navigation with different params to fire again.
+  // Set once the user (or a deep-link / import) explicitly picks an exercise —
+  // tells the routine-tracking effect to stop auto-advancing.
+  const userPickedExerciseRef = useRef(false);
+
   const lastConsumedNavKeyRef = useRef<string | null>(null);
   useEffect(() => {
     const wantExerciseId = navParams.exerciseId ?? "";
@@ -134,6 +137,7 @@ export default function PracticeScreen() {
     let appliedExercise = false;
     if (wantExerciseId && availableExercises.some((e) => e.id === wantExerciseId)) {
       setExerciseId(wantExerciseId);
+      userPickedExerciseRef.current = true;
       appliedExercise = true;
     }
     if (wantVoicePart && (VALID_VOICE_PARTS as readonly string[]).includes(wantVoicePart)) {
@@ -152,7 +156,10 @@ export default function PracticeScreen() {
       const list = await getAllExercises();
       setAvailableExercises(list);
       // Auto-select the freshly-imported exercise.
-      if (list.some((e) => e.id === newId)) setExerciseId(newId);
+      if (list.some((e) => e.id === newId)) {
+        setExerciseId(newId);
+        userPickedExerciseRef.current = true;
+      }
     } catch {
       setAvailableExercises(exerciseLibrary);
     }
@@ -277,7 +284,7 @@ export default function PracticeScreen() {
   }, [status, tonicMapKey]);
 
   /** Switch to a different exercise, preserving each exercise's own session-end state. */
-  const handleExerciseChange = useCallback((newId: string) => {
+  const switchExerciseTo = useCallback((newId: string) => {
     if (newId === exerciseId) return;
     exerciseSessionsRef.current.set(exerciseId, { snapshot, pendingSession, coachingCta });
     const slice = exerciseSessionsRef.current.get(newId);
@@ -289,6 +296,25 @@ export default function PracticeScreen() {
     setLoggedMessage(null);
     setExerciseId(newId);
   }, [exerciseId, snapshot, pendingSession, coachingCta]);
+
+  /** Manual exercise pick (picker chip / routine row tap): same as switch, but
+   *  also tells the routine-tracking effect to stop auto-advancing. */
+  const handleExerciseChange = useCallback((newId: string) => {
+    userPickedExerciseRef.current = true;
+    switchExerciseTo(newId);
+  }, [switchExerciseTo]);
+
+  /** Default the active exercise to the routine's next not-yet-done item —
+   *  continues a routine across app opens and after each logged session.
+   *  Backs off once the user explicitly picks an exercise (chip / routine row /
+   *  deep-link / import). */
+  useEffect(() => {
+    if (userPickedExerciseRef.current || !routine || status !== "idle") return;
+    const next = todayStatus(routine, loggedSessions).items.find((i) => !i.done);
+    if (next && next.id !== exerciseId && availableExercises.some((e) => e.id === next.id)) {
+      switchExerciseTo(next.id);
+    }
+  }, [routine, loggedSessions, exerciseId, availableExercises, status, switchExerciseTo]);
 
   const handleCheckMic = useCallback(async () => {
     setMicState("checking");
@@ -588,8 +614,9 @@ export default function PracticeScreen() {
     try {
       await sessionStore.upsert(record);
       setPendingSession(null);
-      // Append to local sessions list so routineStatus recomputes
-      // without a fresh fetch.
+      // Append to local sessions list so routineStatus recomputes without a
+      // fresh fetch. The routine-tracking effect will advance exerciseId to the
+      // next not-yet-done item once loggedSessions changes.
       setLoggedSessions((prev) => [...prev, record]);
       // Keep coachingCta alive — it becomes visible once pendingSession is cleared.
       setLoggedMessage("Logged");
@@ -716,7 +743,6 @@ export default function PracticeScreen() {
       ) : (
         <StandardModeBody
           coachingCta={coachingCta}
-          currentTarget={currentTarget}
           demoSkipRef={demoSkipRef}
           error={error}
           exercise={exercise}
@@ -727,21 +753,17 @@ export default function PracticeScreen() {
           handleDiscardSession={handleDiscardSession}
           headphonesConfirmed={headphonesConfirmed}
           iterationsRef={iterationsRef}
-          latestSample={latestSample}
           leadInCountdown={leadInCountdown}
           loggedMessage={loggedMessage}
           noteProgress={noteProgress}
           pendingSession={pendingSession}
           progress={progress}
-          rmsGate={rmsGate}
           router={router}
           savedMessage={savedMessage}
           snapshot={snapshot}
           startTonicMidi={startTonicMidi}
           defaultTonicMidi={defaultTonicMidi}
           status={status}
-          playerRef={playerRef}
-          detectorRef={detectorRef}
           voicePart={voicePart}
           isDesktop={isDesktop}
           controls={practiceControls}
@@ -1168,7 +1190,6 @@ function ResetButton({ onPress }: { onPress: () => void }) {
 
 interface StandardBodyProps {
   coachingCta: { sessionId: string; previewText: string; previewSubline?: string } | null;
-  currentTarget: NoteEvent | null;
   demoSkipRef: React.MutableRefObject<(() => void) | null>;
   error: string | null;
   exercise: ExerciseDescriptor;
@@ -1179,21 +1200,17 @@ interface StandardBodyProps {
   handleDiscardSession: () => void;
   headphonesConfirmed: boolean | null;
   iterationsRef: React.MutableRefObject<KeyIteration[]>;
-  latestSample: PitchSample | null;
   leadInCountdown: number | null;
   loggedMessage: string | null;
   noteProgress: number;
   pendingSession: SessionRecord | null;
   progress: number;
-  rmsGate: number;
   router: ReturnType<typeof useRouter>;
   savedMessage: string | null;
   snapshot: SessionTrackerSnapshot | null;
   startTonicMidi: number | null;
   defaultTonicMidi: number | null;
   status: "idle" | "loading" | "demo" | "playing" | "stopping";
-  playerRef: React.MutableRefObject<AudioPlayer | null>;
-  detectorRef: React.MutableRefObject<PitchDetector | null>;
   voicePart: VoicePart;
   isDesktop: boolean;
   /** Exercise / voice / settings — rendered inside the command console on
@@ -1203,7 +1220,6 @@ interface StandardBodyProps {
 
 function StandardModeBody({
   coachingCta,
-  currentTarget,
   demoSkipRef,
   error,
   exercise,
@@ -1214,21 +1230,17 @@ function StandardModeBody({
   handleDiscardSession,
   headphonesConfirmed,
   iterationsRef,
-  latestSample,
   leadInCountdown,
   loggedMessage,
   noteProgress,
   pendingSession,
   progress,
-  rmsGate,
   router,
   savedMessage,
   snapshot,
   startTonicMidi,
   defaultTonicMidi,
   status,
-  playerRef,
-  detectorRef,
   voicePart,
   isDesktop,
   controls,
@@ -1295,20 +1307,11 @@ function StandardModeBody({
     );
   };
 
+  // No live pitch readout: real-time detection octave-errors enough to look
+  // wildly off when it isn't, and scoring is post-pattern anyway. Just show
+  // where we are in the run.
   const liveReadouts = (
     <>
-      <View style={styles.statRow}>
-        <Stat label="Tonic" value={snapshot?.currentTonic ?? "—"} />
-        <Stat label="Target" value={currentTarget?.noteName ?? "—"} />
-        <Stat
-          label="You"
-          value={
-            latestSample?.midi != null && (latestSample.rmsDb ?? -100) >= rmsGate
-              ? midiToNote(Math.round(latestSample.midi))
-              : "—"
-          }
-        />
-      </View>
       {snapshot && (
         <View style={styles.counterRow}>
           <Text style={[styles.counterText, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
@@ -1579,7 +1582,6 @@ const styles = StyleSheet.create({
   },
   consoleDivider: { height: 1, marginVertical: Spacing["3xs"] },
   controlsStack: { gap: Spacing.xs },
-  statRow: { flexDirection: "row", gap: Spacing.xs, justifyContent: "space-between" },
   counterRow: { alignItems: "center" },
   counterText: {
     fontSize: Typography.sm.size,
