@@ -114,7 +114,10 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
         { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle, borderRadius: Radii.lg },
       ]}
     >
-      <View
+      <Pressable
+        onPress={compact ? () => setExpanded(false) : undefined}
+        accessibilityRole={compact ? "button" : undefined}
+        accessibilityLabel={compact ? "Collapse routine" : undefined}
         style={[
           styles.header,
           {
@@ -152,15 +155,7 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
           )}
         </View>
         {compact ? (
-          <TouchableOpacity
-            onPress={() => setExpanded(false)}
-            style={styles.editBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityRole="button"
-            accessibilityLabel="Collapse routine"
-          >
-            <Text style={{ fontSize: Typography.base.size, color: colors.textSecondary }}>⌃</Text>
-          </TouchableOpacity>
+          <Text style={[styles.editBtn, { fontSize: Typography.base.size, color: colors.textSecondary }]}>⌃</Text>
         ) : (
           <TouchableOpacity
             onPress={onPressEdit}
@@ -172,7 +167,7 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
             <Text style={{ fontSize: Typography.base.size, color: colors.textSecondary }}>Edit</Text>
           </TouchableOpacity>
         )}
-      </View>
+      </Pressable>
 
       {isEmpty ? (
         <Text

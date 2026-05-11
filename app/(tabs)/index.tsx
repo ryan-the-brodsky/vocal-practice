@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, useWindowDimensions, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, type StyleProp, Switch, Text, useWindowDimensions, View, type ViewStyle } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -64,7 +64,8 @@ export default function PracticeScreen() {
   const router = useRouter();
   const navParams = useLocalSearchParams<{ exerciseId?: string; voicePart?: string }>();
   const { width } = useWindowDimensions();
-  const isWide = width >= 640;
+  // Desktop: staff on the left, a compact command console on the right.
+  const isDesktop = width >= 1024;
   const { colors } = useTheme();
   const [mode, setMode] = useState<Mode>("standard");
   const [exerciseId, setExerciseId] = useState(
@@ -79,10 +80,6 @@ export default function PracticeScreen() {
   const [routine, setRoutine] = useState<RoutineConfig | null>(null);
   const [loggedSessions, setLoggedSessions] = useState<SessionRecord[]>([]);
   const [importModalVisible, setImportModalVisible] = useState(false);
-  // Collapsed-by-default selectors. Routine queues the exercise; the picker
-  // is a secondary affordance for deviating from the routine.
-  const [exercisePickerOpen, setExercisePickerOpen] = useState(false);
-  const [voicePickerOpen, setVoicePickerOpen] = useState(false);
   const [voicePart, setVoicePartState] = useState<VoicePart>("tenor");
   const setVoicePart = useCallback((next: VoicePart) => {
     setVoicePartState(next);
@@ -609,6 +606,26 @@ export default function PracticeScreen() {
 
   const rmsGate = rmsGateFor(accompanimentPreset, headphonesConfirmed ?? false);
 
+  const practiceControls = (
+    <PracticeControls
+      exercise={exercise}
+      exerciseId={exerciseId}
+      availableExercises={availableExercises}
+      onExerciseChange={handleExerciseChange}
+      onImport={() => setImportModalVisible(true)}
+      voicePart={voicePart}
+      onVoiceChange={setVoicePart}
+      supportsVoicePart={supportsVoicePart}
+      accompanimentPreset={accompanimentPreset}
+      onAccompanimentSelect={setAccompanimentPreset}
+      guidance={guidance}
+      onGuidanceSelect={setGuidance}
+      demoEnabled={demoEnabled}
+      onDemoToggle={handleSetDemoEnabled}
+      disabled={status !== "idle"}
+    />
+  );
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.canvas }]}
@@ -683,6 +700,7 @@ export default function PracticeScreen() {
             voicePart={voicePart}
             onPatternComplete={handleGuidedPatternComplete}
           />
+          {practiceControls}
           <PostSessionPanel
             pendingSession={pendingSession}
             loggedMessage={loggedMessage}
@@ -725,193 +743,133 @@ export default function PracticeScreen() {
           playerRef={playerRef}
           detectorRef={detectorRef}
           voicePart={voicePart}
+          isDesktop={isDesktop}
+          controls={practiceControls}
         />
       )}
-
-      {/* Secondary pickers + settings live below the mode body so the hero
-          card + Start stay above the fold. Pickers collapsed by default. */}
-      <View style={isWide ? styles.widePicksRow : undefined}>
-        <View style={isWide ? styles.widePicksLeft : undefined}>
-          {/* Exercise picker — collapsed by default */}
-          <Pressable
-            onPress={() => setExercisePickerOpen((v) => !v)}
-            style={[
-              styles.collapsibleHeader,
-              { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle },
-            ]}
-            disabled={status !== "idle"}
-            accessibilityRole="button"
-            accessibilityLabel={`Exercise: ${exercise.name}. ${exercisePickerOpen ? "Tap to collapse." : "Tap to change."}`}
-          >
-            <Text style={[styles.collapsibleLabel, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium }]}>
-              Exercise
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={[styles.collapsibleValue, { color: colors.textPrimary, fontFamily: Fonts.bodySemibold }]}
-            >
-              {exercise.name}
-            </Text>
-            <Text style={[styles.collapsibleChevron, { color: colors.textTertiary, fontFamily: Fonts.mono }]}>
-              {exercisePickerOpen ? "⌃" : "⌄"}
-            </Text>
-          </Pressable>
-
-          {exercisePickerOpen && (
-            <View style={styles.collapsibleBody}>
-              <View style={styles.row}>
-                {availableExercises.map((e) => {
-                  const isImported = e.tags?.includes("imported") ?? false;
-                  const active = exerciseId === e.id;
-                  return (
-                    <Pressable
-                      key={e.id}
-                      onPress={() => {
-                        handleExerciseChange(e.id);
-                        setExercisePickerOpen(false);
-                      }}
-                      style={[
-                        styles.chip,
-                        styles.chipInline,
-                        {
-                          backgroundColor: active ? colors.accentMuted : colors.bgSurface,
-                          borderColor: active ? colors.accent : colors.borderSubtle,
-                        },
-                      ]}
-                      disabled={status !== "idle"}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium },
-                        ]}
-                      >
-                        {e.name}
-                      </Text>
-                      {isImported && (
-                        <View
-                          style={[
-                            styles.importedPill,
-                            { backgroundColor: active ? colors.accent : colors.accentMuted },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.importedPillText,
-                              { color: active ? colors.canvas : colors.accent, fontFamily: Fonts.bodySemibold },
-                            ]}
-                          >
-                            Imported
-                          </Text>
-                        </View>
-                      )}
-                    </Pressable>
-                  );
-                })}
-                <Pressable
-                  onPress={() => setImportModalVisible(true)}
-                  style={[
-                    styles.chip,
-                    styles.chipAdd,
-                    { backgroundColor: colors.bgSurface, borderColor: colors.accent },
-                  ]}
-                  disabled={status !== "idle"}
-                  accessibilityLabel="Import melody"
-                  // @ts-ignore — web title attribute
-                  title={Platform.OS === "web" ? "Import a melody" : undefined}
-                >
-                  <Text style={[styles.chipAddText, { color: colors.accent, fontFamily: Fonts.bodySemibold }]}>
-                    + Import
-                  </Text>
-                </Pressable>
-              </View>
-              <Text style={[styles.subtle, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
-                {exercise.pedagogy}
-              </Text>
-            </View>
-          )}
-
-          {/* Voice picker — collapsed by default */}
-          <Pressable
-            onPress={() => setVoicePickerOpen((v) => !v)}
-            style={[
-              styles.collapsibleHeader,
-              { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle, marginTop: Spacing.xs },
-            ]}
-            disabled={status !== "idle"}
-            accessibilityRole="button"
-            accessibilityLabel={`Voice: ${voicePart}. ${voicePickerOpen ? "Tap to collapse." : "Tap to change."}`}
-          >
-            <Text style={[styles.collapsibleLabel, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium }]}>
-              Voice
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={[styles.collapsibleValue, { color: colors.textPrimary, fontFamily: Fonts.bodySemibold, textTransform: "capitalize" }]}
-            >
-              {voicePart}
-            </Text>
-            <Text style={[styles.collapsibleChevron, { color: colors.textTertiary, fontFamily: Fonts.mono }]}>
-              {voicePickerOpen ? "⌃" : "⌄"}
-            </Text>
-          </Pressable>
-
-          {voicePickerOpen && (
-            <View style={styles.collapsibleBody}>
-              <View style={styles.row}>
-                {VOICE_PARTS.map((vp) => {
-                  const active = voicePart === vp;
-                  return (
-                    <Pressable
-                      key={vp}
-                      onPress={() => {
-                        setVoicePart(vp);
-                        setVoicePickerOpen(false);
-                      }}
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: active ? colors.accentMuted : colors.bgSurface,
-                          borderColor: active ? colors.accent : colors.borderSubtle,
-                        },
-                      ]}
-                      disabled={status !== "idle"}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium },
-                        ]}
-                      >
-                        {vp}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              {!supportsVoicePart && (
-                <Text style={[styles.error, { color: colors.error, fontFamily: Fonts.body }]}>
-                  No {voicePart} range defined for this exercise.
-                </Text>
-              )}
-            </View>
-          )}
-        </View>
-
-        <View style={isWide ? styles.widePicksRight : undefined}>
-          <SettingsCluster
-            accompanimentPreset={accompanimentPreset}
-            onAccompanimentSelect={setAccompanimentPreset}
-            accompanimentLocked={exercise.lockAccompaniment ?? false}
-            guidance={guidance}
-            onGuidanceSelect={setGuidance}
-            demoEnabled={demoEnabled}
-            onDemoToggle={handleSetDemoEnabled}
-            disabled={status !== "idle"}
-          />
-        </View>
-      </View>
     </ScrollView>
+  );
+}
+
+interface PracticeControlsProps {
+  exercise: ExerciseDescriptor;
+  exerciseId: string;
+  availableExercises: ExerciseDescriptor[];
+  onExerciseChange: (id: string) => void;
+  onImport: () => void;
+  voicePart: VoicePart;
+  onVoiceChange: (vp: VoicePart) => void;
+  supportsVoicePart: boolean;
+  accompanimentPreset: AccompanimentPreset | undefined;
+  onAccompanimentSelect: (p: AccompanimentPreset | undefined) => void;
+  guidance: Guidance;
+  onGuidanceSelect: (g: Guidance) => void;
+  demoEnabled: boolean;
+  onDemoToggle: (val: boolean) => void;
+  disabled: boolean;
+}
+
+/** Exercise picker + voice picker + session settings. Collapsed by default —
+ *  the routine queues the exercise, so 98% of the time nothing here is touched. */
+function PracticeControls(p: PracticeControlsProps) {
+  const { colors } = useTheme();
+  const [exerciseOpen, setExerciseOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  return (
+    <View style={styles.controlsStack}>
+      <Pressable
+        onPress={() => setExerciseOpen((v) => !v)}
+        style={[styles.collapsibleHeader, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}
+        disabled={p.disabled}
+        accessibilityRole="button"
+        accessibilityLabel={`Exercise: ${p.exercise.name}. ${exerciseOpen ? "Tap to collapse." : "Tap to change."}`}
+      >
+        <Text style={[styles.collapsibleLabel, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium }]}>Exercise</Text>
+        <Text numberOfLines={1} style={[styles.collapsibleValue, { color: colors.textPrimary, fontFamily: Fonts.bodySemibold }]}>{p.exercise.name}</Text>
+        <Text style={[styles.collapsibleChevron, { color: colors.textTertiary, fontFamily: Fonts.mono }]}>{exerciseOpen ? "⌃" : "⌄"}</Text>
+      </Pressable>
+      {exerciseOpen && (
+        <View style={styles.collapsibleBody}>
+          <View style={styles.row}>
+            {p.availableExercises.map((e) => {
+              const isImported = e.tags?.includes("imported") ?? false;
+              const active = p.exerciseId === e.id;
+              return (
+                <Pressable
+                  key={e.id}
+                  onPress={() => { p.onExerciseChange(e.id); setExerciseOpen(false); }}
+                  style={[styles.chip, styles.chipInline, { backgroundColor: active ? colors.accentMuted : colors.bgSurface, borderColor: active ? colors.accent : colors.borderSubtle }]}
+                  disabled={p.disabled}
+                >
+                  <Text style={[styles.chipText, { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>{e.name}</Text>
+                  {isImported && (
+                    <View style={[styles.importedPill, { backgroundColor: active ? colors.accent : colors.accentMuted }]}>
+                      <Text style={[styles.importedPillText, { color: active ? colors.canvas : colors.accent, fontFamily: Fonts.bodySemibold }]}>Imported</Text>
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })}
+            <Pressable
+              onPress={p.onImport}
+              style={[styles.chip, styles.chipAdd, { backgroundColor: colors.bgSurface, borderColor: colors.accent }]}
+              disabled={p.disabled}
+              accessibilityLabel="Import melody"
+              // @ts-ignore — web title attribute
+              title={Platform.OS === "web" ? "Import a melody" : undefined}
+            >
+              <Text style={[styles.chipAddText, { color: colors.accent, fontFamily: Fonts.bodySemibold }]}>+ Import</Text>
+            </Pressable>
+          </View>
+          <Text style={[styles.subtle, { color: colors.textTertiary, fontFamily: Fonts.body }]}>{p.exercise.pedagogy}</Text>
+        </View>
+      )}
+
+      <Pressable
+        onPress={() => setVoiceOpen((v) => !v)}
+        style={[styles.collapsibleHeader, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}
+        disabled={p.disabled}
+        accessibilityRole="button"
+        accessibilityLabel={`Voice: ${p.voicePart}. ${voiceOpen ? "Tap to collapse." : "Tap to change."}`}
+      >
+        <Text style={[styles.collapsibleLabel, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium }]}>Voice</Text>
+        <Text numberOfLines={1} style={[styles.collapsibleValue, { color: colors.textPrimary, fontFamily: Fonts.bodySemibold, textTransform: "capitalize" }]}>{p.voicePart}</Text>
+        <Text style={[styles.collapsibleChevron, { color: colors.textTertiary, fontFamily: Fonts.mono }]}>{voiceOpen ? "⌃" : "⌄"}</Text>
+      </Pressable>
+      {voiceOpen && (
+        <View style={styles.collapsibleBody}>
+          <View style={styles.row}>
+            {VOICE_PARTS.map((vp) => {
+              const active = p.voicePart === vp;
+              return (
+                <Pressable
+                  key={vp}
+                  onPress={() => { p.onVoiceChange(vp); setVoiceOpen(false); }}
+                  style={[styles.chip, { backgroundColor: active ? colors.accentMuted : colors.bgSurface, borderColor: active ? colors.accent : colors.borderSubtle }]}
+                  disabled={p.disabled}
+                >
+                  <Text style={[styles.chipText, { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>{vp}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {!p.supportsVoicePart && (
+            <Text style={[styles.error, { color: colors.error, fontFamily: Fonts.body }]}>No {p.voicePart} range defined for this exercise.</Text>
+          )}
+        </View>
+      )}
+
+      <SettingsCluster
+        accompanimentPreset={p.accompanimentPreset}
+        onAccompanimentSelect={p.onAccompanimentSelect}
+        accompanimentLocked={p.exercise.lockAccompaniment ?? false}
+        guidance={p.guidance}
+        onGuidanceSelect={p.onGuidanceSelect}
+        demoEnabled={p.demoEnabled}
+        onDemoToggle={p.onDemoToggle}
+        disabled={p.disabled}
+      />
+    </View>
   );
 }
 
@@ -1237,6 +1195,10 @@ interface StandardBodyProps {
   playerRef: React.MutableRefObject<AudioPlayer | null>;
   detectorRef: React.MutableRefObject<PitchDetector | null>;
   voicePart: VoicePart;
+  isDesktop: boolean;
+  /** Exercise / voice / settings — rendered inside the command console on
+   *  desktop, stacked below the staff on smaller screens. */
+  controls: React.ReactNode;
 }
 
 function StandardModeBody({
@@ -1268,47 +1230,73 @@ function StandardModeBody({
   playerRef,
   detectorRef,
   voicePart,
+  isDesktop,
+  controls,
 }: StandardBodyProps) {
   const { colors } = useTheme();
-  return (
-    <>
-      {status === "demo" && (
-        <View style={[styles.demoBanner, { backgroundColor: colors.accentMuted, borderColor: colors.accent }]}>
-          <Text style={[styles.demoBannerText, { color: colors.accent, fontFamily: Fonts.bodyMedium }]}>
-            Listen first…
-          </Text>
-          <Pressable onPress={() => demoSkipRef.current?.()}>
-            <Text style={[styles.demoSkipText, { color: colors.accent, fontFamily: Fonts.body }]}>
-              Skip demo
-            </Text>
-          </Pressable>
-        </View>
-      )}
+  const { width } = useWindowDimensions();
+  const isWide = width >= 640;
 
-      <View style={[styles.hero, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
-        {leadInCountdown != null ? (
-          <View style={styles.countdownOverlay}>
-            <Text style={[styles.countdownNumber, { color: colors.accent, fontFamily: Fonts.display }]}>
-              {leadInCountdown}
-            </Text>
-            <Text style={[styles.countdownLabel, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
-              sing on 1
-            </Text>
-          </View>
-        ) : (
-          <MelodyDisplay
-            notes={currentKeyMelodyNotes(iterationsRef.current, snapshot, exercise, startTonicMidi)}
-            currentIndex={status === "playing" && snapshot ? snapshot.currentNoteIndex : -1}
-            noteProgress={noteProgress}
-            tonicMidi={
-              snapshot
-                ? iterationsRef.current[snapshot.currentKeyIndex]?.tonicMidi ?? startTonicMidi ?? undefined
-                : startTonicMidi ?? undefined
-            }
-          />
-        )}
+  const heroContent =
+    leadInCountdown != null ? (
+      <View style={styles.countdownOverlay}>
+        <Text style={[styles.countdownNumber, { color: colors.accent, fontFamily: Fonts.display }]}>
+          {leadInCountdown}
+        </Text>
+        <Text style={[styles.countdownLabel, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
+          sing on 1
+        </Text>
       </View>
+    ) : (
+      <MelodyDisplay
+        notes={currentKeyMelodyNotes(iterationsRef.current, snapshot, exercise, startTonicMidi)}
+        currentIndex={status === "playing" && snapshot ? snapshot.currentNoteIndex : -1}
+        noteProgress={noteProgress}
+        tonicMidi={
+          snapshot
+            ? iterationsRef.current[snapshot.currentKeyIndex]?.tonicMidi ?? startTonicMidi ?? undefined
+            : startTonicMidi ?? undefined
+        }
+      />
+    );
 
+  const startInfoLine = (wide: boolean) => (
+    <View style={[styles.idleBarInfo, wide && styles.idleBarInfoWide]}>
+      <Text style={[styles.keyHeaderLabel, { color: colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>
+        {startTonicMidi !== null
+          ? defaultTonicMidi !== null && startTonicMidi !== defaultTonicMidi
+            ? `Resuming at ${midiToNote(startTonicMidi)}`
+            : `Starting at ${midiToNote(startTonicMidi)}`
+          : "Current key"}
+      </Text>
+      <ResetButton onPress={handleResetTonic} />
+    </View>
+  );
+
+  // One button covers Start / Stop / Loading — large in the console, regular in
+  // the stacked mobile bar.
+  const primaryButton = (large: boolean, extra?: StyleProp<ViewStyle>) => {
+    const idle = status === "idle";
+    const disabled = idle && headphonesConfirmed === null;
+    const label = idle
+      ? disabled ? "Waiting for headphones check…" : "Start"
+      : status === "loading" || status === "stopping" ? "Loading…" : "Stop";
+    const bg = idle ? (disabled ? colors.textTertiary : colors.accent) : colors.error;
+    return (
+      <Pressable
+        style={[styles.btn, large && styles.btnLarge, extra, { backgroundColor: bg, opacity: disabled ? 0.5 : 1, minHeight: large ? 56 : 44 }]}
+        onPress={idle ? handleStart : handleStop}
+        disabled={disabled}
+      >
+        <Text style={[large ? styles.btnTextLarge : styles.btnText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>
+          {label}
+        </Text>
+      </Pressable>
+    );
+  };
+
+  const liveReadouts = (
+    <>
       <View style={styles.statRow}>
         <Stat label="Tonic" value={snapshot?.currentTonic ?? "—"} />
         <Stat label="Target" value={currentTarget?.noteName ?? "—"} />
@@ -1321,7 +1309,6 @@ function StandardModeBody({
           }
         />
       </View>
-
       {snapshot && (
         <View style={styles.counterRow}>
           <Text style={[styles.counterText, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
@@ -1331,24 +1318,27 @@ function StandardModeBody({
           </Text>
         </View>
       )}
-
       <View style={[styles.progressBar, { backgroundColor: colors.borderSubtle }]}>
         <View style={[styles.progressFill, { width: `${Math.min(100, progress * 100)}%`, backgroundColor: colors.accent }]} />
       </View>
+    </>
+  );
 
-      {status === "idle" && (
-        <View style={styles.keyHeaderRow}>
-          <Text style={[styles.keyHeaderLabel, { color: colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>
-            {startTonicMidi !== null
-              ? defaultTonicMidi !== null && startTonicMidi !== defaultTonicMidi
-                ? `Resuming at ${midiToNote(startTonicMidi)}`
-                : `Starting at ${midiToNote(startTonicMidi)}`
-              : "Current key"}
-          </Text>
-          <ResetButton onPress={handleResetTonic} />
-        </View>
-      )}
+  const demoBanner = (
+    <View style={[styles.demoBanner, { backgroundColor: colors.accentMuted, borderColor: colors.accent }]}>
+      <Text style={[styles.demoBannerText, { color: colors.accent, fontFamily: Fonts.bodyMedium }]}>
+        Listen first…
+      </Text>
+      <Pressable onPress={() => demoSkipRef.current?.()}>
+        <Text style={[styles.demoSkipText, { color: colors.accent, fontFamily: Fonts.body }]}>
+          Skip demo
+        </Text>
+      </Pressable>
+    </View>
+  );
 
+  const afterStage = (
+    <>
       {snapshot && snapshot.completedKeys.length > 0 && (
         <Section title={`Completed keys · session avg ${snapshot.meanAccuracyPct.toFixed(0)}%`}>
           <View style={styles.keysList}>
@@ -1372,10 +1362,8 @@ function StandardModeBody({
           </View>
         </Section>
       )}
-
       {error && <Text style={[styles.error, { color: colors.error, fontFamily: Fonts.body }]}>{error}</Text>}
       {savedMessage && <Text style={[styles.saved, { color: colors.success, fontFamily: Fonts.body }]}>{savedMessage}</Text>}
-
       <PostSessionPanel
         pendingSession={pendingSession}
         loggedMessage={loggedMessage}
@@ -1387,36 +1375,57 @@ function StandardModeBody({
         }
         isIdle={status === "idle"}
       />
+    </>
+  );
 
-      <View style={styles.actions}>
-        {status === "idle" ? (
-          <Pressable
-            style={[
-              styles.btn,
-              {
-                backgroundColor: headphonesConfirmed === null ? colors.textTertiary : colors.accent,
-                opacity: headphonesConfirmed === null ? 0.5 : 1,
-                minHeight: 44,
-              },
-            ]}
-            onPress={handleStart}
-            disabled={headphonesConfirmed === null}
-          >
-            <Text style={[styles.btnText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>
-              {headphonesConfirmed === null ? "Waiting for headphones check…" : "Start"}
-            </Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            style={[styles.btn, { backgroundColor: colors.error, minHeight: 44 }]}
-            onPress={handleStop}
-          >
-            <Text style={[styles.btnText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>
-              {status === "loading" || status === "stopping" ? "Loading…" : "Stop"}
-            </Text>
-          </Pressable>
-        )}
+  // Desktop: staff on the left, command console (Start/Stop, starting-key, and
+  // the collapsed pickers + session settings) on the right — one row.
+  if (isDesktop) {
+    return (
+      <>
+        {status === "demo" && demoBanner}
+        {/* Console on the left — eyes scan left-to-right, so Start is the first
+            thing they hit. Staff on the right. */}
+        <View style={styles.practiceRow}>
+          <View style={[styles.console, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
+            {primaryButton(true)}
+            {status === "idle" ? (
+              <>
+                {startInfoLine(false)}
+                <View style={[styles.consoleDivider, { backgroundColor: colors.borderSubtle }]} />
+                {controls}
+              </>
+            ) : (
+              liveReadouts
+            )}
+          </View>
+          <View style={[styles.hero, styles.practiceStage, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
+            {heroContent}
+          </View>
+        </View>
+        {afterStage}
+      </>
+    );
+  }
+
+  // Mobile / tablet: everything stacked.
+  return (
+    <>
+      {status === "demo" && demoBanner}
+      <View style={[styles.hero, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
+        {heroContent}
       </View>
+      {status === "idle" ? (
+        <View style={isWide ? styles.idleBarWide : styles.idleBarNarrow}>
+          {startInfoLine(isWide)}
+          {primaryButton(false, isWide ? styles.startBtnWide : undefined)}
+        </View>
+      ) : (
+        <View style={styles.actions}>{primaryButton(false)}</View>
+      )}
+      {status !== "idle" && liveReadouts}
+      {afterStage}
+      {controls}
     </>
   );
 }
@@ -1558,6 +1567,18 @@ const styles = StyleSheet.create({
     minHeight: 180,
     justifyContent: "center",
   },
+  // Desktop two-column: staff stage (flex) + fixed-width command console.
+  practiceRow: { flexDirection: "row", gap: Spacing.md, alignItems: "stretch" },
+  practiceStage: { flex: 1, minWidth: 0, overflow: "hidden" },
+  console: {
+    width: 340,
+    gap: Spacing.sm,
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+    padding: Spacing.md,
+  },
+  consoleDivider: { height: 1, marginVertical: Spacing["3xs"] },
+  controlsStack: { gap: Spacing.xs },
   statRow: { flexDirection: "row", gap: Spacing.xs, justifyContent: "space-between" },
   counterRow: { alignItems: "center" },
   counterText: {
@@ -1577,9 +1598,19 @@ const styles = StyleSheet.create({
   },
   actions: { marginTop: Spacing.sm },
   btn: { paddingVertical: Spacing.md, borderRadius: Radii.md, alignItems: "center" },
+  btnLarge: { paddingVertical: Spacing.lg, borderRadius: Radii.lg },
+  startBtnWide: { minWidth: 200, paddingHorizontal: Spacing.lg },
+  idleBarNarrow: { gap: Spacing.sm },
+  idleBarWide: { flexDirection: "row", alignItems: "center", gap: Spacing.md },
+  idleBarInfo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: Spacing.sm },
+  idleBarInfoWide: { flex: 1, justifyContent: "flex-start" },
   btnText: {
     fontSize: Typography.md.size,
     lineHeight: Typography.md.lineHeight,
+  },
+  btnTextLarge: {
+    fontSize: Typography.lg.size,
+    lineHeight: Typography.lg.lineHeight,
   },
   error: {
     fontSize: Typography.sm.size,
@@ -1591,15 +1622,6 @@ const styles = StyleSheet.create({
     lineHeight: Typography.sm.lineHeight,
     marginTop: Spacing["2xs"],
   },
-  // Responsive wide layout
-  widePicksRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
-    alignItems: "flex-start",
-  },
-  widePicksLeft: { flex: 2, gap: Spacing.md, minWidth: 0 },
-  widePicksRight: { flex: 1, minWidth: 280 },
-
   // Settings cluster
   settingsCluster: {
     borderRadius: Radii.md,
@@ -1710,13 +1732,6 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
 
-  // Key header row with RESET button
-  keyHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: Spacing["2xs"],
-  },
   keyHeaderLabel: {
     fontSize: Typography.xs.size,
     lineHeight: Typography.xs.lineHeight,
