@@ -25,6 +25,16 @@ const LEGATO_SPLIT_CENTS = 200;
 const PENALTY_SKIP_TARGET = 6;
 const PENALTY_SKIP_SEGMENT = 6;
 
+// When pitchy latches onto a sub/super-harmonic the segment median lands ~12k
+// semitones off its true target. Matching such a segment to that target should
+// cost a small penalty, not the full ~12 — otherwise the DP skips it ("—") or
+// mis-matches it to a coincidentally-closer wrong target. Must stay below
+// PENALTY_SKIP_TARGET so an octave-error still beats dropping the note.
+const OCTAVE_MATCH_PENALTY = 1.5;
+// Don't fold by an octave unless the post-fold residual is this small — beyond
+// that it's a genuine wrong note, not a harmonic confusion.
+const OCTAVE_RESIDUAL_TOLERANCE = 2;
+
 // At least this fraction of targets must be matched; else treat as ungradable
 const MIN_MATCH_FRACTION = 0.4;
 
@@ -68,14 +78,24 @@ function centsDiff(hz: number, targetMidi: number): number {
   return 1200 * Math.log2(hz / midiToHz(targetMidi));
 }
 
-// Snap octave errors from pitchy's harmonic confusion
+// Snap octave errors from pitchy's harmonic confusion: shift rawMidi by whole
+// octaves toward targetMidi, but only if it then sits within tolerance of the
+// target (otherwise leave it — a genuine wrong note, not a harmonic).
 function snapOctave(rawMidi: number, targetMidi: number): number {
-  const diff = rawMidi - targetMidi;
-  if (diff >= 10.5 && diff <= 13.5) return rawMidi - 12;
-  if (diff <= -10.5 && diff >= -13.5) return rawMidi + 12;
-  if (diff >= 22.5 && diff <= 25.5) return rawMidi - 24;
-  if (diff <= -22.5 && diff >= -25.5) return rawMidi + 24;
-  return rawMidi;
+  const k = Math.round((rawMidi - targetMidi) / 12);
+  if (k === 0) return rawMidi;
+  const shifted = rawMidi - 12 * k;
+  return Math.abs(shifted - targetMidi) <= OCTAVE_RESIDUAL_TOLERANCE ? shifted : rawMidi;
+}
+
+// DP match cost: semitone distance, but tolerant of octave (harmonic) errors.
+function matchCost(segMidi: number, targetMidi: number): number {
+  const direct = Math.abs(segMidi - targetMidi);
+  const k = Math.round((targetMidi - segMidi) / 12);
+  if (k === 0) return direct;
+  const residual = Math.abs(segMidi + 12 * k - targetMidi);
+  if (residual > OCTAVE_RESIDUAL_TOLERANCE) return direct;
+  return Math.min(direct, residual + OCTAVE_MATCH_PENALTY);
 }
 
 export interface ScoredFrame {
@@ -268,9 +288,7 @@ export function matchToTargets(
 
   for (let i = 1; i <= M; i++) {
     for (let j = 1; j <= N; j++) {
-      const matchCost =
-        Math.abs(segments[i - 1]!.medianPitchMidi - targets[j - 1]!);
-      const align = dp[i - 1]![j - 1]! + matchCost;
+      const align = dp[i - 1]![j - 1]! + matchCost(segments[i - 1]!.medianPitchMidi, targets[j - 1]!);
       const skipSeg = dp[i - 1]![j]! + PENALTY_SKIP_SEGMENT;  // extra segment
       const skipTgt = dp[i]![j - 1]! + PENALTY_SKIP_TARGET;   // missed target
       dp[i]![j] = Math.min(align, skipSeg, skipTgt);
@@ -283,9 +301,7 @@ export function matchToTargets(
   while (i > 0 || j > 0) {
     if (i === 0) { j--; continue; }
     if (j === 0) { i--; continue; }
-    const matchCost =
-      Math.abs(segments[i - 1]!.medianPitchMidi - targets[j - 1]!);
-    const vAlign = dp[i - 1]![j - 1]! + matchCost;
+    const vAlign = dp[i - 1]![j - 1]! + matchCost(segments[i - 1]!.medianPitchMidi, targets[j - 1]!);
     const vSkipSeg = dp[i - 1]![j]! + PENALTY_SKIP_SEGMENT;
     const vSkipTgt = dp[i]![j - 1]! + PENALTY_SKIP_TARGET;
     const best = Math.min(vAlign, vSkipSeg, vSkipTgt);

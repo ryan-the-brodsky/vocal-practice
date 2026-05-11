@@ -274,6 +274,42 @@ describe("matchToTargets()", () => {
     expect(out.length).toBe(1);
     expect(out[0]).not.toBeNull();
   });
+
+  it("octave-down (sub-harmonic) segments still match their true target instead of being skipped", () => {
+    // Singer sang the 5-note scale right, but pitchy reported the lower notes an
+    // octave low (chest-voice sub-harmonic latch) and only 6 of the 9 notes
+    // survived segmentation. With M < N the DP must match — the octave-aware
+    // cost should pull each errored segment onto its real degree, not drop it
+    // ("—") or mis-match it to a coincidentally-closer wrong target.
+    const targets = [55, 57, 59, 60, 62, 60, 59, 57, 55]; // tonic G3, 5-note scale
+    const segs = [
+      buildSegmentByHand(0, 600, 43),     // G2 = G3 − 12  (degree 1)
+      buildSegmentByHand(650, 1250, 45),  // A2 = A3 − 12  (degree 2)
+      buildSegmentByHand(1300, 1900, 47), // B2 = B3 − 12  (degree 3)
+      buildSegmentByHand(1950, 2550, 48), // C3 = C4 − 12  (degree 4)
+      buildSegmentByHand(2600, 3200, 45), // A2 = A3 − 12  (descending degree 2)
+      buildSegmentByHand(3250, 3850, 43), // G2 = G3 − 12  (final degree 1)
+    ];
+    const out = matchToTargets(segs, targets);
+    // All 6 segments placed (pre-fix the octave-blind cost would skip them all
+    // and trip the reliability gate → all-nulls).
+    expect(out.filter((s) => s !== null).length).toBe(6);
+    // Every matched segment sits on a target an exact octave away.
+    out.forEach((seg, i) => {
+      if (seg === null) return;
+      expect((targets[i]! - seg.medianPitchMidi) % 12).toBe(0);
+    });
+  });
+
+  it("a genuine wrong note (a tritone off, no octave structure) is not folded into the target", () => {
+    // Segment at 66, targets [60, 67]. 66 is 6 semitones above 60 — a wrong
+    // note, not a harmonic — so it must match 67 (distance 1), not pretend to
+    // be an octave-shifted 60.
+    const segs = [buildSegmentByHand(0, 600, 66)];
+    const out = matchToTargets(segs, [60, 67]);
+    expect(out[0]).toBeNull();
+    expect(out[1]).toBe(segs[0]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -318,6 +354,19 @@ describe("alignAndScore() — end-to-end", () => {
     expect(scores.length).toBe(5);
     expect(Math.abs(scores[2]!.meanCentsDeviation)).toBeLessThan(50);
     expect(scores[2]!.accuracyPct).toBeGreaterThan(50);
+  });
+
+  it("a uniformly octave-low performance (sub-harmonic on every note) still scores in tune", () => {
+    // Singer sang the right notes; pitchy reported every note an octave low.
+    const targets = [60, 62, 64, 65, 67];
+    const samples = inTune(targets.map((m) => m - 12), { perNoteMs: 600 });
+    const scores = alignAndScore(samples, targets, 0, []);
+    expect(scores.length).toBe(5);
+    for (const n of scores) {
+      expect(n.framesAboveClarity).toBeGreaterThan(0);
+      expect(Math.abs(n.meanCentsDeviation)).toBeLessThan(50);
+      expect(n.accuracyPct).toBeGreaterThan(90);
+    }
   });
 
   it("returns an empty NoteScore (zeroed, accuracy 0, no trace) for unmatched targets", () => {

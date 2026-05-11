@@ -10,26 +10,12 @@ import { alignAndScore, type AlignConfig } from "./align";
 // ±50¢ is the "in tune" threshold for accuracy percentage
 const ACCURACY_CENTS_WINDOW = 50;
 
-// Snap a detected continuous MIDI to the correct octave when pitchy latches
-// onto a sub/super-harmonic.  Tolerances: ±150¢ around ±12 or ±24 semitones.
-export function snapOctave(sampleMidi: number, targetMidi: number): number {
-  const diff = sampleMidi - targetMidi;
-  if (diff >= 10.5 && diff <= 13.5) return sampleMidi - 12;
-  if (diff <= -10.5 && diff >= -13.5) return sampleMidi + 12;
-  if (diff >= 22.5 && diff <= 25.5) return sampleMidi - 24;
-  if (diff <= -22.5 && diff >= -25.5) return sampleMidi + 24;
-  return sampleMidi;
-}
-
 export class Scorer {
   private readonly targets: NoteEvent[];
   private readonly leadInEndMs: number;
   private readonly syllables: string[];
   private readonly alignConfig?: AlignConfig;
   private readonly buffer: PitchSample[] = [];
-
-  /** How many frames were octave-snapped during this key — for debug inspection. */
-  octaveSnapsApplied = 0;
 
   constructor(
     targets: NoteEvent[],
@@ -43,28 +29,13 @@ export class Scorer {
     this.alignConfig = alignConfig;
   }
 
-  /** Append one pitch sample. Timestamp must be key-relative (ms). */
+  /** Append one pitch sample. Timestamp must be key-relative (ms).
+   *  Stored raw — octave-error correction happens in alignAndScore() against
+   *  each segment's matched target, where the temporally-correct reference is
+   *  known. (Snapping per-sample against the globally-nearest target picked
+   *  the wrong reference when a note's sub-harmonic landed nearer a different
+   *  scale degree.) */
   append(sample: PitchSample): void {
-    // Pre-apply octave snap against each potential target so the buffer holds
-    // already-corrected pitches.  We snap against the nearest target midi to
-    // avoid bias toward a specific note position.
-    if (sample.hz !== null && this.targets.length > 0) {
-      const rawMidi = 69 + 12 * Math.log2(sample.hz / 440);
-      // Find nearest target by semitone distance
-      let nearestMidi = this.targets[0]!.midi;
-      let minDist = Math.abs(rawMidi - nearestMidi);
-      for (const t of this.targets) {
-        const d = Math.abs(rawMidi - t.midi);
-        if (d < minDist) { minDist = d; nearestMidi = t.midi; }
-      }
-      const snapped = snapOctave(rawMidi, nearestMidi);
-      if (snapped !== rawMidi) {
-        this.octaveSnapsApplied++;
-        const snappedHz = 440 * Math.pow(2, (snapped - 69) / 12);
-        this.buffer.push({ ...sample, hz: snappedHz });
-        return;
-      }
-    }
     this.buffer.push(sample);
   }
 
