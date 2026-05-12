@@ -109,10 +109,14 @@ describe("trimSessionForStorage", () => {
 // ---------------------------------------------------------------------------
 
 describe("session cap", () => {
+  // Pruning warns by design; this block deliberately overflows the cap, so swallow it.
+  let warnSpy: jest.SpyInstance;
   beforeEach(async () => {
     await AsyncStorage.clear();
     sessionSeq = 0;
+    warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
   });
+  afterEach(() => warnSpy.mockRestore());
 
   test("600 completed sessions → 500 kept, sorted startedAt DESC, oldest dropped", async () => {
     const store = createAsyncStorageStore();
@@ -124,6 +128,7 @@ describe("session cap", () => {
 
     const all = await store.list();
     expect(all).toHaveLength(MAX_PERSISTED_SESSIONS);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Pruned"));
 
     // Newest 500 should be kept; list() returns in startedAt ASC order from readAll.
     const ids = all.map((s) => s.id);

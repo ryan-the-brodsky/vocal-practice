@@ -7,6 +7,8 @@ module.exports = {
     {
       displayName: "unit",
       testEnvironment: "node",
+      // Scope file/snapshot crawling so the other project's .snap files aren't flagged obsolete.
+      roots: ["<rootDir>/lib", "<rootDir>/constants"],
       transform: {
         "^.+\\.tsx?$": [
           "ts-jest",
@@ -31,6 +33,7 @@ module.exports = {
     {
       displayName: "component",
       preset: "jest-expo/web",
+      roots: ["<rootDir>/components", "<rootDir>/app", "<rootDir>/test"],
       setupFilesAfterEnv: ["<rootDir>/test/setup-component.ts"],
       testMatch: [
         "<rootDir>/components/**/__tests__/**/*.test.tsx",

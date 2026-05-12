@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$CLAUDE_PROJECT_DIR\"/.codeyam/bin/editor-step-hook.py && python3 \"$CLAUDE_PROJECT_DIR\"/.codeyam/bin/editor-step-hook.py || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$CLAUDE_PROJECT_DIR\"/.codeyam/bin/editor-step-hook.py && python3 \"$CLAUDE_PROJECT_DIR\"/.codeyam/bin/editor-step-hook.py || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "test -f \"$CLAUDE_PROJECT_DIR\"/.codeyam/bin/editor-step-hook.py && python3 \"$CLAUDE_PROJECT_DIR\"/.codeyam/bin/editor-step-hook.py || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

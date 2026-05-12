@@ -74,7 +74,7 @@ Personal vocal-warmup app. Goal: pitch detection + accuracy scoring with piano a
 - MelodyDisplay now renders treble (U+E050) and bass (U+E062) clefs as proper SMuFL glyphs at the staff's left edge, followed by the key signature in the conventional zigzag pattern, with on-note accidentals only when the note breaks from the key signature.
 
 ### Automated Testing (Foundation for Agentic Dev) — PRs 1–4 Shipped
-- **Status:** PRs 1–4 of 5 from the testing plan at `~/.claude/plans/glistening-wiggling-hamming.md` are shipped. Suite is **382 tests / 31 suites / 2 projects** all green (1 skipped — Practice screen component test deferred until UX hardens). PR 5 (Playwright E2E + WAV fixtures) still open (see Slice E below).
+- **Status:** PRs 1–4 of 5 from the testing plan at `~/.claude/plans/glistening-wiggling-hamming.md` are shipped. Suite is **384 tests / 31 suites / 2 projects** all green (1 skipped — Practice screen component test deferred until UX hardens). PR 5 (Playwright E2E + WAV fixtures) still open (see Slice E below).
 - Jest split into two projects: `unit` (ts-jest, Node) for pure-TS tests; `component` (jest-expo/web, jsdom) for React Native + Expo component tests. Babel config (`babel.config.js`) added for `babel-preset-expo`. `setupFilesAfterEnv` wires up the component setup file.
 - DI seam landed at `lib/audio/index.{ts,native.ts}` and `lib/pitch/index.{ts,native.ts}`: factory variable + `__set/__resetAudioPlayerFactory` and `__set/__resetPitchDetectorFactory`. Production callers unchanged.
 - `test/setup-component.ts` — `installFakeAudio()` + `installFakePitch()` test helpers (recording spies + listener fan-out), plus standard mocks for Reanimated, AsyncStorage, expo-haptics, Tone (via `test/mocks/tone.ts`).

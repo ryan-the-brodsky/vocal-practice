@@ -143,7 +143,7 @@ ExerciseDescriptor + voicePart → `planExercise()` → `KeyIteration[]` → `fl
 
 **Pending cleanups:** `@testing-library/jest-native` is deprecated and should be removed when PR 4 lands, `jest-expo@55.0.17` is one minor ahead of SDK 54's expected version (works fine, emits a warning).
 
-The full plan with rationale, slicing, and risk register is at `~/.claude/plans/glistening-wiggling-hamming.md`. Read that before starting any subsequent PR.
+The full plan with rationale, slicing, and risk register is at `~/.Codex/plans/glistening-wiggling-hamming.md`. Read that before starting any subsequent PR.
 
 ## Run
 
@@ -166,7 +166,7 @@ Mic access requires HTTPS on iOS Safari, hence ngrok for phone-on-web testing. O
 - **Scoring is post-pattern, not real-time.** During a key, samples accumulate in a buffer; on key end, `alignAndScore()` finds N stable pitch segments, matches them to the expected pattern via DP alignment, and produces N `NoteScore`s. This eliminates per-exercise latency calibration sensitivity — the Tracker has no latency-offset knob; the calibration UI was removed during the pattern-alignment refactor.
 - **Tone.Transport** is used for scheduling on web so events can be cancelled by ID — never schedule directly via `triggerAttackRelease(time)` if cancellation matters.
 - **Native pitch-shift cap is ±6 semitones** from the nearest sample (`player.native.ts`). Beyond that, decoded `AudioBuffer` artifacts become audible — add a sample, don't widen the cap.
-- **Sub-agent worktrees can't see untracked files.** If you spawn agents in `.claude/worktrees/agent-*` and the main repo has substantial uncommitted code, the worktree branches will be empty parallel-universe scaffolds. Either commit first, or run agents directly in the main working tree (only safe when their file scopes don't overlap).
+- **Sub-agent worktrees can't see untracked files.** If you spawn agents in `.Codex/worktrees/agent-*` and the main repo has substantial uncommitted code, the worktree branches will be empty parallel-universe scaffolds. Either commit first, or run agents directly in the main working tree (only safe when their file scopes don't overlap).
 - **DI seam, not `moduleNameMapper`.** Audio + pitch factories are swappable per-test via the registry exports (`__setAudioPlayerFactory`, `__setPitchDetectorFactory`). Use this in component tests (`installFakeAudio()` / `installFakePitch()` in `test/setup-component.ts`); reset auto-runs in `afterEach`. Don't add `jest.mock("@/lib/audio")` to test files — it's no longer needed and conflicts with the registry.
 - **Pitch fixtures live in `test/fixtures/pitchSamples.ts`.** When writing a scoring/tracker/diagnose test, prefer `inTune(targets)` / `flat(targets, 50)` / `octaveOff(targets, idx)` / `falseStart(targets)` over hand-rolled `PitchSample[]`. They produce realistic shape (50 fps, clarity 0.92, monotonic timestamps) that matches what a real detector emits.
 - **One short comment max** per non-obvious decision. No multi-line docstrings. No "added for X" / "used by Y" notes.
