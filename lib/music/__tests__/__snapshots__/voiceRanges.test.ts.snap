@@ -8,7 +8,6 @@ exports[`Library audit — every shipped exercise has sensible ranges warns when
   "nay-1-3-5-3-1 soprano: peaks at MIDI 81 (above native cap 78 = F#5)",
   "ng-siren soprano: peaks at MIDI 81 (above native cap 78 = F#5)",
   "octave-leap-wow soprano: peaks at MIDI 81 (above native cap 78 = F#5)",
-  "rossini-lip-trill soprano: peaks at MIDI 81 (above native cap 78 = F#5)",
   "staccato-arpeggio soprano: peaks at MIDI 81 (above native cap 78 = F#5)",
 ]
 `;

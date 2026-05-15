@@ -81,7 +81,7 @@ function centsDiff(hz: number, targetMidi: number): number {
 // Snap octave errors from pitchy's harmonic confusion: shift rawMidi by whole
 // octaves toward targetMidi, but only if it then sits within tolerance of the
 // target (otherwise leave it — a genuine wrong note, not a harmonic).
-function snapOctave(rawMidi: number, targetMidi: number): number {
+export function snapOctave(rawMidi: number, targetMidi: number): number {
   const k = Math.round((rawMidi - targetMidi) / 12);
   if (k === 0) return rawMidi;
   const shifted = rawMidi - 12 * k;

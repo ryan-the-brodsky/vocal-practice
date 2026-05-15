@@ -8,23 +8,23 @@
   "tempo": 120,
   "voicePartRanges": {
     "soprano": {
-      "lowest": "C4",
-      "highest": "D4",
+      "lowest": "A3",
+      "highest": "B3",
       "step": 1
     },
     "alto": {
       "lowest": "F3",
-      "highest": "Bb3",
+      "highest": "G3",
       "step": 1
     },
     "tenor": {
       "lowest": "C3",
-      "highest": "G3",
+      "highest": "Eb3",
       "step": 1
     },
     "baritone": {
       "lowest": "Bb2",
-      "highest": "Eb3",
+      "highest": "C3",
       "step": 1
     }
   },

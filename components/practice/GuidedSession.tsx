@@ -12,6 +12,7 @@ import {
   type PitchDetector,
   type PitchSample,
 } from "@/lib/pitch";
+import { snapOctave } from "@/lib/scoring/align";
 import type { SessionRecord } from "@/lib/progress";
 import {
   buildKeyAttemptFromGuided,
@@ -51,6 +52,15 @@ type RepeatMode = "advance" | "repeat";
 interface MatchResult {
   meanCents: number;
   frames: number;
+}
+
+// Pitchy's MPM latches onto sub-harmonics on chesty notes — sample.midi can
+// land an octave (or two) off. Snap to the nearest octave of the target before
+// computing deviation, so live matching tolerates the same errors scoring does.
+function centsFromTarget(sample: PitchSample, targetMidi: number): number {
+  if (sample.midi == null) return 0;
+  const snapped = snapOctave(sample.midi, targetMidi);
+  return (snapped - targetMidi) * 100 + (sample.cents ?? 0);
 }
 
 export default function GuidedSession({
@@ -347,8 +357,7 @@ export default function GuidedSession({
           return;
         }
 
-        // sample.midi is rounded to nearest semitone; sample.cents is the within-semitone deviation
-        const cents = (sample.midi - target) * 100 + (sample.cents ?? 0);
+        const cents = centsFromTarget(sample, target);
         const tol = toleranceCents(toleranceRef.current);
         if (Math.abs(cents) <= tol) {
           if (matchStart == null) {
@@ -386,7 +395,7 @@ export default function GuidedSession({
 
   const liveCents =
     latestSample?.midi != null && targetMidi != null
-      ? (latestSample.midi - targetMidi) * 100 + (latestSample.cents ?? 0)
+      ? centsFromTarget(latestSample, targetMidi)
       : null;
 
   const liveTone: ToneVal =
@@ -644,7 +653,7 @@ function describeLive(
     return "Sing along to the held note…";
   }
   if (targetMidi == null) return "—";
-  const cents = (sample.midi - targetMidi) * 100 + (sample.cents ?? 0);
+  const cents = centsFromTarget(sample, targetMidi);
   const abs = Math.abs(cents);
   if (abs <= tolCents) return "Holding match…";
   if (abs < 60) return `Slightly ${cents > 0 ? "sharp" : "flat"} (${signed(cents)}¢)`;
