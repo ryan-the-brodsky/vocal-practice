@@ -173,7 +173,9 @@ export default function CoachingScreen() {
           return;
         }
         const ex = exerciseLibrary.find((e) => e.id === rec.exerciseId);
-        const iters = ex ? planExercise({ exercise: ex, voicePart: rec.voicePart }) : [];
+        const iters = ex
+          ? planExercise({ exercise: ex, voicePart: rec.voicePart, octaveShift: rec.octaveShift })
+          : [];
         setRecord(rec);
         setIterations(iters);
       } catch (e) {

@@ -28,6 +28,8 @@ export interface PlanInput {
   guidance?: "full" | "tonic-only";
   // When false, no lead-in clicks are inserted (user turned off click track).
   clickTrackEnabled?: boolean;
+  // Transpose the whole exercise by this many octaves (e.g. -1 for a lower register). Default 0.
+  octaveShift?: number;
 }
 
 const DEFAULT_VELOCITY = {
@@ -58,8 +60,9 @@ export function planExercise(input: PlanInput): KeyIteration[] {
   const noteSec = noteValueToSeconds(exercise.noteValue, bpm);
   const noteSecs = resolveNoteSecs(exercise, bpm, noteSec);
 
-  const lowest = noteToMidi(input.startTonicOverride ?? range.lowest);
-  const highest = noteToMidi(input.endTonicOverride ?? range.highest);
+  const octaveSemis = (input.octaveShift ?? 0) * 12;
+  const lowest = noteToMidi(input.startTonicOverride ?? range.lowest) + octaveSemis;
+  const highest = noteToMidi(input.endTonicOverride ?? range.highest) + octaveSemis;
   const step = range.step;
 
   const direction = exercise.direction ?? "ascending";

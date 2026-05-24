@@ -42,10 +42,14 @@ import {
   type PitchSample,
 } from "@/lib/pitch";
 import { sniffMicrophone } from "@/lib/pitch/sniff";
+import type { CaptureSidecar } from "@/lib/capture/types";
+import { encodeWav } from "@/lib/capture/wav";
+import { captureTimestamp, downloadBlob } from "@/lib/capture/download";
 import { createAsyncStorageStore, type SessionRecord } from "@/lib/progress";
 import { loadRoutine, todayStatus, type RoutineConfig, type RoutineStatus } from "@/lib/progress/routine";
 import { SessionTracker, type SessionTrackerSnapshot } from "@/lib/session/tracker";
 import { loadVoicePart, saveVoicePart } from "@/lib/settings/voicePart";
+import { loadOctaveShift, saveOctaveShift } from "@/lib/settings/octaveShift";
 import { TodayRoutineCard } from "@/components/practice/TodayRoutineCard";
 
 const VOICE_PARTS: VoicePart[] = ["soprano", "alto", "tenor", "baritone"];
@@ -58,6 +62,14 @@ type Guidance = "full" | "tonic-only";
 const sessionStore = createAsyncStorageStore();
 
 const VALID_VOICE_PARTS: readonly VoicePart[] = ["soprano", "alto", "tenor", "baritone"];
+
+const OCTAVE_OPTIONS: readonly { shift: number; label: string }[] = [
+  { shift: 0, label: "Notated" },
+  { shift: -1, label: "Down an octave" },
+];
+function octaveShiftLabel(shift: number): string {
+  return OCTAVE_OPTIONS.find((o) => o.shift === shift)?.label ?? "Notated";
+}
 
 export default function PracticeScreen() {
   const router = useRouter();
@@ -84,6 +96,11 @@ export default function PracticeScreen() {
     setVoicePartState(next);
     saveVoicePart(next).catch(() => {});
   }, []);
+  const [octaveShift, setOctaveShiftState] = useState<number>(0);
+  const setOctaveShift = useCallback((next: number) => {
+    setOctaveShiftState(next);
+    saveOctaveShift(next).catch(() => {});
+  }, []);
   const [accompanimentPreset, setAccompanimentPreset] = useState<AccompanimentPreset | undefined>("classical");
   // null = modal not yet answered; true/false set by HeadphonesModal.
   const [headphonesConfirmed, setHeadphonesConfirmed] = useState<boolean | null>(null);
@@ -91,6 +108,8 @@ export default function PracticeScreen() {
   const [exerciseTonicMap, setExerciseTonicMap] = useState<Map<string, number>>(new Map());
   const [guidance, setGuidance] = useState<Guidance>("full");
   const [demoEnabled, setDemoEnabled] = useState(true);
+  // Dev-only: capture raw mic audio + sidecar JSON for the offline eval corpus.
+  const [rawCaptureEnabled, setRawCaptureEnabled] = useState(false);
   useEffect(() => {
     AsyncStorage.getItem(MODE_STORAGE_KEY)
       .then((v) => {
@@ -105,6 +124,11 @@ export default function PracticeScreen() {
     loadVoicePart()
       .then((vp) => {
         if (vp) setVoicePartState(vp);
+      })
+      .catch(() => {});
+    loadOctaveShift()
+      .then((v) => {
+        if (v !== null) setOctaveShiftState(v);
       })
       .catch(() => {});
     getAllExercises()
@@ -383,15 +407,30 @@ export default function PracticeScreen() {
       // Capture startTonicMidi here so both demo and session use the same snapshot.
       const sessionStartTonic = startTonicMidi;
       const startTonicNote = sessionStartTonic !== null ? midiToNote(sessionStartTonic) : undefined;
+
+      // Plan the session up front so the demo can preview the *actual* first
+      // key. Descending exercises start on the highest tonic, not range.lowest —
+      // deriving the demo tonic from the plan keeps the two in sync.
+      const iterations = planExercise({
+        exercise,
+        voicePart,
+        accompanimentPreset,
+        guidance,
+        clickTrackEnabled: true,
+        startTonicOverride: startTonicNote,
+        octaveShift,
+      });
+
       if (demoEnabled) {
+        const demoTonic = iterations[0]!.tonic;
         const demoIter = planExercise({
           exercise,
           voicePart,
           accompanimentPreset,
           guidance: "full",
-          // Demo always plays the session's starting tonic, then stops there.
-          startTonicOverride: startTonicNote,
-          endTonicOverride: startTonicNote ?? exercise.voicePartRanges[voicePart]!.lowest,
+          // Preview exactly the session's first key, then stop there.
+          startTonicOverride: demoTonic,
+          endTonicOverride: demoTonic,
         });
         const demoFlat = flattenIterations(demoIter, 0);
         const demoHandle = playerRef.current.playSequence(demoFlat.events);
@@ -429,17 +468,14 @@ export default function PracticeScreen() {
       detectorRef.current.setClarityThreshold(hints?.clarityThreshold ?? 0.85);
       detectorRef.current.setOctaveJumpFrames(hints?.octaveJumpFrames ?? 3);
 
+      // Dev raw capture — must be enabled before start() so it covers the lead-in.
+      if (__DEV__ && rawCaptureEnabled) {
+        detectorRef.current.enableRawCapture?.();
+      }
+
       await detectorRef.current.start();
       detectorStartMsRef.current = performance.now();
 
-      const iterations = planExercise({
-        exercise,
-        voicePart,
-        accompanimentPreset,
-        guidance,
-        clickTrackEnabled: true,
-        startTonicOverride: startTonicNote,
-      });
       iterationsRef.current = iterations;
       const flat = flattenIterations(iterations, 1.0);
 
@@ -541,6 +577,19 @@ export default function PracticeScreen() {
     detectorUnsubRef.current = null;
     await detectorRef.current?.stop().catch(() => {});
 
+    // Dev raw capture: export the WAV + sidecar before tracker teardown so the
+    // offline eval corpus stays self-contained. Independent of Log/Discard.
+    if (__DEV__ && rawCaptureEnabled && Platform.OS === "web") {
+      exportRawCapture(
+        detectorRef.current,
+        iterations,
+        exercise,
+        voicePart,
+        audioStartMsRef.current,
+        detectorStartMsRef.current,
+      );
+    }
+
     if (tracker) {
       const completed = tracker.finalize();
       if (completed.length > 0) {
@@ -554,6 +603,7 @@ export default function PracticeScreen() {
           completedAt: Date.now(),
           exerciseId: exercise.id,
           voicePart,
+          octaveShift,
           tempo: exercise.tempo,
           keyAttempts: completed,
           totalDurationMs: Date.now() - sessionStartMsRef.current,
@@ -643,12 +693,16 @@ export default function PracticeScreen() {
       voicePart={voicePart}
       onVoiceChange={setVoicePart}
       supportsVoicePart={supportsVoicePart}
+      octaveShift={octaveShift}
+      onOctaveShiftChange={setOctaveShift}
       accompanimentPreset={accompanimentPreset}
       onAccompanimentSelect={setAccompanimentPreset}
       guidance={guidance}
       onGuidanceSelect={setGuidance}
       demoEnabled={demoEnabled}
       onDemoToggle={handleSetDemoEnabled}
+      rawCaptureEnabled={rawCaptureEnabled}
+      onRawCaptureToggle={setRawCaptureEnabled}
       disabled={status !== "idle"}
     />
   );
@@ -725,6 +779,7 @@ export default function PracticeScreen() {
           <GuidedSession
             exercise={exercise}
             voicePart={voicePart}
+            octaveShift={octaveShift}
             onPatternComplete={handleGuidedPatternComplete}
           />
           {practiceControls}
@@ -761,8 +816,8 @@ export default function PracticeScreen() {
           router={router}
           savedMessage={savedMessage}
           snapshot={snapshot}
-          startTonicMidi={startTonicMidi}
-          defaultTonicMidi={defaultTonicMidi}
+          startTonicMidi={startTonicMidi !== null ? startTonicMidi + octaveShift * 12 : null}
+          defaultTonicMidi={defaultTonicMidi !== null ? defaultTonicMidi + octaveShift * 12 : null}
           status={status}
           voicePart={voicePart}
           isDesktop={isDesktop}
@@ -782,12 +837,16 @@ interface PracticeControlsProps {
   voicePart: VoicePart;
   onVoiceChange: (vp: VoicePart) => void;
   supportsVoicePart: boolean;
+  octaveShift: number;
+  onOctaveShiftChange: (n: number) => void;
   accompanimentPreset: AccompanimentPreset | undefined;
   onAccompanimentSelect: (p: AccompanimentPreset | undefined) => void;
   guidance: Guidance;
   onGuidanceSelect: (g: Guidance) => void;
   demoEnabled: boolean;
   onDemoToggle: (val: boolean) => void;
+  rawCaptureEnabled: boolean;
+  onRawCaptureToggle: (val: boolean) => void;
   disabled: boolean;
 }
 
@@ -797,6 +856,7 @@ function PracticeControls(p: PracticeControlsProps) {
   const { colors } = useTheme();
   const [exerciseOpen, setExerciseOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [octaveOpen, setOctaveOpen] = useState(false);
   return (
     <View style={styles.controlsStack}>
       <Pressable
@@ -881,6 +941,40 @@ function PracticeControls(p: PracticeControlsProps) {
         </View>
       )}
 
+      <Pressable
+        onPress={() => setOctaveOpen((v) => !v)}
+        style={[styles.collapsibleHeader, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}
+        disabled={p.disabled}
+        accessibilityRole="button"
+        accessibilityLabel={`Octave: ${octaveShiftLabel(p.octaveShift)}. ${octaveOpen ? "Tap to collapse." : "Tap to change."}`}
+      >
+        <Text style={[styles.collapsibleLabel, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium }]}>Octave</Text>
+        <Text numberOfLines={1} style={[styles.collapsibleValue, { color: colors.textPrimary, fontFamily: Fonts.bodySemibold }]}>{octaveShiftLabel(p.octaveShift)}</Text>
+        <Text style={[styles.collapsibleChevron, { color: colors.textTertiary, fontFamily: Fonts.mono }]}>{octaveOpen ? "⌃" : "⌄"}</Text>
+      </Pressable>
+      {octaveOpen && (
+        <View style={styles.collapsibleBody}>
+          <View style={styles.row}>
+            {OCTAVE_OPTIONS.map((opt) => {
+              const active = p.octaveShift === opt.shift;
+              return (
+                <Pressable
+                  key={opt.shift}
+                  onPress={() => { p.onOctaveShiftChange(opt.shift); setOctaveOpen(false); }}
+                  style={[styles.chip, { backgroundColor: active ? colors.accentMuted : colors.bgSurface, borderColor: active ? colors.accent : colors.borderSubtle }]}
+                  disabled={p.disabled}
+                >
+                  <Text style={[styles.chipText, { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>{opt.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={[styles.subtle, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
+            Transposes the whole exercise — piano, staff, and scoring — to the octave you sing in.
+          </Text>
+        </View>
+      )}
+
       <SettingsCluster
         accompanimentPreset={p.accompanimentPreset}
         onAccompanimentSelect={p.onAccompanimentSelect}
@@ -889,6 +983,8 @@ function PracticeControls(p: PracticeControlsProps) {
         onGuidanceSelect={p.onGuidanceSelect}
         demoEnabled={p.demoEnabled}
         onDemoToggle={p.onDemoToggle}
+        rawCaptureEnabled={p.rawCaptureEnabled}
+        onRawCaptureToggle={p.onRawCaptureToggle}
         disabled={p.disabled}
       />
     </View>
@@ -914,6 +1010,8 @@ interface SettingsClusterProps {
   onGuidanceSelect: (g: Guidance) => void;
   demoEnabled: boolean;
   onDemoToggle: (val: boolean) => void;
+  rawCaptureEnabled: boolean;
+  onRawCaptureToggle: (val: boolean) => void;
   disabled: boolean;
 }
 
@@ -926,6 +1024,8 @@ function SettingsCluster({
   onGuidanceSelect,
   demoEnabled,
   onDemoToggle,
+  rawCaptureEnabled,
+  onRawCaptureToggle,
   disabled,
 }: SettingsClusterProps) {
   const { colors } = useTheme();
@@ -1074,6 +1174,27 @@ function SettingsCluster({
           </View>
           <Text style={[styles.subtle, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
             Hear the first key once before you start singing.
+          </Text>
+        </View>
+      )}
+
+      {/* Dev-only: raw mic capture for the offline pitch-eval corpus. */}
+      {__DEV__ && (
+        <View style={[styles.expander, { backgroundColor: colors.canvas, borderColor: colors.borderSubtle }]}>
+          <View style={styles.expanderSwitchRow}>
+            <Text style={[styles.expanderTitle, { color: colors.textPrimary, fontFamily: Fonts.bodyMedium }]}>
+              Record raw audio
+            </Text>
+            <Switch
+              value={rawCaptureEnabled}
+              onValueChange={onRawCaptureToggle}
+              disabled={disabled}
+              trackColor={{ true: colors.accent }}
+              thumbColor={colors.bgElevated}
+            />
+          </View>
+          <Text style={[styles.subtle, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
+            Dev tool — downloads a WAV + sidecar JSON when the session ends.
           </Text>
         </View>
       )}
@@ -1430,6 +1551,51 @@ function StandardModeBody({
       {afterStage}
       {controls}
     </>
+  );
+}
+
+const APP_COMMIT = process.env.EXPO_PUBLIC_GIT_SHA;
+
+// Dev-only: encode the captured raw mic audio to WAV + a CaptureSidecar JSON and
+// trigger two browser downloads. Web-only; no-ops if there's nothing captured.
+function exportRawCapture(
+  detector: PitchDetector | null,
+  iterations: KeyIteration[],
+  exercise: ExerciseDescriptor,
+  voicePart: VoicePart,
+  audioStartMs: number,
+  detectorStartMs: number,
+): void {
+  const capture = detector?.getRawCapture?.();
+  if (!capture || capture.pcm.length === 0 || iterations.length === 0) return;
+
+  const { pcm, sampleRate } = capture;
+  const flat = flattenIterations(iterations, 1.0);
+  const expectedTargets = iterations.map((iter) => ({
+    tonic: iter.tonic,
+    midi: iter.events.filter((e) => e.type === "melody").map((e) => e.midi),
+  }));
+
+  const sidecar: CaptureSidecar = {
+    exerciseId: exercise.id,
+    voicePart,
+    startTonic: iterations[0].tonic,
+    tempo: exercise.tempo,
+    sampleRate,
+    durationMs: (pcm.length / sampleRate) * 1000,
+    capturedAt: new Date().toISOString(),
+    audioStartOffsetMs: audioStartMs - detectorStartMs,
+    keyStarts: flat.keyStarts,
+    expectedTargets,
+    note: "",
+    ...(APP_COMMIT ? { appCommit: APP_COMMIT } : {}),
+  };
+
+  const base = `${exercise.id}__${voicePart}__${iterations[0].tonic}__${captureTimestamp()}`;
+  downloadBlob(encodeWav(pcm, sampleRate), `${base}.wav`);
+  downloadBlob(
+    new Blob([JSON.stringify(sidecar, null, 2)], { type: "application/json" }),
+    `${base}.json`,
   );
 }
 

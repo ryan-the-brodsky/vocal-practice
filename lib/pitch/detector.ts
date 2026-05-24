@@ -21,6 +21,10 @@ export interface PitchDetector {
   on(listener: PitchListener): () => void;  // returns unsubscribe fn
   setClarityThreshold(value: number): void;
   setOctaveJumpFrames(value: number): void;
+  // Dev-only raw mic capture. Optional so test fakes needn't implement them.
+  // enableRawCapture() must be called before start() to cover the whole session.
+  enableRawCapture?(): void;
+  getRawCapture?(): { pcm: Float32Array; sampleRate: number } | null;
 }
 
 export interface PitchDetectorOptions {

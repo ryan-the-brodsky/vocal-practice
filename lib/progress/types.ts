@@ -47,6 +47,7 @@ export interface SessionRecord {
   keyAttempts: KeyAttemptResult[];
   totalDurationMs: number | null;
   notes?: string;           // optional user-entered note
+  octaveShift?: number;     // octaves transposed from notated (e.g. -1); absent = 0
   // deprecated (retry-coaching cut in 2026-05 redesign) — stripped at save time
   parentSessionId?: string;
   coachingFocus?: CoachingFocus;

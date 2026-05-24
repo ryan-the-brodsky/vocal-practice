@@ -66,10 +66,13 @@ function centsFromTarget(sample: PitchSample, targetMidi: number): number {
 export default function GuidedSession({
   exercise,
   voicePart,
+  octaveShift = 0,
   onPatternComplete,
 }: {
   exercise: ExerciseDescriptor;
   voicePart: VoicePart;
+  // Transpose the exercise by this many octaves (e.g. -1 for a lower register).
+  octaveShift?: number;
   /** Fires when a pattern finishes and bestPerNote has been finalized. The
    *  Practice screen routes the resulting record through the existing
    *  Log/Discard + Coaching CTA flow. iterations is a synthesized stub the
@@ -127,8 +130,8 @@ export default function GuidedSession({
 
   const range = exercise.voicePartRanges[voicePart];
   const startTonicMidi = useMemo(
-    () => (range ? noteToMidi(range.lowest) : null),
-    [range],
+    () => (range ? noteToMidi(range.lowest) + octaveShift * 12 : null),
+    [range, octaveShift],
   );
 
   const syllables = useMemo(() => {
@@ -146,8 +149,8 @@ export default function GuidedSession({
 
   // Highest valid tonic in the configured range; null if no range.
   const highestTonicMidi = useMemo(
-    () => (range ? noteToMidi(range.highest) : null),
-    [range],
+    () => (range ? noteToMidi(range.highest) + octaveShift * 12 : null),
+    [range, octaveShift],
   );
   const stepSemis = range?.step ?? 1;
   const canAdvanceTonic =
@@ -321,6 +324,7 @@ export default function GuidedSession({
           completedAt: Date.now(),
           exerciseId: exercise.id,
           voicePart,
+          octaveShift,
           tempo: exercise.tempo,
           keyAttempts: [attempt],
           totalDurationMs: Date.now() - startedAt,

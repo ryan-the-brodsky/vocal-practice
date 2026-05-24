@@ -146,3 +146,26 @@ describe("engine event-stream snapshot — locks all 8 descriptors", () => {
     }
   }
 });
+
+describe("engine octaveShift — whole-exercise transpose", () => {
+  const base = exerciseLibrary.find((e) => e.id === "five-note-scale-mee-may-mah")!;
+
+  test("octaveShift -1 shifts every tonic and melody note down exactly 12 semitones", () => {
+    const notated = planExercise({ exercise: base, voicePart: "tenor" });
+    const shifted = planExercise({ exercise: base, voicePart: "tenor", octaveShift: -1 });
+    expect(shifted).toHaveLength(notated.length);
+    shifted.forEach((iter, k) => {
+      expect(iter.tonicMidi).toBe(notated[k].tonicMidi - 12);
+      const sm = iter.events.filter((e) => e.type === "melody");
+      const nm = notated[k].events.filter((e) => e.type === "melody");
+      expect(sm).toHaveLength(nm.length);
+      sm.forEach((m, i) => expect(m.midi).toBe(nm[i].midi - 12));
+    });
+  });
+
+  test("octaveShift 0 is identical to omitting it", () => {
+    const a = planExercise({ exercise: base, voicePart: "tenor" });
+    const b = planExercise({ exercise: base, voicePart: "tenor", octaveShift: 0 });
+    expect(b.map((i) => i.tonicMidi)).toEqual(a.map((i) => i.tonicMidi));
+  });
+});

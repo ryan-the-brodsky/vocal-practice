@@ -25,6 +25,12 @@ export function createPitchDetector(opts: PitchDetectorOptions = {}): PitchDetec
   let rafId: number | null = null;
   let active = false;
 
+  // Dev-only raw capture: a continuous ScriptProcessor tap on the same source.
+  let rawCaptureEnabled = false;
+  let captureNode: ScriptProcessorNode | null = null;
+  let captureChunks: Float32Array[] = [];
+  let captureSampleRate = 0;
+
   // Reuse a single Float32Array for the time-domain buffer (allocated after start()).
   // Explicit ArrayBuffer (not SharedArrayBuffer) so DOM types match.
   let timeDomainBuf: Float32Array<ArrayBuffer> | null = null;
@@ -79,6 +85,24 @@ export function createPitchDetector(opts: PitchDetectorOptions = {}): PitchDetec
       analyser.smoothingTimeConstant = 0; // pitchy does its own smoothing
       source.connect(analyser);
 
+      // Raw capture: tap the same source with a continuous ScriptProcessor so
+      // every sample is recorded gap-free (the RAF analyser read overlaps/skips).
+      if (rawCaptureEnabled) {
+        captureChunks = [];
+        captureSampleRate = audioContext.sampleRate;
+        captureNode = audioContext.createScriptProcessor(4096, 1, 1);
+        captureNode.onaudioprocess = (e) => {
+          if (rawCaptureEnabled) {
+            captureChunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+          }
+          // Silence the output so the mic isn't echoed to the speakers.
+          e.outputBuffer.getChannelData(0).fill(0);
+        };
+        source.connect(captureNode);
+        // ScriptProcessor only fires while connected to a destination.
+        captureNode.connect(audioContext.destination);
+      }
+
       // Allocate against ArrayBuffer (not SharedArrayBuffer) so DOM type matches.
       timeDomainBuf = new Float32Array(new ArrayBuffer(fftSize * 4));
       pitchyDetector = PitchyDetector.forFloat32Array(fftSize);
@@ -97,6 +121,14 @@ export function createPitchDetector(opts: PitchDetectorOptions = {}): PitchDetec
       if (rafId !== null) {
         cancelAnimationFrame(rafId);
         rafId = null;
+      }
+
+      // Disconnect the capture tap before closing the context. captureChunks /
+      // captureSampleRate are kept so getRawCapture() works after stop().
+      if (captureNode) {
+        captureNode.onaudioprocess = null;
+        captureNode.disconnect();
+        captureNode = null;
       }
 
       stream?.getTracks().forEach((t) => t.stop());
@@ -125,6 +157,22 @@ export function createPitchDetector(opts: PitchDetectorOptions = {}): PitchDetec
 
     setOctaveJumpFrames(value: number): void {
       postprocessor.setOctaveJumpFrames(value);
+    },
+
+    enableRawCapture(): void {
+      rawCaptureEnabled = true;
+    },
+
+    getRawCapture(): { pcm: Float32Array; sampleRate: number } | null {
+      if (!rawCaptureEnabled || captureChunks.length === 0) return null;
+      const total = captureChunks.reduce((n, c) => n + c.length, 0);
+      const pcm = new Float32Array(total);
+      let offset = 0;
+      for (const chunk of captureChunks) {
+        pcm.set(chunk, offset);
+        offset += chunk.length;
+      }
+      return { pcm, sampleRate: captureSampleRate };
     },
   };
 }

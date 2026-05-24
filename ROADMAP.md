@@ -25,6 +25,7 @@ Personal vocal-warmup app. Goal: pitch detection + accuracy scoring with piano a
 - `Scorer`: buffers **all** raw pitch samples for a key, then `finalize()` → `alignAndScore()`. No real-time eval windows, no latency-offset knob (the calibration UI was removed in the refactor). `Scorer` no longer pre-processes samples — octave correction happens downstream against the matched target.
 - `lib/scoring/align.ts` pipeline: **segment** (split into pitch-stable runs: ≥75¢ coherence band, ≥80 ms / ≥5 frames, broken by silence gaps and >200¢ legato slurs) → **filter** (drop micro-segments and pre-entry false starts) → **match** (Needleman-Wunsch DP of M segments against N expected targets, 6-st gap penalties; M===N fast-paths to a 1:1 zip) → **score** (per matched segment, per-frame `snapOctave` against its target, clarity-weighted mean cents, ±50¢ accuracy %). `MIN_MATCH_FRACTION = 0.4` reliability gate → returns all-nulls (ungradable) below it.
 - **Octave-error tolerance (hardened 2026-05-11):** pitchy's MPM sub-harmonics on chesty notes (~100–250 Hz, e.g. reports G3 as G2). `matchToTargets`' DP cost (`matchCost`) is octave-aware — a segment an exact octave off its target matches at a 1.5-st penalty (below the 6-st skip penalty) instead of the full ~12, only if the post-octave-fold residual ≤ 2 st (a genuine wrong note isn't folded). `snapOctave(rawMidi, targetMidi)` rounds `rawMidi` to the nearest octave of the target (any ±12k), keeping it only within ±2 st. (Replaced the old four hard-coded windows + the buggy per-sample pre-snap-against-globally-nearest-target in `Scorer.append`.)
+- **Octave selector** (Practice controls, "Notated" / "Down an octave", persisted at `vocal-training:octave-shift:v1`): transposes the whole exercise via the engine's `octaveShift` so a singer who sings below the notation practices *and is scored* in their own register, instead of leaning on octave-correction to silently fold it. Phase 1 of a 2-phase fix; threaded through Standard + Guided + Coaching replay (`SessionRecord.octaveShift`).
 - `SessionTracker`: routes pitch samples to per-key Scorers, produces live `SessionTrackerSnapshot` for UI; live per-note chip strip runs a quick `alignAndScore` on the buffer-so-far.
 - `KeyAttemptResult` includes per-note `NoteScore` with `meanCentsDeviation`, `accuracyPct`, and a `trace` (up to 200 frames of `{tMs, hz, cents, clarity}`).
 
@@ -290,6 +291,16 @@ The previous batch (Slices 1–4: iOS native piano, Progress tab, cue+presets, p
 - `jest-expo@55.0.17` is one minor ahead of Expo SDK 54's expected `~54.0.17` — works fine but emits a "best compatibility" warning on dev-server start. Can be downgraded if it causes friction.
 
 ---
+
+### Pitch-Detection Eval Pipeline
+
+A dev-tooling track for replaying real sung takes offline through different
+pitch-detection techniques and scoring them against expected targets.
+
+| Slice | Scope | Status |
+|---|---|---|
+| 1 — In-app raw capture | `__DEV__`-gated "Record raw audio" toggle on Practice. Web detector taps the mic source with a continuous `ScriptProcessorNode`; on session end the screen downloads a 16-bit WAV (`lib/capture/wav.ts`) + a `CaptureSidecar` JSON (`lib/capture/types.ts`). Naming `<exerciseId>__<voicePart>__<tonic>__<timestamp>.{wav,json}`. Corpus folder `test/fixtures/audio/corpus/` (gitignored except README). Capture is purely additive — disabled = byte-identical live detection. Native gets no-op stubs. | shipped |
+| 2+ — Offline eval harness | Replay corpus WAVs through candidate detectors, align to `expectedTargets`, compare accuracy | open |
 
 ### Slice D: Four More PRD Exercises + Direction-Reversal Toggle (M4)
 

@@ -47,3 +47,15 @@ app-example
 .codeyam/
 
 .claude/worktrees
+
+# Raw-audio eval corpus — recordings stay local (large), README is tracked
+test/fixtures/audio/corpus/*
+!test/fixtures/audio/corpus/README.md
+
+# Python dev tooling (pitch-eval reference-F0 generation)
+scripts/.venv/
+__pycache__/
+*.pyc
+
+# Eval harness output
+scripts/eval-results.json

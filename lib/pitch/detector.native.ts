@@ -152,5 +152,12 @@ export function createPitchDetector(opts: PitchDetectorOptions = {}): PitchDetec
     setOctaveJumpFrames(value: number): void {
       postprocessor.setOctaveJumpFrames(value);
     },
+
+    // Raw capture is web-only (dev tool); native gets no-op stubs.
+    enableRawCapture(): void {},
+
+    getRawCapture(): { pcm: Float32Array; sampleRate: number } | null {
+      return null;
+    },
   };
 }
