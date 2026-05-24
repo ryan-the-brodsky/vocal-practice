@@ -25,6 +25,7 @@ import { Spacing, Radii, Typography, Fonts } from "@/constants/theme";
 
 import GlaringHeadline from "./GlaringHeadline";
 import ImportForm from "./ImportForm";
+import RecordingForm from "./RecordingForm";
 import ImportProgressOverlay from "./ImportProgressOverlay";
 import MelodyTimeline from "./MelodyTimeline";
 import PerDegreeTable from "./PerDegreeTable";
@@ -78,6 +79,7 @@ export default function ImportModal({
 }) {
   const { colors } = useTheme();
   const [phase, setPhase] = useState<Phase>("picking");
+  const [pickMode, setPickMode] = useState<"upload" | "record">("upload");
   const [review, setReview] = useState<ReviewState | null>(null);
   const [selectedNoteIdx, setSelectedNoteIdx] = useState<number | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +92,7 @@ export default function ImportModal({
   useEffect(() => {
     if (!visible) {
       setPhase("picking");
+      setPickMode("upload");
       setReview(null);
       setSelectedNoteIdx(undefined);
       setError(null);
@@ -199,14 +202,48 @@ export default function ImportModal({
                   {error}
                 </Text>
               )}
+              <View style={[styles.pickModeRow, { backgroundColor: colors.borderSubtle, borderRadius: Radii.pill, padding: Spacing['3xs'] }]}>
+                {(["upload", "record"] as const).map((m) => {
+                  const active = pickMode === m;
+                  return (
+                    <Pressable
+                      key={m}
+                      onPress={() => setPickMode(m)}
+                      style={[
+                        styles.pickModeChip,
+                        {
+                          backgroundColor: active ? colors.bgSurface : "transparent",
+                          borderRadius: Radii.pill,
+                          paddingVertical: Spacing.xs,
+                          paddingHorizontal: Spacing.md,
+                        },
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                    >
+                      <Text style={{ color: active ? colors.textPrimary : colors.textSecondary, fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: active ? Fonts.bodySemibold : Fonts.bodyMedium }}>
+                        {m === "upload" ? "Upload file" : "Record"}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
               <Text style={{ color: colors.textSecondary, fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, fontFamily: Fonts.body }}>
-                Pick a clean isolated vocal recording. Set the key center and we&apos;ll
-                snap detected notes to it.
+                {pickMode === "upload"
+                  ? "Pick a clean isolated vocal recording. Set the key center and we'll snap detected notes to it."
+                  : "Sing the melody yourself, no backing music. Set the key center first, then start recording."}
               </Text>
-              <ImportForm
-                initialVoicePart={initialVoicePart ?? "tenor"}
-                onAnalyze={handleAnalyze}
-              />
+              {pickMode === "upload" ? (
+                <ImportForm
+                  initialVoicePart={initialVoicePart ?? "tenor"}
+                  onAnalyze={handleAnalyze}
+                />
+              ) : (
+                <RecordingForm
+                  initialVoicePart={initialVoicePart ?? "tenor"}
+                  onAnalyze={handleAnalyze}
+                />
+              )}
             </>
           )}
 
@@ -446,4 +483,6 @@ const styles = StyleSheet.create({
   savedSection: {},
   btn: {},
   emptySection: {},
+  pickModeRow: { flexDirection: "row", alignSelf: "flex-start" },
+  pickModeChip: {},
 });

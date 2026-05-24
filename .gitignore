@@ -51,6 +51,8 @@ app-example
 # Raw-audio eval corpus — recordings stay local (large), README is tracked
 test/fixtures/audio/corpus/*
 !test/fixtures/audio/corpus/README.md
+test/fixtures/audio/songs/*
+!test/fixtures/audio/songs/README.md
 
 # Python dev tooling (pitch-eval reference-F0 generation)
 scripts/.venv/
