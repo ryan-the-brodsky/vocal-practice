@@ -55,6 +55,8 @@ export interface ScoringHints {
   clarityThreshold?: number;
   /** Consecutive frames required to accept an octave jump. Default 3; set to 2 for staccato/arpeggio. */
   octaveJumpFrames?: number;
+  /** Median-filter window size (frames). Default 5; usually picked by `resolveDetectorTuning` from tempo. */
+  smoothingFrames?: number;
   /** Min frames per stable segment in alignment. Default 5; lower for fast notes. */
   segMinFrames?: number;
   /** Min duration (ms) per stable segment. Default 80; lower for fast notes. */

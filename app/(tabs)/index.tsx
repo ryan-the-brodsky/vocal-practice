@@ -27,7 +27,8 @@ import {
 } from "@/lib/coaching";
 import { flattenIterations, planExercise } from "@/lib/exercises/engine";
 import { exerciseLibrary, getAllExercises } from "@/lib/exercises/library";
-import { midiToNote, noteToMidi } from "@/lib/exercises/music";
+import { midiToNote, noteToMidi, noteValueToSeconds } from "@/lib/exercises/music";
+import { resolveDetectorTuning } from "@/lib/pitch/tuning";
 import ImportModal from "@/components/import/ImportModal";
 import type {
   AccompanimentPreset,
@@ -462,11 +463,21 @@ export default function PracticeScreen() {
       }
 
       // Apply per-exercise pitch-detector tuning before starting capture.
-      // Defaults track the postprocessor's defaults (0.85 / 3) so non-trill
-      // exercises behave identically.
+      // resolveDetectorTuning derives a transient-friendly profile from
+      // per-note seconds (fast exercises like goog-octave-arpeggio get
+      // looser gates) and respects any explicit scoringHints overrides.
+      // Note: smoothingFrames is constructor-set on the postprocessor today,
+      // so live can only swap clarity + octave-jump at runtime. The default
+      // postprocessor median is 5, which matches the resolver's choice on
+      // both branches — so this is exact for non-hint exercises.
       const hints = exercise.scoringHints;
-      detectorRef.current.setClarityThreshold(hints?.clarityThreshold ?? 0.85);
-      detectorRef.current.setOctaveJumpFrames(hints?.octaveJumpFrames ?? 3);
+      const noteSec = (() => {
+        try { return noteValueToSeconds(exercise.noteValue, exercise.tempo); }
+        catch { return 0.5; }
+      })();
+      const tuning = resolveDetectorTuning({ noteSec, hints });
+      detectorRef.current.setClarityThreshold(tuning.clarityThreshold);
+      detectorRef.current.setOctaveJumpFrames(tuning.octaveJumpFrames);
 
       // Dev raw capture — must be enabled before start() so it covers the lead-in.
       if (__DEV__ && rawCaptureEnabled) {

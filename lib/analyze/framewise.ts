@@ -5,6 +5,8 @@
 import { PitchDetector as Pitchy } from "pitchy";
 import type { PitchSample } from "../pitch/detector";
 import { PitchPostprocessor } from "../pitch/postprocess";
+import { resolveDetectorTuning } from "../pitch/tuning";
+import type { ScoringHints } from "../exercises/types";
 import { ANALYZE_CONFIG } from "./config";
 
 export interface OfflinePitchOptions {
@@ -14,6 +16,11 @@ export interface OfflinePitchOptions {
   frameSize?: number;
   // Override the default ~10 ms hop. Defaults to round(sampleRate * hopSeconds).
   hopSize?: number;
+  // When set, runs through `resolveDetectorTuning` to pick clarity/median/jump
+  // values tuned for the exercise's per-note seconds. Individual `clarity*`/
+  // `smoothing*`/`octaveJump*` options above still win if also passed.
+  tempoSec?: number;
+  scoringHints?: ScoringHints;
 }
 
 export function runOfflinePitch(
@@ -25,11 +32,17 @@ export function runOfflinePitch(
   const hopSize =
     opts.hopSize ?? Math.max(1, Math.round(sampleRate * ANALYZE_CONFIG.hopSeconds));
 
+  // Tempo-aware tuning resolver: when `tempoSec` is provided, derive defaults
+  // from per-note seconds; individual explicit options still win on top.
+  const resolved = opts.tempoSec !== undefined
+    ? resolveDetectorTuning({ noteSec: opts.tempoSec, hints: opts.scoringHints })
+    : null;
+
   const pitchy = Pitchy.forFloat32Array(frameSize);
   const post = new PitchPostprocessor(
-    opts.clarityThreshold ?? ANALYZE_CONFIG.clarityThreshold,
-    opts.smoothingFrames ?? ANALYZE_CONFIG.smoothingFrames,
-    opts.octaveJumpFrames ?? ANALYZE_CONFIG.octaveJumpFrames,
+    opts.clarityThreshold ?? resolved?.clarityThreshold ?? ANALYZE_CONFIG.clarityThreshold,
+    opts.smoothingFrames ?? resolved?.smoothingFrames ?? ANALYZE_CONFIG.smoothingFrames,
+    opts.octaveJumpFrames ?? resolved?.octaveJumpFrames ?? ANALYZE_CONFIG.octaveJumpFrames,
   );
   post.setStartTime(0);
 
