@@ -17,9 +17,13 @@ import {
   type AnalysisMode,
   type DecodeInput,
   type MelodyAnalysis,
+  type TimeSignature,
 } from "@/lib/analyze";
 import { saveUserExercise, type StoredExtractedExercise } from "@/lib/exercises/userStore";
 import type { AccompanimentPreset, VoicePart } from "@/lib/exercises/types";
+import { saveSong } from "@/lib/songs/store";
+import { autoChunk } from "@/lib/songs/chunker";
+import { buildChunkId, type StoredSong } from "@/lib/songs/types";
 import { useTheme } from "@/hooks/use-theme";
 import { Spacing, Radii, Typography, Fonts } from "@/constants/theme";
 
@@ -33,6 +37,8 @@ import SaveSheet from "./SaveSheet";
 
 type Phase = "picking" | "analyzing" | "reviewing" | "saving" | "saved";
 
+type ImportKind = "exercise" | "song";
+
 interface PendingForm {
   file: DecodeInput;
   filename: string;
@@ -40,6 +46,8 @@ interface PendingForm {
   mode: AnalysisMode;
   voicePart: VoicePart;
   tempoBpm?: number;
+  kind: ImportKind;
+  timeSignature?: TimeSignature;
 }
 
 interface ReviewState {
@@ -54,6 +62,14 @@ function defaultAccompanimentFor(analysis: MelodyAnalysis): AccompanimentPreset 
   const out = analysis.notes.filter((n) => n.outOfKey).length;
   if (out / total > ANALYZE_CONFIG.chromaticFallbackFraction) return "drone";
   return "classical";
+}
+
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40) || "song";
 }
 
 function defaultName(filename: string): string {
@@ -80,12 +96,16 @@ export default function ImportModal({
   const { colors } = useTheme();
   const [phase, setPhase] = useState<Phase>("picking");
   const [pickMode, setPickMode] = useState<"upload" | "record">("upload");
+  const [kind, setKind] = useState<ImportKind>("exercise");
   const [review, setReview] = useState<ReviewState | null>(null);
   const [selectedNoteIdx, setSelectedNoteIdx] = useState<number | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   // Saved-exercise id, populated after successful save so we can deep-link to coaching.
   const [savedId, setSavedId] = useState<string | null>(null);
   const [savedName, setSavedName] = useState<string | null>(null);
+  // For Song kind, also remember the parent songId so the post-save section
+  // can offer an "Edit chunks" CTA.
+  const [savedSongId, setSavedSongId] = useState<string | null>(null);
   const router = useRouter();
 
   // Reset internal state whenever the modal closes — no orphaned state.
@@ -93,11 +113,13 @@ export default function ImportModal({
     if (!visible) {
       setPhase("picking");
       setPickMode("upload");
+      setKind("exercise");
       setReview(null);
       setSelectedNoteIdx(undefined);
       setError(null);
       setSavedId(null);
       setSavedName(null);
+      setSavedSongId(null);
     }
   }, [visible]);
 
@@ -109,6 +131,7 @@ export default function ImportModal({
         tonic: form.tonic,
         mode: form.mode,
         tempoBpm: form.tempoBpm,
+        timeSignature: form.timeSignature,
       });
       setReview({ analysis, form });
       setSelectedNoteIdx(undefined);
@@ -126,6 +149,41 @@ export default function ImportModal({
       setPhase("saving");
       setError(null);
       try {
+        if (review.form.kind === "song") {
+          // Build a StoredSong + auto-chunk it. The first chunk's synthetic
+          // descriptor id is used for the "Coach this melody" CTA.
+          const timeSig = review.form.timeSignature ?? { num: 4, den: 4 } as const;
+          const chunks = autoChunk(review.analysis.notes, timeSig);
+          const slug = slugify(saveState.name);
+          const songId = `song-${slug}-${Date.now().toString(36)}`;
+          const song: StoredSong = {
+            id: songId,
+            name: saveState.name,
+            voicePart: saveState.voicePart,
+            tonic: review.analysis.tonic,
+            mode: review.analysis.mode,
+            tempoBpm: review.analysis.tempoBpm,
+            timeSignature: timeSig,
+            accompaniment: saveState.accompaniment,
+            allNotes: review.analysis.notes,
+            chunks,
+            source: {
+              importedAt: Date.now(),
+              sourceFilename: review.form.filename,
+              durationSec: review.analysis.durationSec,
+            },
+          };
+          await saveSong(song);
+          // First-chunk synthetic id powers the "Coach this melody" CTA + the
+          // onSaved callback (Practice screen re-reads available exercises).
+          const firstChunkSyntheticId = chunks[0] ? buildChunkId(songId, chunks[0].id) : songId;
+          onSaved?.(firstChunkSyntheticId);
+          setSavedId(firstChunkSyntheticId);
+          setSavedSongId(songId);
+          setSavedName(saveState.name);
+          setPhase("saved");
+          return;
+        }
         const { descriptor, warnings: synthWarnings } = toExerciseDescriptor(review.analysis, {
           name: saveState.name,
           voicePart: saveState.voicePart,
@@ -166,6 +224,12 @@ export default function ImportModal({
     router.push({ pathname: "/coaching", params: { exerciseId: savedId } });
   }, [savedId, onClose, router]);
 
+  const handleEditChunks = useCallback(() => {
+    if (!savedSongId) return;
+    onClose();
+    router.push({ pathname: "/song-editor", params: { songId: savedSongId } });
+  }, [savedSongId, onClose, router]);
+
   return (
     <Modal
       visible={visible}
@@ -203,6 +267,38 @@ export default function ImportModal({
                 </Text>
               )}
               <View style={[styles.pickModeRow, { backgroundColor: colors.borderSubtle, borderRadius: Radii.pill, padding: Spacing['3xs'] }]}>
+                {(["exercise", "song"] as ImportKind[]).map((k) => {
+                  const active = kind === k;
+                  return (
+                    <Pressable
+                      key={k}
+                      onPress={() => setKind(k)}
+                      style={[
+                        styles.pickModeChip,
+                        {
+                          backgroundColor: active ? colors.bgSurface : "transparent",
+                          borderRadius: Radii.pill,
+                          paddingVertical: Spacing.xs,
+                          paddingHorizontal: Spacing.md,
+                        },
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={k === "exercise" ? "Import as exercise" : "Import as song"}
+                    >
+                      <Text style={{ color: active ? colors.textPrimary : colors.textSecondary, fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: active ? Fonts.bodySemibold : Fonts.bodyMedium }}>
+                        {k === "exercise" ? "Exercise" : "Song"}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={{ color: colors.textSecondary, fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body }}>
+                {kind === "exercise"
+                  ? "Walks through your voice range step-by-step like a warmup pattern."
+                  : "Locks to its key. We'll break it into 3-4 measure segments you can practice individually."}
+              </Text>
+              <View style={[styles.pickModeRow, { backgroundColor: colors.borderSubtle, borderRadius: Radii.pill, padding: Spacing['3xs'] }]}>
                 {(["upload", "record"] as const).map((m) => {
                   const active = pickMode === m;
                   return (
@@ -236,12 +332,14 @@ export default function ImportModal({
               {pickMode === "upload" ? (
                 <ImportForm
                   initialVoicePart={initialVoicePart ?? "tenor"}
-                  onAnalyze={handleAnalyze}
+                  kind={kind}
+                  onAnalyze={(s) => handleAnalyze({ ...s, kind })}
                 />
               ) : (
                 <RecordingForm
                   initialVoicePart={initialVoicePart ?? "tenor"}
-                  onAnalyze={handleAnalyze}
+                  kind={kind}
+                  onAnalyze={(s) => handleAnalyze({ ...s, kind })}
                 />
               )}
             </>
@@ -281,13 +379,18 @@ export default function ImportModal({
             <SavedSection
               savedName={savedName}
               onCoachThis={handleCoachThis}
+              onEditChunks={savedSongId ? handleEditChunks : undefined}
               onClose={onClose}
             />
           )}
         </ScrollView>
 
         {phase === "analyzing" && <ImportProgressOverlay />}
-        {phase === "saving" && <ImportProgressOverlay message="Saving exercise…" />}
+        {phase === "saving" && (
+          <ImportProgressOverlay
+            message={review?.form.kind === "song" ? "Saving song…" : "Saving exercise…"}
+          />
+        )}
       </View>
     </Modal>
   );
@@ -305,10 +408,12 @@ function humanizeAnalyzeError(msg: string): string {
 function SavedSection({
   savedName,
   onCoachThis,
+  onEditChunks,
   onClose,
 }: {
   savedName: string | null;
   onCoachThis: () => void;
+  onEditChunks?: () => void;
   onClose: () => void;
 }) {
   const { colors } = useTheme();
@@ -336,6 +441,17 @@ function SavedSection({
           Coach this melody
         </Text>
       </Pressable>
+      {onEditChunks && (
+        <Pressable
+          style={[styles.btn, { backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: Radii.md, paddingVertical: Spacing.sm, alignItems: "center", minHeight: 44 }]}
+          onPress={onEditChunks}
+          accessibilityLabel="Edit segments"
+        >
+          <Text style={{ color: colors.textPrimary, fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, fontFamily: Fonts.bodyMedium }}>
+            Edit segments
+          </Text>
+        </Pressable>
+      )}
       <Pressable
         style={[styles.btn, { backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, alignItems: "center", minHeight: 44 }]}
         onPress={onClose}
@@ -423,6 +539,7 @@ function ReviewBody({
           defaultName={defaultName(form.filename)}
           defaultVoicePart={form.voicePart}
           defaultAccompaniment={defaultAccomp}
+          kind={form.kind}
           saving={saving}
           onConfirm={onSave}
           onCancel={onBack}

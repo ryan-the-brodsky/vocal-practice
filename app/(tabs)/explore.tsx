@@ -12,9 +12,15 @@ import { loadRoutine, saveRoutine, todayStatus } from "@/lib/progress/routine";
 import type { RoutineConfig } from "@/lib/progress/routine";
 import type { SessionRecord, ExerciseProgress } from "@/lib/progress";
 import { exerciseName, EXERCISE_NAMES } from "@/lib/exercises/names";
-import { getExercise } from "@/lib/exercises/library";
+import { exerciseLibrary, getExercise } from "@/lib/exercises/library";
 import { listUserExercises, deleteUserExercise } from "@/lib/exercises/userStore";
 import type { StoredExtractedExercise } from "@/lib/exercises/userStore";
+import { listSongs, deleteSong } from "@/lib/songs/store";
+import { chunkToDescriptor } from "@/lib/songs/toDescriptor";
+import { parseChunkId } from "@/lib/songs/types";
+import { pruneRoutineExerciseIds } from "@/lib/progress/routine";
+import type { StoredSong } from "@/lib/songs/types";
+import type { ExerciseDescriptor } from "@/lib/exercises/types";
 import NoteResultsStrip from "@/components/practice/NoteResultsStrip";
 import Sparkline from "@/components/progress/Sparkline";
 import type { SparklinePoint } from "@/components/progress/Sparkline";
@@ -47,14 +53,23 @@ function fmtAccuracy(pct: number): string {
 // Sub-components
 // ---------------------------------------------------------------------------
 
+interface RoutineItem {
+  id: string;
+  label: string;
+  section: "builtin" | "user" | "song";
+  songName?: string;
+}
+
 function RoutineEditModal({
   visible,
   routine,
+  items,
   onSave,
   onClose,
 }: {
   visible: boolean;
   routine: RoutineConfig;
+  items: RoutineItem[];
   onSave: (config: RoutineConfig) => void;
   onClose: () => void;
 }) {
@@ -79,6 +94,32 @@ function RoutineEditModal({
     onClose();
   }
 
+  // Group by section for sticky labels
+  const builtins = items.filter((it) => it.section === "builtin");
+  const userImports = items.filter((it) => it.section === "user");
+  const songItems = items.filter((it) => it.section === "song");
+  // Sub-group songs by parent
+  const songsByParent = new Map<string, RoutineItem[]>();
+  for (const it of songItems) {
+    const key = it.songName ?? "Song";
+    if (!songsByParent.has(key)) songsByParent.set(key, []);
+    songsByParent.get(key)!.push(it);
+  }
+
+  function renderRow(it: RoutineItem) {
+    const checked = selectedIds.includes(it.id);
+    return (
+      <Pressable key={it.id} onPress={() => toggleExercise(it.id)} style={[mStyles.exerciseRow, { borderBottomColor: colors.borderSubtle }]}>
+        <View style={[mStyles.checkbox, { borderColor: colors.borderStrong }, checked && { backgroundColor: colors.textPrimary, borderColor: colors.textPrimary }]}>
+          {checked && <Text style={[mStyles.checkmark, { color: colors.bgCanvas, fontFamily: Fonts.bodySemibold, fontSize: Typography.sm.size }]}>✓</Text>}
+        </View>
+        <Text style={[mStyles.exerciseLabel, { color: checked ? colors.textPrimary : colors.textSecondary, fontFamily: checked ? Fonts.bodySemibold : Fonts.body, fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight }]}>
+          {it.label}
+        </Text>
+      </Pressable>
+    );
+  }
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[mStyles.container, { backgroundColor: colors.bgCanvas }]}>
@@ -97,20 +138,32 @@ function RoutineEditModal({
           <Text style={[mStyles.sectionLabel, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight }]}>
             EXERCISES
           </Text>
-          {ALL_EXERCISE_IDS.map((id) => {
-            const checked = selectedIds.includes(id);
-            return (
-              <Pressable key={id} onPress={() => toggleExercise(id)} style={[mStyles.exerciseRow, { borderBottomColor: colors.borderSubtle }]}>
-                <View style={[mStyles.checkbox, { borderColor: colors.borderStrong }, checked && { backgroundColor: colors.textPrimary, borderColor: colors.textPrimary }]}>
-                  {checked && <Text style={[mStyles.checkmark, { color: colors.bgCanvas, fontFamily: Fonts.bodySemibold, fontSize: Typography.sm.size }]}>✓</Text>}
-                </View>
-                <Text style={[mStyles.exerciseLabel, { color: checked ? colors.textPrimary : colors.textSecondary, fontFamily: checked ? Fonts.bodySemibold : Fonts.body, fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight }]}>
-                  {exerciseName(id)}
-                </Text>
-              </Pressable>
-            );
-          })}
+          {builtins.map(renderRow)}
 
+          {userImports.length > 0 && (
+            <>
+              <Text style={[mStyles.sectionLabel, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, marginTop: Spacing.sm }]}>
+                IMPORTED
+              </Text>
+              {userImports.map(renderRow)}
+            </>
+          )}
+
+          {songsByParent.size > 0 && (
+            <>
+              <Text style={[mStyles.sectionLabel, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, marginTop: Spacing.sm }]}>
+                SONGS
+              </Text>
+              {Array.from(songsByParent.entries()).map(([songName, chunks]) => (
+                <View key={songName} style={{ gap: Spacing["2xs"] }}>
+                  <Text style={{ color: colors.textSecondary, fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.bodySemibold, marginTop: Spacing["2xs"] }}>
+                    {songName}
+                  </Text>
+                  {chunks.map(renderRow)}
+                </View>
+              ))}
+            </>
+          )}
         </ScrollView>
       </View>
     </Modal>
@@ -285,7 +338,17 @@ function ExerciseRow({
   );
 }
 
-function RecentSessionRow({ session }: { session: SessionRecord }) {
+function RecentSessionRow({
+  session,
+  displayName,
+  descriptor,
+}: {
+  session: SessionRecord;
+  displayName?: string;
+  // Override the built-in lookup for chunk-id sessions (so the syllable strip
+  // resolves correctly without exerciseLibrary knowing about chunks).
+  descriptor?: ExerciseDescriptor;
+}) {
   const { colors } = useTheme();
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -297,12 +360,14 @@ function RecentSessionRow({ session }: { session: SessionRecord }) {
         session.keyAttempts.length;
 
   // Derive syllables from the exercise descriptor for NoteResultsStrip.
-  const exercise = getExercise(session.exerciseId);
+  const exercise = descriptor ?? getExercise(session.exerciseId);
   const syllables = exercise
     ? exercise.syllables.length === 1
       ? Array(exercise.scaleDegrees.length).fill(exercise.syllables[0])
       : exercise.syllables
     : [];
+
+  const label = displayName ?? exerciseName(session.exerciseId);
 
   return (
     <View style={[styles.sessionCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle, borderRadius: Radii.md }]}>
@@ -312,7 +377,7 @@ function RecentSessionRow({ session }: { session: SessionRecord }) {
       >
         <View style={[styles.sessionLeft, { gap: Spacing['2xs'] }]}>
           <Text style={{ fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, fontFamily: Fonts.display, color: colors.textPrimary }}>
-            {exerciseName(session.exerciseId)}
+            {label}
           </Text>
           <Text style={{ fontSize: Typography.monoBase.size, lineHeight: Typography.monoBase.lineHeight, fontFamily: Fonts.mono, color: colors.textSecondary }}>
             {fmtDate(session.startedAt)}
@@ -359,6 +424,98 @@ function RecentSessionRow({ session }: { session: SessionRecord }) {
 }
 
 // ---------------------------------------------------------------------------
+// Songs library row — collapsible parent + per-chunk lines.
+// ---------------------------------------------------------------------------
+
+function SongLibraryRow({
+  song,
+  sessions,
+  bestKeys,
+  lastPracticed,
+  onDelete,
+}: {
+  song: StoredSong;
+  sessions: SessionRecord[];
+  bestKeys: Record<string, string | null>;
+  lastPracticed: Record<string, number>;
+  onDelete: (songId: string) => void;
+}) {
+  const { colors } = useTheme();
+  const router = useRouter();
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <View style={[styles.exerciseCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle, borderRadius: Radii.md }]}>
+      <Pressable
+        onPress={() => setExpanded((v) => !v)}
+        style={[styles.exerciseHeader, { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, gap: Spacing.xs }]}
+      >
+        <View style={[styles.exerciseHeaderLeft, { gap: Spacing['2xs'] }]}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs }}>
+            <Text style={{ fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, fontFamily: Fonts.display, color: colors.textPrimary }}>
+              ♪ {song.name}
+            </Text>
+            <View style={[styles.importedPill, { backgroundColor: colors.accentMuted, borderRadius: Radii.sm }]}>
+              <Text style={{ color: colors.accent, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodySemibold }}>Song</Text>
+            </View>
+          </View>
+          <Text style={{ fontSize: Typography.monoBase.size, lineHeight: Typography.monoBase.lineHeight, fontFamily: Fonts.mono, color: colors.textSecondary }}>
+            {song.chunks.length} segment{song.chunks.length === 1 ? "" : "s"}
+            {"  ·  "}
+            {song.tonic} {song.mode}
+            {"  ·  "}
+            {song.timeSignature.num}/{song.timeSignature.den}
+          </Text>
+        </View>
+        <Text style={{ color: colors.textTertiary, fontSize: Typography.monoBase.size, fontFamily: Fonts.mono }}>
+          {expanded ? "▲" : "▼"}
+        </Text>
+      </Pressable>
+
+      {expanded && (
+        <View style={[styles.importedDetail, { borderTopColor: colors.borderSubtle, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, gap: Spacing.sm }]}>
+          {song.chunks.map((c) => {
+            const desc = chunkToDescriptor(song, c);
+            const chunkSessions = sessions.filter((s) => s.exerciseId === desc.id);
+            const best = bestSessionAccuracy(chunkSessions, desc.id);
+            const lastMs = lastPracticed[desc.id];
+            return (
+              <View key={c.id} style={[styles.importedSection, { backgroundColor: colors.bgCanvas, borderRadius: Radii.sm, padding: Spacing.xs, gap: Spacing["3xs"] }]}>
+                <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.bodySemibold, color: colors.textPrimary }}>
+                  {c.name}
+                </Text>
+                <Text style={{ fontSize: Typography.monoBase.size, lineHeight: Typography.monoBase.lineHeight, fontFamily: Fonts.mono, color: colors.textTertiary }}>
+                  notes {c.startNoteIdx + 1}–{c.endNoteIdx + 1}
+                  {best != null ? `  ·  best ${fmtAccuracy(best)}` : ""}
+                  {lastMs ? `  ·  last ${fmtDate(lastMs)}` : ""}
+                </Text>
+              </View>
+            );
+          })}
+
+          <View style={[styles.importedActionsRow, { gap: Spacing.xs, justifyContent: "flex-end" }]}>
+            <Pressable
+              style={[styles.importedActionBtn, { backgroundColor: colors.bgSurface, borderRadius: Radii.sm, borderWidth: 1, borderColor: colors.borderStrong, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs }]}
+              onPress={() => router.push({ pathname: "/song-editor", params: { songId: song.id } })}
+              accessibilityLabel={`Edit segments for ${song.name}`}
+            >
+              <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textPrimary }}>Edit segments</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.importedActionBtn, { backgroundColor: colors.bgSurface, borderRadius: Radii.sm, borderWidth: 1, borderColor: colors.error, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs }]}
+              onPress={() => onDelete(song.id)}
+              accessibilityLabel={`Delete song ${song.name}`}
+            >
+              <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.error }}>Delete</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Screen
 // ---------------------------------------------------------------------------
 
@@ -371,21 +528,25 @@ export default function ProgressScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [userExercises, setUserExercises] = useState<StoredExtractedExercise[]>([]);
+  const [songs, setSongs] = useState<StoredSong[]>([]);
 
   useEffect(() => {
     Promise.all([
       sessionStore.list().catch(() => [] as SessionRecord[]),
       loadRoutine(),
       listUserExercises().catch(() => [] as StoredExtractedExercise[]),
-    ]).then(([list, routineConfig, imported]) => {
+      listSongs().catch(() => [] as StoredSong[]),
+    ]).then(([list, routineConfig, imported, songList]) => {
       setSessions(list);
       setRoutine(routineConfig);
       setUserExercises(imported);
+      setSongs(songList);
       setLoading(false);
     }).catch(() => {
       setSessions([]);
       setRoutine(null);
       setUserExercises([]);
+      setSongs([]);
       setLoading(false);
     });
   }, []);
@@ -409,10 +570,15 @@ export default function ProgressScreen() {
   }
 
   async function handleImportSaved() {
-    // Refresh the user-exercise list so the new import shows up immediately.
+    // Refresh the user-exercise list AND song list so a new import (either kind)
+    // shows up immediately.
     try {
-      const list = await listUserExercises();
-      setUserExercises(list);
+      const [users, songList] = await Promise.all([
+        listUserExercises(),
+        listSongs(),
+      ]);
+      setUserExercises(users);
+      setSongs(songList);
     } catch {
       /* ignore */
     }
@@ -422,6 +588,35 @@ export default function ProgressScreen() {
     await deleteUserExercise(id).catch(() => {});
     setUserExercises((prev) => prev.filter((it) => it.descriptor.id !== id));
   }
+
+  async function handleDeleteSong(songId: string) {
+    await deleteSong(songId).catch(() => {});
+    // Strip any of this song's chunk IDs from the saved routine.
+    await pruneRoutineExerciseIds((id) => {
+      const parsed = parseChunkId(id);
+      return parsed?.songId === songId;
+    }).catch(() => {});
+    setSongs((prev) => prev.filter((s) => s.id !== songId));
+    // Reload routine state so the badge counts stay accurate.
+    try {
+      const fresh = await loadRoutine();
+      setRoutine(fresh);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Items for RoutineEditModal — built-ins + user-imported + song chunks.
+  const routineItems: RoutineItem[] = [
+    ...exerciseLibrary.map((e) => ({ id: e.id, label: e.name, section: "builtin" as const })),
+    ...userExercises.map((it) => ({ id: it.descriptor.id, label: it.descriptor.name, section: "user" as const })),
+    ...songs.flatMap((s) =>
+      s.chunks.map((c) => {
+        const desc = chunkToDescriptor(s, c);
+        return { id: desc.id, label: c.name, section: "song" as const, songName: s.name };
+      }),
+    ),
+  ];
 
   if (loading) {
     return (
@@ -475,6 +670,27 @@ export default function ProgressScreen() {
   // Recent sessions sorted desc
   const recentSessions = [...allSessions].sort((a, b) => b.startedAt - a.startedAt).slice(0, 20);
 
+  // Chunk-id → { displayName, descriptor } map so RecentSessionRow can render
+  // a real label + syllables for song-chunk sessions (which aren't in the
+  // built-in exerciseLibrary lookup).
+  const chunkInfoById = new Map<string, { displayName: string; descriptor: ExerciseDescriptor }>();
+  for (const s of songs) {
+    for (const c of s.chunks) {
+      const desc = chunkToDescriptor(s, c);
+      chunkInfoById.set(desc.id, {
+        displayName: `${s.name} — ${c.name}`,
+        descriptor: desc,
+      });
+    }
+  }
+  // Exclude session IDs that correspond to user-imported or song-chunk exercises
+  // from the built-in ExerciseRow loop — they get their own renderers below.
+  const userExerciseIds = new Set(userExercises.map((it) => it.descriptor.id));
+  const chunkExerciseIds = new Set(chunkInfoById.keys());
+  const builtinExerciseIds = exerciseIds.filter(
+    (id) => !userExerciseIds.has(id) && !chunkExerciseIds.has(id),
+  );
+
   return (
     <>
       <ScrollView style={[styles.container, { backgroundColor: colors.canvas }]} contentContainerStyle={[styles.content, { padding: Spacing.lg, paddingBottom: Spacing['3xl'], gap: Spacing.md }]}>
@@ -495,7 +711,7 @@ export default function ProgressScreen() {
           exerciseCount={weeklySummary.exercisesPracticed.length}
         />
 
-        {(exerciseIds.length > 0 || userExercises.length > 0) && (
+        {(exerciseIds.length > 0 || userExercises.length > 0 || songs.length > 0) && (
           <>
             <Text style={{ fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 0.8, marginTop: Spacing.xs }}>
               Exercises
@@ -509,11 +725,11 @@ export default function ProgressScreen() {
             >
               <Text style={{ fontSize: Typography.sm.size, color: colors.textTertiary, fontFamily: Fonts.bodyMedium }}>+</Text>
               <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, color: colors.textTertiary, fontFamily: Fonts.body }}>
-                Add imported melody
+                Add imported melody or song
               </Text>
             </Pressable>
 
-            {exerciseIds.map((id) => (
+            {builtinExerciseIds.map((id) => (
               <ExerciseRow
                 key={id}
                 exerciseId={id}
@@ -525,21 +741,35 @@ export default function ProgressScreen() {
               />
             ))}
 
-            {userExercises
-              .filter((it) => !exerciseIds.includes(it.descriptor.id))
-              .map((it) => (
-                <ExerciseRow
-                  key={it.descriptor.id}
-                  exerciseId={it.descriptor.id}
-                  displayName={it.descriptor.name}
-                  lastPracticedMs={lastPracticed[it.descriptor.id] ?? null}
-                  bestKey={bestKeys[it.descriptor.id] ?? null}
-                  bestEver={bestSessionAccuracy(allSessions, it.descriptor.id)}
-                  progress={progressForExercise(allSessions, it.descriptor.id)}
-                  imported={it}
-                  onDelete={handleDeleteUserExercise}
-                />
-              ))}
+            {userExercises.map((it) => (
+              <ExerciseRow
+                key={it.descriptor.id}
+                exerciseId={it.descriptor.id}
+                displayName={it.descriptor.name}
+                lastPracticedMs={lastPracticed[it.descriptor.id] ?? null}
+                bestKey={bestKeys[it.descriptor.id] ?? null}
+                bestEver={bestSessionAccuracy(allSessions, it.descriptor.id)}
+                progress={progressForExercise(allSessions, it.descriptor.id)}
+                imported={it}
+                onDelete={handleDeleteUserExercise}
+              />
+            ))}
+
+            {songs.length > 0 && (
+              <Text style={{ fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 0.8, marginTop: Spacing.xs }}>
+                Songs
+              </Text>
+            )}
+            {songs.map((song) => (
+              <SongLibraryRow
+                key={song.id}
+                song={song}
+                sessions={allSessions}
+                bestKeys={bestKeys}
+                lastPracticed={lastPracticed}
+                onDelete={handleDeleteSong}
+              />
+            ))}
 
             <Pressable
               style={[styles.savedTipsRow, { backgroundColor: colors.bgSurface, borderRadius: Radii.md, borderColor: colors.borderStrong, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, gap: Spacing.xs, minHeight: 44 }]}
@@ -559,9 +789,17 @@ export default function ProgressScreen() {
             <Text style={{ fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 0.8, marginTop: Spacing.xs }}>
               Recent sessions
             </Text>
-            {recentSessions.map((s) => (
-              <RecentSessionRow key={s.id} session={s} />
-            ))}
+            {recentSessions.map((s) => {
+              const chunkInfo = chunkInfoById.get(s.exerciseId);
+              return (
+                <RecentSessionRow
+                  key={s.id}
+                  session={s}
+                  displayName={chunkInfo?.displayName}
+                  descriptor={chunkInfo?.descriptor}
+                />
+              );
+            })}
           </>
         )}
       </ScrollView>
@@ -571,6 +809,7 @@ export default function ProgressScreen() {
         <RoutineEditModal
           visible={editModalVisible}
           routine={activeRoutine}
+          items={routineItems}
           onSave={handleSaveRoutine}
           onClose={() => setEditModalVisible(false)}
         />

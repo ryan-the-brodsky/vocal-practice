@@ -51,4 +51,18 @@ export interface MelodyAnalysis {
   durationSec: number;
   // Non-fatal warnings to surface in the review UI (e.g. tempo fallback)
   warnings: string[];
+  // Optional meter; user-supplied at song import. No auto-detection.
+  timeSignature?: TimeSignature;
+}
+
+/** Supported time signatures (v1: only these three). */
+export interface TimeSignature {
+  num: 4 | 3 | 6;
+  den: 4 | 8;
+}
+
+/** Beats per measure in quarter-note units. Matches durationBeats's unit
+ *  (set by `keysnap.ts` as `(durationMs/1000) * (tempoBpm/60)`). */
+export function beatsPerMeasure(ts: TimeSignature): number {
+  return ts.num * (4 / ts.den);
 }

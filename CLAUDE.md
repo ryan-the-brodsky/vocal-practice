@@ -43,6 +43,17 @@ lib/capture/wav.ts            # pure 16-bit PCM WAV encoder (Float32Array → Bl
 lib/capture/types.ts          # CaptureSidecar — sidecar JSON schema for the dev raw-audio corpus
 lib/capture/download.ts       # browser file-download helper + filename-safe timestamp (dev raw capture)
 lib/capture/songTypes.ts      # SongSidecar — sidecar JSON schema for free-form song recordings (Import → Record)
+lib/songs/types.ts            # StoredSong, ChunkSpec, TimeSignature, parseChunkId/buildChunkId for the synthetic id format `song-${songId}__chunk-${chunkId}`. Internal type names kept ("ChunkSpec", "chunks") — user-visible strings say "Segment".
+lib/songs/store.ts            # AsyncStorage CRUD at `vocal-training:songs:v1` (mirrors userStore.ts)
+lib/songs/chunker.ts          # autoChunk(notes, timeSig, opts?) + reconcileChunkIds(old, new). Default name "Segment N". Cuts at PHRASE_REST_MS=800ms gaps when running chunk has ≥ MIN_CHUNK_BEATS=2 beats, AND at the target-measure tick (snapping backward to a nearby rest end when one's within REST_SNAP_LOOKBACK_BEATS).
+lib/songs/toDescriptor.ts     # chunkToDescriptor(song, chunk) → synthetic ExerciseDescriptor. Emits restsAfter[] (one entry per scale degree, silence-in-beats AFTER each note). No longer folds gaps into durations[i]. voicePartRanges = { lowest=highest=tonic, step=1 }
+lib/songs/preview.ts          # melodyOnlyDescriptor(song, chunk) + previewChunk(player, song, chunk) → SequenceHandle. Strips accompaniment + cue + lead-in clicks for bare-melody segment playback in the song editor
+lib/exercises/displayName.ts  # resolveExerciseName(id) — async, looks up chunk-id labels via song store; exerciseNameSync stays for hot paths
+lib/progress/routine.ts        # pruneRoutineExerciseIds(predicate) added so song deletion can strip orphaned chunk IDs from RoutineConfig
+app/song-editor.tsx            # /song-editor?songId=... route. Loads StoredSong, renders multi-line score with web in-score divider drag + click-to-rename, per-segment ▶/■ preview button, side panel of ◀/▶ nudge controls. Holds the preview AudioPlayer + SequenceHandle refs; 100ms progress poll clears state on completion. Save calls reconcileChunkIds + saveSong.
+components/songs/SongScoreView.tsx       # multi-line wrapped SVG staff with REAL note durations (whole/half/quarter/8th/16th — Bravura noteheads + stems + flags) + explicit Bravura rest glyphs between notes when restAfterBeats ≥ 1/16. Greedy width-based row wrap (replaces fixed notesPerRow). Vertical segment dividers + segment-N labels above each chunk start. Web-only overlay layer: pointer-drag divider <div>s (snap to nearest note column → onBoundaryDragMove) + click-target <div>s on labels that swap to an absolutely-positioned TextInput → onLabelRename. NOT a reuse of MelodyDisplay (single-row infinite scroll). Exports CHUNK_PALETTE so controls can match colors.
+components/songs/ChunkDividerControls.tsx # one row per interior boundary with ◀/▶ nudge buttons; disabled when the neighbor would shrink below 1 note. Fallback for native (no drag) + accessibility
+components/songs/ChunkNameField.tsx      # inline text input bound to chunk name; commits on blur or Enter. Used both in the segment list row (always) and as the in-score rename TextInput when overlay rename is active
 lib/progress/{types,storage,stats,index}.ts  # SessionRecord persistence + summaries
 lib/session/tracker.ts        # SessionTracker: routes samples → per-key Scorers
 lib/coaching/diagnose.ts      # diagnoseSession: most-consistent or most-glaring mistake from a SessionRecord
@@ -74,6 +85,8 @@ lib/progress/__tests__/stats.test.ts       # 15 tests — summarize/progress/thi
 lib/exercises/__tests__/music.test.ts      # 18 tests — noteToMidi/midiToNote round-trip, durations, triads, voicing
 # PR 3 integration suite (added 2026-05-10):
 lib/__tests__/integration/engineIntegration.test.ts  # 5 fixture-driven scenarios end-to-end (Tracker → Scorer → align → diagnose)
+# Song-import slice E tests (added 2026-05-30):
+lib/exercises/__tests__/engine.rests.test.ts   # 5 tests — descriptor restsAfter shifts onsets, emits "rest" NoteEvent, defensive length mismatch, scorer-target filter unaffected
 # PR 4 component-test scaffolding (added 2026-05-10):
 app/__tests__/coaching.test.tsx           # 3 cases — flat-session diagnosis + bookmark persistence + error states
 app/__tests__/explore.test.tsx            # 3 cases — weekly summary + recent-session "Coach this" router.push
@@ -132,7 +145,7 @@ ExerciseDescriptor + voicePart → `planExercise()` → `KeyIteration[]` → `fl
 
 ## Test status (PRs 1–4 shipped — 2026-05-09 → 2026-05-10)
 
-`npm test` → 384 tests / 31 suites / 2 projects (1 skipped) in ~35s. `npm run test:coverage` (scoped to unit project) verifies the configured `coverageThreshold` block. `tsc --noEmit` clean. CI at `.github/workflows/test.yml`.
+`npm test` → 422 tests / 35 suites / 2 projects (1 skipped) in ~60s. `npm run test:coverage` (scoped to unit project) verifies the configured `coverageThreshold` block. `tsc --noEmit` clean. CI at `.github/workflows/test.yml`.
 
 **Component-test conventions (PR 4):**
 - Use `@testing-library/react` (DOM-based) — `jest-expo/web` renders RN through `react-native-web` so the tree is HTML in jsdom; `@testing-library/react-native` v13's react-test-renderer path doesn't see the same nodes.

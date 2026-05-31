@@ -30,10 +30,14 @@ import {
   type SessionInput,
 } from "@/lib/coaching";
 import { planExercise } from "@/lib/exercises/engine";
-import { exerciseLibrary } from "@/lib/exercises/library";
+import { getExerciseAsync } from "@/lib/exercises/library";
 import { exerciseName } from "@/lib/exercises/names";
 import type { ExerciseDescriptor, KeyIteration, NoteEvent } from "@/lib/exercises/types";
 import { getUserExercise } from "@/lib/exercises/userStore";
+import { getSong } from "@/lib/songs/store";
+import { chunkToDescriptor } from "@/lib/songs/toDescriptor";
+import { parseChunkId } from "@/lib/songs/types";
+import type { MelodyAnalysis } from "@/lib/analyze/types";
 import { createAsyncStorageStore, type SessionRecord } from "@/lib/progress";
 import type { NotePitchTrace } from "@/lib/scoring/types";
 import { useTheme } from "@/hooks/use-theme";
@@ -116,6 +120,9 @@ export default function CoachingScreen() {
 
   const [record, setRecord] = useState<SessionRecord | null>(null);
   const [iterations, setIterations] = useState<KeyIteration[]>([]);
+  // Name resolved from the loaded descriptor (sessionId path), so chunk ids
+  // and user-imported ids don't surface as raw id strings.
+  const [resolvedExerciseName, setResolvedExerciseName] = useState<string | null>(null);
   // Set when the entry point is an imported exercise (?exerciseId=...).
   const [importedDescriptor, setImportedDescriptor] = useState<ExerciseDescriptor | null>(null);
   const [importedInput, setImportedInput] = useState<SessionInput | null>(null);
@@ -133,9 +140,45 @@ export default function CoachingScreen() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      // Imported-melody entry point: read from userStore, build SessionInput from analysis.
+      // Imported-melody entry point: read from userStore (exercise) OR song
+      // store (chunk), build SessionInput from the analysis slice.
       if (exerciseId) {
         try {
+          const chunkParsed = parseChunkId(exerciseId);
+          if (chunkParsed) {
+            const song = await getSong(chunkParsed.songId);
+            if (cancelled) return;
+            const chunk = song?.chunks.find((c) => c.id === chunkParsed.chunkId);
+            if (!song || !chunk) {
+              setError("This song segment is no longer available.");
+              return;
+            }
+            const chunkNotes = song.allNotes.slice(chunk.startNoteIdx, chunk.endNoteIdx + 1);
+            const chunkAnalysis: MelodyAnalysis = {
+              notes: chunkNotes,
+              perScaleDegree: [],
+              glaring: null,
+              tonic: song.tonic,
+              mode: song.mode,
+              tempoBpm: song.tempoBpm,
+              durationSec: chunkNotes.length > 0
+                ? (chunkNotes[chunkNotes.length - 1]!.endMs - chunkNotes[0]!.startMs) / 1000
+                : 0,
+              warnings: [],
+              timeSignature: song.timeSignature,
+            };
+            setImportedDescriptor(chunkToDescriptor(song, chunk));
+            setImportedInput(fromMelodyAnalysis(chunkAnalysis));
+            const hzMap = new Map<number, number>();
+            for (let i = 0; i < chunkNotes.length; i++) {
+              const n = chunkNotes[i];
+              if (typeof n?.medianHz === "number" && isFinite(n.medianHz) && n.medianHz > 0) {
+                hzMap.set(i, n.medianHz);
+              }
+            }
+            setImportedMedianHzByPos(hzMap);
+            return;
+          }
           const stored = await getUserExercise(exerciseId);
           if (cancelled) return;
           if (!stored) {
@@ -172,12 +215,15 @@ export default function CoachingScreen() {
           setError("Couldn't find that session.");
           return;
         }
-        const ex = exerciseLibrary.find((e) => e.id === rec.exerciseId);
+        // getExerciseAsync resolves built-ins, user exercises, and song chunks.
+        const ex = await getExerciseAsync(rec.exerciseId);
+        if (cancelled) return;
         const iters = ex
           ? planExercise({ exercise: ex, voicePart: rec.voicePart, octaveShift: rec.octaveShift })
           : [];
         setRecord(rec);
         setIterations(iters);
+        setResolvedExerciseName(ex?.name ?? null);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       }
@@ -275,7 +321,7 @@ export default function CoachingScreen() {
   const exerciseLabel = importedDescriptor
     ? importedDescriptor.name
     : record
-      ? exerciseName(record.exerciseId)
+      ? (resolvedExerciseName ?? exerciseName(record.exerciseId))
       : "";
   const contextExerciseId = importedDescriptor?.id ?? record?.exerciseId;
 

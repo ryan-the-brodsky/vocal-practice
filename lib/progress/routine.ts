@@ -57,6 +57,18 @@ export async function saveRoutine(config: RoutineConfig): Promise<void> {
   await AsyncStorage.setItem(ROUTINE_KEY, JSON.stringify(config));
 }
 
+/** Removes any routine exercise IDs matching the predicate. No-op if none match.
+ *  Used when deleting a song so its orphaned chunk IDs don't linger in the routine. */
+export async function pruneRoutineExerciseIds(
+  predicate: (id: string) => boolean,
+): Promise<void> {
+  const config = await loadRoutine();
+  const filtered = config.exerciseIds.filter((id) => !predicate(id));
+  if (filtered.length !== config.exerciseIds.length) {
+    await saveRoutine({ exerciseIds: filtered });
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------

@@ -89,9 +89,14 @@ export interface ExerciseDescriptor {
   // Per-note durations in beats relative to descriptor.tempo. When present,
   // length must equal scaleDegrees.length and overrides noteValue.
   durations?: number[];
+  // Per-note SILENCE (beats) AFTER each note. When present, length must equal
+  // scaleDegrees.length and the engine emits a "rest" NoteEvent between melody
+  // notes. Used by song chunks to surface real rests instead of folding gaps
+  // into the preceding note's duration. Trailing entry is typically 0.
+  restsAfter?: number[];
 }
 
-export type NoteEventType = "melody" | "accompaniment" | "cue" | "tick";
+export type NoteEventType = "melody" | "accompaniment" | "cue" | "tick" | "rest";
 
 export interface NoteEvent {
   type: NoteEventType;

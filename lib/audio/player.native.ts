@@ -84,6 +84,8 @@ export class NativeAudioPlayer implements AudioPlayer {
     const snapshot: ActiveSource[] = [];
 
     for (const e of events) {
+      // Rest events occupy a time slot but produce no sound.
+      if (e.type === "rest") continue;
       const midi = e.hzOverride != null ? hzToMidi(e.hzOverride) : e.midi;
       const srcs = this.triggerNote(midi, t0 + e.startTime, e.duration, e.velocity);
       snapshot.push(...srcs);

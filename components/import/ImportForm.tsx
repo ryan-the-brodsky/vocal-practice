@@ -1,6 +1,7 @@
+import type React from "react";
 import { useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import type { AnalysisMode, DecodeInput } from "@/lib/analyze";
+import type { AnalysisMode, DecodeInput, TimeSignature } from "@/lib/analyze";
 import type { VoicePart } from "@/lib/exercises/types";
 import { useTheme } from "@/hooks/use-theme";
 import { Spacing, Radii, Typography, Fonts } from "@/constants/theme";
@@ -11,6 +12,15 @@ const MODES: { value: AnalysisMode; label: string }[] = [
   { value: "minor", label: "Minor" },
   { value: "chromatic", label: "Chromatic" },
 ];
+const TIME_SIGS: { value: TimeSignature; label: string }[] = [
+  { value: { num: 4, den: 4 }, label: "4/4" },
+  { value: { num: 3, den: 4 }, label: "3/4" },
+  { value: { num: 6, den: 8 }, label: "6/8" },
+];
+
+function tsEq(a: TimeSignature, b: TimeSignature): boolean {
+  return a.num === b.num && a.den === b.den;
+}
 
 // Limited tonic picker — common octaves for vocal range. User types if they need outside.
 const TONIC_PRESETS = [
@@ -31,10 +41,12 @@ export interface ImportFormState {
 
 export default function ImportForm({
   initialVoicePart,
+  kind = "exercise",
   onAnalyze,
   disabled,
 }: {
   initialVoicePart: VoicePart;
+  kind?: "exercise" | "song";
   onAnalyze: (state: {
     file: DecodeInput;
     filename: string;
@@ -42,6 +54,7 @@ export default function ImportForm({
     mode: AnalysisMode;
     voicePart: VoicePart;
     tempoBpm?: number;
+    timeSignature?: TimeSignature;
   }) => void;
   disabled?: boolean;
 }) {
@@ -53,7 +66,9 @@ export default function ImportForm({
   const [mode, setMode] = useState<AnalysisMode>("major");
   const [voicePart, setVoicePart] = useState<VoicePart>(initialVoicePart);
   const [tempoText, setTempoText] = useState<string>("");
+  const [timeSig, setTimeSig] = useState<TimeSignature>({ num: 4, den: 4 });
   const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const webInputRef = useRef<HTMLInputElement | null>(null);
 
   function handlePickWeb() {
@@ -64,6 +79,22 @@ export default function ImportForm({
   function handleWebFileChange(e: { target: HTMLInputElement }) {
     const f = e.target.files?.[0];
     if (!f) return;
+    setFile(f);
+    setFilename(f.name);
+  }
+
+  function acceptDroppedFile(f: File) {
+    // Be generous about MIME types — browsers report .m4a as "audio/x-m4a",
+    // some report .flac as "" or "application/octet-stream". Fall back to the
+    // extension check so common audio files aren't rejected.
+    const looksAudio =
+      (f.type && f.type.startsWith("audio/")) ||
+      /\.(wav|mp3|m4a|ogg|flac|aac)$/i.test(f.name);
+    if (!looksAudio) {
+      setError(`That file doesn't look like audio (${f.type || "unknown type"}).`);
+      return;
+    }
+    setError(null);
     setFile(f);
     setFilename(f.name);
   }
@@ -106,7 +137,15 @@ export default function ImportForm({
       }
       tempoBpm = Math.round(n);
     }
-    onAnalyze({ file, filename, tonic: finalTonic, mode, voicePart, tempoBpm });
+    onAnalyze({
+      file,
+      filename,
+      tonic: finalTonic,
+      mode,
+      voicePart,
+      tempoBpm,
+      ...(kind === "song" ? { timeSignature: timeSig } : {}),
+    });
   }
 
   return (
@@ -116,25 +155,60 @@ export default function ImportForm({
         <Text style={{ fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 0.6 }}>
           Audio file
         </Text>
-        {Platform.OS === "web" && (
+        {Platform.OS === "web" ? (
+          // Native <div> wrapper so the drag/drop events actually land on a
+          // DOM element (react-native-web's Pressable strips arbitrary DOM
+          // listeners). Click is handled by the inner Pressable.
           // @ts-ignore — react-native-web passes through DOM elements at runtime.
-          <input
-            ref={webInputRef}
-            type="file"
-            accept="audio/*"
-            style={{ display: "none" }}
-            onChange={handleWebFileChange}
-          />
+          <div
+            onDragOver={(e: React.DragEvent) => { e.preventDefault(); if (!dragOver) setDragOver(true); }}
+            onDragEnter={(e: React.DragEvent) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={(e: React.DragEvent) => {
+              // Only clear when leaving the wrapper, not when crossing into a child.
+              if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+              setDragOver(false);
+            }}
+            onDrop={(e: React.DragEvent) => {
+              e.preventDefault();
+              setDragOver(false);
+              if (disabled) return;
+              const f = e.dataTransfer?.files?.[0];
+              if (f) acceptDroppedFile(f);
+            }}
+          >
+            {/* @ts-ignore — react-native-web passes through DOM elements at runtime. */}
+            <input
+              ref={webInputRef}
+              type="file"
+              accept="audio/*"
+              style={{ display: "none" }}
+              onChange={handleWebFileChange}
+            />
+            <Pressable
+              style={[
+                styles.fileBtn,
+                { backgroundColor: dragOver ? colors.accentMuted : colors.canvas, borderColor: dragOver ? colors.accent : colors.borderStrong, borderRadius: Radii.md, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md },
+                disabled && styles.btnDisabled,
+              ]}
+              onPress={handlePickWeb}
+              disabled={disabled}
+            >
+              <Text style={{ color: colors.textSecondary, fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, fontFamily: Fonts.body }}>
+                {filename ? filename : "Choose audio file or drop one here…"}
+              </Text>
+            </Pressable>
+          </div>
+        ) : (
+          <Pressable
+            style={[styles.fileBtn, { backgroundColor: colors.canvas, borderColor: colors.borderStrong, borderRadius: Radii.md, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md }, disabled && styles.btnDisabled]}
+            onPress={handlePickNative}
+            disabled={disabled}
+          >
+            <Text style={{ color: colors.textSecondary, fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, fontFamily: Fonts.body }}>
+              {filename ? filename : "Choose audio file…"}
+            </Text>
+          </Pressable>
         )}
-        <Pressable
-          style={[styles.fileBtn, { backgroundColor: colors.canvas, borderColor: colors.borderStrong, borderRadius: Radii.md, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md }, disabled && styles.btnDisabled]}
-          onPress={Platform.OS === "web" ? handlePickWeb : handlePickNative}
-          disabled={disabled}
-        >
-          <Text style={{ color: colors.textSecondary, fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, fontFamily: Fonts.body }}>
-            {filename ? filename : "Choose audio file…"}
-          </Text>
-        </Pressable>
       </View>
 
       {/* Tonic */}
@@ -257,6 +331,41 @@ export default function ImportForm({
           editable={!disabled}
         />
       </View>
+
+      {kind === "song" && (
+        <View style={[styles.field, { gap: Spacing['2xs'] }]}>
+          <Text style={{ fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 0.6 }}>
+            Time signature
+          </Text>
+          <View style={[styles.row, { gap: Spacing['2xs'] }]}>
+            {TIME_SIGS.map((ts) => {
+              const active = tsEq(timeSig, ts.value);
+              return (
+                <Pressable
+                  key={ts.label}
+                  onPress={() => setTimeSig(ts.value)}
+                  style={[
+                    styles.chip,
+                    {
+                      paddingHorizontal: Spacing.sm,
+                      paddingVertical: Spacing['2xs'],
+                      borderRadius: Radii.pill,
+                      backgroundColor: active ? colors.accentMuted : colors.bgSurface,
+                      borderColor: active ? colors.accent : colors.borderSubtle,
+                    },
+                    disabled && styles.btnDisabled,
+                  ]}
+                  disabled={disabled}
+                >
+                  <Text style={{ color: active ? colors.accent : colors.textSecondary, fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: active ? Fonts.bodyMedium : Fonts.body }}>
+                    {ts.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       {error && (
         <Text style={{ color: colors.error, fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body }}>

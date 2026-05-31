@@ -27,6 +27,7 @@ import {
 } from "@/lib/coaching";
 import { flattenIterations, planExercise } from "@/lib/exercises/engine";
 import { exerciseLibrary, getAllExercises } from "@/lib/exercises/library";
+import { parseChunkId } from "@/lib/songs/types";
 import { midiToNote, noteToMidi, noteValueToSeconds } from "@/lib/exercises/music";
 import { resolveDetectorTuning } from "@/lib/pitch/tuning";
 import ImportModal from "@/components/import/ImportModal";
@@ -701,6 +702,7 @@ export default function PracticeScreen() {
       availableExercises={availableExercises}
       onExerciseChange={handleExerciseChange}
       onImport={() => setImportModalVisible(true)}
+      onEditSong={(songId) => router.push({ pathname: "/song-editor", params: { songId } })}
       voicePart={voicePart}
       onVoiceChange={setVoicePart}
       supportsVoicePart={supportsVoicePart}
@@ -787,13 +789,31 @@ export default function PracticeScreen() {
 
       {mode === "guided" ? (
         <>
-          <GuidedSession
-            exercise={exercise}
-            voicePart={voicePart}
-            octaveShift={octaveShift}
-            onPatternComplete={handleGuidedPatternComplete}
-          />
-          {practiceControls}
+          {isDesktop ? (
+            <View style={styles.practiceRow}>
+              <View style={[styles.console, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
+                {practiceControls}
+              </View>
+              <View style={styles.practiceStage}>
+                <GuidedSession
+                  exercise={exercise}
+                  voicePart={voicePart}
+                  octaveShift={octaveShift}
+                  onPatternComplete={handleGuidedPatternComplete}
+                />
+              </View>
+            </View>
+          ) : (
+            <>
+              <GuidedSession
+                exercise={exercise}
+                voicePart={voicePart}
+                octaveShift={octaveShift}
+                onPatternComplete={handleGuidedPatternComplete}
+              />
+              {practiceControls}
+            </>
+          )}
           <PostSessionPanel
             pendingSession={pendingSession}
             loggedMessage={loggedMessage}
@@ -845,6 +865,7 @@ interface PracticeControlsProps {
   availableExercises: ExerciseDescriptor[];
   onExerciseChange: (id: string) => void;
   onImport: () => void;
+  onEditSong: (songId: string) => void;
   voicePart: VoicePart;
   onVoiceChange: (vp: VoicePart) => void;
   supportsVoicePart: boolean;
@@ -868,6 +889,43 @@ function PracticeControls(p: PracticeControlsProps) {
   const [exerciseOpen, setExerciseOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [octaveOpen, setOctaveOpen] = useState(false);
+  const [expandedSongs, setExpandedSongs] = useState<Set<string>>(new Set());
+
+  // Group the flat available list: songs collapse to a parent row that expands
+  // to reveal each chunk; non-song descriptors stay as standalone chips.
+  type Group =
+    | { kind: "single"; descriptor: ExerciseDescriptor }
+    | { kind: "song"; songId: string; songName: string; chunks: ExerciseDescriptor[] };
+  const groups: Group[] = useMemo(() => {
+    const out: Group[] = [];
+    const byParent = new Map<string, Extract<Group, { kind: "song" }>>();
+    for (const d of p.availableExercises) {
+      const parsed = parseChunkId(d.id);
+      if (parsed) {
+        let g = byParent.get(parsed.songId);
+        if (!g) {
+          const songName = d.name.split(" — ")[0] ?? d.name;
+          g = { kind: "song", songId: parsed.songId, songName, chunks: [] };
+          byParent.set(parsed.songId, g);
+          out.push(g);
+        }
+        g.chunks.push(d);
+      } else {
+        out.push({ kind: "single", descriptor: d });
+      }
+    }
+    return out;
+  }, [p.availableExercises]);
+
+  function toggleSong(songId: string) {
+    setExpandedSongs((prev) => {
+      const next = new Set(prev);
+      if (next.has(songId)) next.delete(songId);
+      else next.add(songId);
+      return next;
+    });
+  }
+
   return (
     <View style={styles.controlsStack}>
       <Pressable
@@ -884,23 +942,76 @@ function PracticeControls(p: PracticeControlsProps) {
       {exerciseOpen && (
         <View style={styles.collapsibleBody}>
           <View style={styles.row}>
-            {p.availableExercises.map((e) => {
-              const isImported = e.tags?.includes("imported") ?? false;
-              const active = p.exerciseId === e.id;
+            {groups.map((g) => {
+              if (g.kind === "single") {
+                const e = g.descriptor;
+                const isImported = e.tags?.includes("imported") ?? false;
+                const active = p.exerciseId === e.id;
+                return (
+                  <Pressable
+                    key={e.id}
+                    onPress={() => { p.onExerciseChange(e.id); setExerciseOpen(false); }}
+                    style={[styles.chip, styles.chipInline, { backgroundColor: active ? colors.accentMuted : colors.bgSurface, borderColor: active ? colors.accent : colors.borderSubtle }]}
+                    disabled={p.disabled}
+                  >
+                    <Text style={[styles.chipText, { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>{e.name}</Text>
+                    {isImported && (
+                      <View style={[styles.importedPill, { backgroundColor: active ? colors.accent : colors.accentMuted }]}>
+                        <Text style={[styles.importedPillText, { color: active ? colors.canvas : colors.accent, fontFamily: Fonts.bodySemibold }]}>Imported</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              }
+              // kind === "song"
+              const expanded = expandedSongs.has(g.songId);
+              const anyChunkActive = g.chunks.some((c) => c.id === p.exerciseId);
               return (
-                <Pressable
-                  key={e.id}
-                  onPress={() => { p.onExerciseChange(e.id); setExerciseOpen(false); }}
-                  style={[styles.chip, styles.chipInline, { backgroundColor: active ? colors.accentMuted : colors.bgSurface, borderColor: active ? colors.accent : colors.borderSubtle }]}
-                  disabled={p.disabled}
-                >
-                  <Text style={[styles.chipText, { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>{e.name}</Text>
-                  {isImported && (
-                    <View style={[styles.importedPill, { backgroundColor: active ? colors.accent : colors.accentMuted }]}>
-                      <Text style={[styles.importedPillText, { color: active ? colors.canvas : colors.accent, fontFamily: Fonts.bodySemibold }]}>Imported</Text>
+                <View key={g.songId} style={styles.songGroupWrap}>
+                  <View style={styles.songHeaderRow}>
+                    <Pressable
+                      onPress={() => toggleSong(g.songId)}
+                      style={[styles.chip, styles.chipInline, styles.songHeaderChip, { backgroundColor: anyChunkActive ? colors.accentMuted : colors.bgSurface, borderColor: anyChunkActive ? colors.accent : colors.borderSubtle }]}
+                      disabled={p.disabled}
+                      accessibilityLabel={`Song: ${g.songName}. ${expanded ? "Tap to collapse segments." : "Tap to show segments."}`}
+                    >
+                      <Text style={[styles.chipText, { color: anyChunkActive ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>
+                        ♪ {g.songName}
+                      </Text>
+                      <Text style={[styles.chipChevron, { color: anyChunkActive ? colors.accent : colors.textTertiary, fontFamily: Fonts.mono }]}>
+                        {expanded ? "⌃" : "⌄"}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => p.onEditSong(g.songId)}
+                      disabled={p.disabled}
+                      style={[styles.songEditBtn, { borderColor: colors.borderSubtle, backgroundColor: colors.bgSurface }]}
+                      accessibilityLabel={`Edit segments for ${g.songName}`}
+                      // @ts-ignore — web title attribute
+                      title={Platform.OS === "web" ? "Edit segments" : undefined}
+                    >
+                      <Text style={{ color: colors.accent, fontFamily: Fonts.bodySemibold, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight }}>Edit</Text>
+                    </Pressable>
+                  </View>
+                  {expanded && (
+                    <View style={styles.songChunksRow}>
+                      {g.chunks.map((c) => {
+                        const active = p.exerciseId === c.id;
+                        const chunkLabel = c.name.split(" — ")[1] ?? c.name;
+                        return (
+                          <Pressable
+                            key={c.id}
+                            onPress={() => { p.onExerciseChange(c.id); setExerciseOpen(false); }}
+                            style={[styles.chip, styles.chipInline, styles.songChunkChip, { backgroundColor: active ? colors.accentMuted : colors.bgSurface, borderColor: active ? colors.accent : colors.borderSubtle }]}
+                            disabled={p.disabled}
+                          >
+                            <Text style={[styles.chipText, { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>{chunkLabel}</Text>
+                          </Pressable>
+                        );
+                      })}
                     </View>
                   )}
-                </Pressable>
+                </View>
               );
             })}
             <Pressable
@@ -1738,6 +1849,18 @@ const styles = StyleSheet.create({
     lineHeight: Typography.xs.lineHeight,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+  // Song picker: parent row that toggles, with chunks underneath.
+  songGroupWrap: { width: "100%", gap: Spacing["2xs"] },
+  songHeaderRow: { flexDirection: "row", alignItems: "center", gap: Spacing["2xs"] },
+  songHeaderChip: { flex: 1 },
+  songEditBtn: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: Radii.pill, borderWidth: 1, minHeight: 36, justifyContent: "center", alignItems: "center" },
+  songChunksRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing["2xs"], paddingLeft: Spacing.md },
+  songChunkChip: {},
+  chipChevron: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+    marginLeft: Spacing["2xs"],
   },
   hero: {
     borderRadius: Radii.lg,

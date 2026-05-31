@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import type { AnalysisMode, DecodeInput } from "@/lib/analyze";
+import type { AnalysisMode, DecodeInput, TimeSignature } from "@/lib/analyze";
 import type { VoicePart } from "@/lib/exercises/types";
 import { createPitchDetector } from "@/lib/pitch";
 import type { PitchDetector } from "@/lib/pitch/detector";
@@ -21,6 +21,15 @@ const TONIC_PRESETS = [
   "C4", "D4", "E4", "F4", "G4", "A4", "B4",
   "C5",
 ];
+const TIME_SIGS: { value: TimeSignature; label: string }[] = [
+  { value: { num: 4, den: 4 }, label: "4/4" },
+  { value: { num: 3, den: 4 }, label: "3/4" },
+  { value: { num: 6, den: 8 }, label: "6/8" },
+];
+
+function tsEq(a: TimeSignature, b: TimeSignature): boolean {
+  return a.num === b.num && a.den === b.den;
+}
 
 function slugify(name: string): string {
   return name
@@ -41,10 +50,12 @@ type RecState = "idle" | "starting" | "recording" | "encoding";
 
 export default function RecordingForm({
   initialVoicePart,
+  kind = "exercise",
   onAnalyze,
   disabled,
 }: {
   initialVoicePart: VoicePart;
+  kind?: "exercise" | "song";
   onAnalyze: (state: {
     file: DecodeInput;
     filename: string;
@@ -52,6 +63,7 @@ export default function RecordingForm({
     mode: AnalysisMode;
     voicePart: VoicePart;
     tempoBpm?: number;
+    timeSignature?: TimeSignature;
   }) => void;
   disabled?: boolean;
 }) {
@@ -62,6 +74,7 @@ export default function RecordingForm({
   const [mode, setMode] = useState<AnalysisMode>("major");
   const [voicePart, setVoicePart] = useState<VoicePart>(initialVoicePart);
   const [tempoText, setTempoText] = useState<string>("");
+  const [timeSig, setTimeSig] = useState<TimeSignature>({ num: 4, den: 4 });
   const [error, setError] = useState<string | null>(null);
   const [recState, setRecState] = useState<RecState>("idle");
   const [elapsedMs, setElapsedMs] = useState<number>(0);
@@ -153,6 +166,7 @@ export default function RecordingForm({
         mode,
         voicePart,
         tempoBpm,
+        ...(kind === "song" ? { timeSignature: timeSig } : {}),
       });
       setRecState("idle");
       setElapsedMs(0);
@@ -305,6 +319,41 @@ export default function RecordingForm({
           editable={!formLocked}
         />
       </View>
+
+      {kind === "song" && (
+        <View style={[styles.field, { gap: Spacing['2xs'] }]}>
+          <Text style={{ fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 0.6 }}>
+            Time signature
+          </Text>
+          <View style={[styles.row, { gap: Spacing['2xs'] }]}>
+            {TIME_SIGS.map((ts) => {
+              const active = tsEq(timeSig, ts.value);
+              return (
+                <Pressable
+                  key={ts.label}
+                  onPress={() => setTimeSig(ts.value)}
+                  style={[
+                    styles.chip,
+                    {
+                      paddingHorizontal: Spacing.sm,
+                      paddingVertical: Spacing['2xs'],
+                      borderRadius: Radii.pill,
+                      backgroundColor: active ? colors.accentMuted : colors.bgSurface,
+                      borderColor: active ? colors.accent : colors.borderSubtle,
+                    },
+                    formLocked && styles.btnDisabled,
+                  ]}
+                  disabled={formLocked}
+                >
+                  <Text style={{ color: active ? colors.accent : colors.textSecondary, fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: active ? Fonts.bodyMedium : Fonts.body }}>
+                    {ts.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       {error && (
         <Text style={{ color: colors.error, fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body }}>

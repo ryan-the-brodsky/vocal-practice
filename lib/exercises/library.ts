@@ -1,7 +1,11 @@
 // Sync API (`exerciseLibrary`, `getExercise`, `exercisesByTag`) returns built-in JSON only.
-// Async API (`getAllExercises`, `getExerciseAsync`) merges built-ins with the AsyncStorage user store.
+// Async API (`getAllExercises`, `getExerciseAsync`) merges built-ins with the AsyncStorage user store
+// AND expands stored songs into one synthetic chunk descriptor per chunk.
 import type { ExerciseDescriptor } from './types';
 import { listUserExercises, getUserExercise } from './userStore';
+import { listSongs, getSong } from '../songs/store';
+import { chunkToDescriptor } from '../songs/toDescriptor';
+import { parseChunkId } from '../songs/types';
 
 import rossiniLipTrill from '../../data/exercises/rossini-lip-trill.json';
 import ngSiren from '../../data/exercises/ng-siren.json';
@@ -31,17 +35,32 @@ export function exercisesByTag(tag: string): ExerciseDescriptor[] {
   return exerciseLibrary.filter((ex) => ex.tags?.includes(tag) ?? false);
 }
 
-// Built-ins first for stable ordering; user-imported appended.
+// Built-ins first, then user exercises, then song chunks (grouped by song, in chunk order).
 export async function getAllExercises(): Promise<ExerciseDescriptor[]> {
-  const userItems = await listUserExercises().catch(() => []);
-  return [...exerciseLibrary, ...userItems.map((it) => it.descriptor)];
+  const [userItems, songs] = await Promise.all([
+    listUserExercises().catch(() => []),
+    listSongs().catch(() => []),
+  ]);
+  const songChunks = songs.flatMap((s) => s.chunks.map((c) => chunkToDescriptor(s, c)));
+  return [
+    ...exerciseLibrary,
+    ...userItems.map((it) => it.descriptor),
+    ...songChunks,
+  ];
 }
 
 export async function getExerciseAsync(
-  id: string
+  id: string,
 ): Promise<ExerciseDescriptor | undefined> {
   const builtIn = getExercise(id);
   if (builtIn) return builtIn;
+  const parsed = parseChunkId(id);
+  if (parsed) {
+    const song = await getSong(parsed.songId).catch(() => undefined);
+    const chunk = song?.chunks.find((c) => c.id === parsed.chunkId);
+    if (song && chunk) return chunkToDescriptor(song, chunk);
+    return undefined;
+  }
   const stored = await getUserExercise(id).catch(() => undefined);
   return stored?.descriptor;
 }

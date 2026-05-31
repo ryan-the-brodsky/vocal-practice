@@ -155,12 +155,18 @@ function planSingleKey(
   // Small breath between lead-in (or cue) and first melody note.
   const melodyStart = cueDurationSec + leadInDurationSec + 0.15;
 
-  // 2. Melody — cumulative onsets so per-note durations work.
+  // 2. Melody — cumulative onsets so per-note durations work. When
+  // `restsAfter` is present on the descriptor, each entry adds explicit
+  // silence (in beats → seconds) AFTER the note at the same index, and a
+  // matching `type: "rest"` NoteEvent lands between melody events.
+  const restsAfterSec: number[] = (exercise.restsAfter && exercise.restsAfter.length === noteSecs.length)
+    ? exercise.restsAfter.map((b) => b * beatSec)
+    : new Array<number>(noteSecs.length).fill(0);
   const noteOffsets: number[] = [];
   let cursor = 0;
   for (let i = 0; i < noteSecs.length; i++) {
     noteOffsets.push(cursor);
-    cursor += noteSecs[i];
+    cursor += noteSecs[i] + restsAfterSec[i]!;
   }
   const melodyDurationSec = cursor;
   exercise.scaleDegrees.forEach((degree, i) => {
@@ -179,6 +185,18 @@ function planSingleKey(
           : exercise.syllables[i] ?? exercise.syllables[exercise.syllables.length - 1],
       isTarget: true,
     });
+    const restSec = restsAfterSec[i]!;
+    if (restSec > 0) {
+      const restStart = melodyStart + noteOffsets[i] + noteSecs[i];
+      events.push({
+        type: "rest",
+        noteName: "",
+        midi: 0,
+        startTime: restStart,
+        duration: restSec,
+        velocity: 0,
+      });
+    }
   });
 
   // 3. Accompaniment (parallel to melody), using resolved spec

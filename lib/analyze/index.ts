@@ -9,7 +9,7 @@ import { extractSegments } from "./segment";
 import { snapToKey } from "./keysnap";
 import { diagnoseMelody } from "./diagnose";
 import { estimateTempo } from "./synth";
-import type { AnalysisMode, MelodyAnalysis } from "./types";
+import type { AnalysisMode, MelodyAnalysis, TimeSignature } from "./types";
 
 export type { DecodedAudio, DecodeInput } from "./decode";
 export type {
@@ -18,7 +18,9 @@ export type {
   MelodyAnalysis,
   MelodyGlaring,
   AnalysisMode,
+  TimeSignature,
 } from "./types";
+export { beatsPerMeasure } from "./types";
 export { ANALYZE_CONFIG } from "./config";
 export { runOfflinePitch } from "./framewise";
 export { extractSegments } from "./segment";
@@ -34,6 +36,8 @@ export interface AnalyzeParams {
   pitchOptions?: OfflinePitchOptions;
   segmentOverrides?: AlignConfig;
   outOfKeyToleranceCents?: number;
+  // Carried through to the returned MelodyAnalysis when set. No auto-detect.
+  timeSignature?: TimeSignature;
 }
 
 export async function analyzeFile(
@@ -67,5 +71,6 @@ export async function analyzeFile(
     mode: params.mode,
     tempoBpm,
     warnings,
+    timeSignature: params.timeSignature,
   });
 }

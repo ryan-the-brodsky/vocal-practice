@@ -23,6 +23,7 @@ export default function SaveSheet({
   defaultName,
   defaultVoicePart,
   defaultAccompaniment,
+  kind = "exercise",
   saving,
   onConfirm,
   onCancel,
@@ -30,6 +31,7 @@ export default function SaveSheet({
   defaultName: string;
   defaultVoicePart: VoicePart;
   defaultAccompaniment: AccompanimentPreset;
+  kind?: "exercise" | "song";
   saving?: boolean;
   onConfirm: (state: SaveSheetState) => void;
   onCancel: () => void;
@@ -54,7 +56,7 @@ export default function SaveSheet({
   return (
     <View style={[styles.sheet, { backgroundColor: colors.bgSurface, borderRadius: Radii.lg, padding: Spacing.md, borderWidth: 1, borderColor: colors.borderSubtle, gap: Spacing.sm }]}>
       <Text style={{ fontSize: Typography.md.size, lineHeight: Typography.md.lineHeight, fontFamily: Fonts.display, color: colors.textPrimary }}>
-        Save as exercise
+        {kind === "song" ? "Save song" : "Save as exercise"}
       </Text>
 
       <View style={[styles.field, { gap: Spacing['2xs'] }]}>
@@ -103,7 +105,7 @@ export default function SaveSheet({
         </View>
       </View>
 
-      <View style={[styles.field, { gap: Spacing['2xs'] }]}>
+      {kind !== "song" && (<View style={[styles.field, { gap: Spacing['2xs'] }]}>
         <Text style={{ fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 0.6 }}>
           Accompaniment
         </Text>
@@ -133,7 +135,7 @@ export default function SaveSheet({
             </Pressable>
           ))}
         </View>
-      </View>
+      </View>)}
 
       <View style={[styles.actions, { gap: Spacing.xs, marginTop: Spacing['2xs'] }]}>
         <Pressable

@@ -44,6 +44,7 @@ export interface DiagnoseParams {
   mode: AnalysisMode;
   tempoBpm: number;
   warnings?: string[];
+  timeSignature?: import("./types").TimeSignature;
 }
 
 export function diagnoseMelody(
@@ -62,6 +63,7 @@ export function diagnoseMelody(
     tempoBpm: params.tempoBpm,
     durationSec: notes.length > 0 ? notes[notes.length - 1]!.endMs / 1000 : 0,
     warnings: params.warnings ?? [],
+    ...(params.timeSignature ? { timeSignature: params.timeSignature } : {}),
   };
 }
 

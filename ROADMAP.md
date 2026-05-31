@@ -211,6 +211,29 @@ Tracks the slicing in `MELODY_IMPORT_PLAN.md` §11. Lets a user import a sung cl
 
 ---
 
+## Song Import Slices
+
+Tracks the slicing in `~/.claude/plans/jaunty-hopping-ullman.md`. Adds a Song import kind alongside Exercise. Songs lock to their imported key (no transposition) and auto-chunk into 3-4 measure mini-exercises that surface as standalone practice units. Plan dropped the "key-locked exercise" slice because it ships no UI of its own without the chunker.
+
+| Slice | Scope | Status |
+|---|---|---|
+| A — Storage + chunker + import + library expansion | New `lib/songs/{types,store,chunker,toDescriptor}.ts`; `MelodyAnalysis` gains `timeSignature`; ImportModal gets a Kind toggle (Exercise / Song); Song forms show a Time Signature picker (4/4 default; 3/4, 6/8); Song save persists `StoredSong` and `getAllExercises()` expands stored songs into one synthetic chunk descriptor per chunk via `chunkToDescriptor()`; `getExerciseAsync` + Coaching screen recognize chunk IDs (`song-${songId}__chunk-${chunkId}`); `lib/exercises/displayName.ts` resolves chunk + user-imported names; coverage: chunker (12 tests) + toDescriptor (6 tests), all 414 tests pass | shipped |
+| B — Full-score Song Editor (move-only) | New `app/song-editor.tsx`, `components/songs/{SongScoreView,ChunkDividerControls,ChunkNameField}.tsx`; multi-line wrapped staff with vertical chunk dividers + chunk-N labels; ◀/▶ nudge per boundary persists via `reconcileChunkIds()` overlap policy; per-chunk name field; entry from ImportModal's post-save "Edit chunks" CTA and from Progress's per-song "Edit chunks" button. Add/delete dividers and drag are out of v1 scope | shipped |
+| C — Practice picker expansion + Routine integration | Practice picker: songs render as a chevron-tagged non-selectable row that taps to expand into per-chunk chips (`♪ Song name ⌄`); routine editor includes built-ins + user-imported exercises + song chunks (closes the pre-existing gap where user-imported exercises weren't routine-able); new `pruneRoutineExerciseIds(predicate)` helper in `routine.ts` strips orphaned chunk IDs when a song is deleted | shipped |
+| D — Progress nesting + per-chunk session rows | Recent-session rows show "Song name — Chunk name" for chunk IDs (descriptor pre-resolved at render time for the syllable strip); new `SongLibraryRow` component renders each song as a collapsible card with per-chunk best-ever + last-practiced and "Edit chunks" / "Delete" actions; deletion prunes the routine via `pruneRoutineExerciseIds` | shipped |
+| E1 — "Chunk" → "Segment" rename (UI-only) | Display strings flipped across `app/song-editor.tsx`, `components/songs/*`, `components/import/ImportModal.tsx`, the Practice picker, the Progress library row, and the chunker's default "Segment N" name. Internal type names (`ChunkSpec`, `chunks`, `parseChunkId`) and storage shape unchanged — no migration | shipped |
+| E2 — Engine rest events + descriptor `restsAfter` | `NoteEventType` gains `"rest"`; `ExerciseDescriptor` gains `restsAfter?: number[]` (silence in beats AFTER each scale degree); `planSingleKey` sums note+rest seconds for cumulative onsets and emits `{type:"rest"}` events; both `player.web.ts` and `player.native.ts` skip rest events at scheduling; `chunkToDescriptor` stops folding gaps into `durations[i]` and emits `restsAfter` instead. Scorer untouched (already filters `type === "melody"`). 5 new tests in `engine.rests.test.ts`; `toDescriptor.test.ts` updated | shipped |
+| E3 — Score renders real durations + rests | `SongScoreView` rewritten — `pickNoteValue` rounds to the nearest of `[1/16, 1/8, 1/4, 1/2, 1, 2, 4]` beats, columns are width-tabled per value (not log-scaled), notehead glyphs (Bravura `noteheadWhole/Half/Black`) + stems on ≤half + flags on 8th/16th. Explicit Bravura rest glyphs (`rest16th/8th/Quarter/Half/Whole`) between notes when `restAfterBeats ≥ 1/16`. Greedy width-based row wrap replaced fixed `notesPerRow` | shipped |
+| E4 — Smarter auto-chunker (phrase-rest opportunism) | `chunker.ts` cuts on any silence gap ≥ `PHRASE_REST_MS` (800 ms) when the running chunk has ≥ `MIN_CHUNK_BEATS` (2), independent of the measure-target tick. Tie-break favors phrase breaks. 2 new tests in `chunker.test.ts` | shipped |
+| E5 — Per-segment audio preview | New `lib/songs/preview.ts` with `melodyOnlyDescriptor()` (strips accompaniment + cue) and `previewChunk()` (plans → flattens → `player.playSequence`). Song-editor screen owns a player ref, a sequence handle, and `playingChunkId` state; ▶/■ Pressable on each segment row + the existing `ChunkNameField` doubles as the play target. 100 ms progress poll clears state on completion. Cleanup on unmount disposes player + stops in-flight preview | shipped |
+| E6 — In-score divider drag + inline label rename (web) | `SongScoreView` builds a per-row layout map up front; web-only overlay `<div>`s sit at divider x-positions for pointer drag (`pointermove` snaps to nearest note column → `onBoundaryDragMove(chunkIdx, newStartNoteIdx)`) and on each segment label for click-to-rename (swaps to an absolutely-positioned `TextInput`; commits on blur/Enter via `onLabelRename`). `app/song-editor.tsx` clamps the drag so neither neighbor shrinks below 1 note. Native keeps the existing nudge controls | shipped |
+
+**Known v1 limitations (planned, not bugs):**
+- Notation rounds to standard durations only — no dotted notes, no ties, no beaming. A 1.5-beat note rounds to 1 or 2 beats on the staff (audio playback uses the exact `durationBeats`, so the rhythm you hear is truthful — only the staff approximates).
+- Drag-to-move dividers is web-only. Native users keep the ◀/▶ nudge controls under "Boundaries".
+
+---
+
 ## Coaching Redesign Slices
 
 Tracks the slicing in `COACHING_REDESIGN_PLAN.md` §16. Replaced the retry-this-note coaching with an algorithmic diagnosis + research-backed advice library + voice-teacher contrast playback + bookmarkable saved tips.

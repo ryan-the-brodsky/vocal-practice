@@ -69,6 +69,8 @@ export class WebAudioPlayer implements AudioPlayer {
     let stopped = false;
 
     for (const e of events) {
+      // Rest events occupy a time slot but produce no sound.
+      if (e.type === "rest") continue;
       const pitch: string | number = e.hzOverride ?? e.noteName;
       const id = transport.scheduleOnce((time) => {
         sampler.triggerAttackRelease(pitch, e.duration, time, e.velocity);

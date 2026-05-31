@@ -84,6 +84,10 @@ export default function GuidedSession({
   const [error, setError] = useState<string | null>(null);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("advance");
   const [tolerance, setTolerance] = useState<ToleranceLevel>("normal");
+  // Both collapsed by default — Standard mode's pattern. Most users set these
+  // once; default state should keep the staff + Start button above the fold.
+  const [modeOpen, setModeOpen] = useState(false);
+  const [tolOpen, setTolOpen] = useState(false);
   const [noteIndex, setNoteIndex] = useState(0);
   const [matchProgress, setMatchProgress] = useState(0);
   const [latestSample, setLatestSample] = useState<PitchSample | null>(null);
@@ -423,104 +427,137 @@ export default function GuidedSession({
 
   return (
     <View style={styles.container}>
-      <GuidedSection title="Mode controls" colors={colors}>
-        <View style={styles.repeatRow}>
-          {(["advance", "repeat"] as RepeatMode[]).map((m) => {
-            const active = repeatMode === m;
-            return (
-              <Pressable
-                key={m}
-                onPress={() => setRepeatMode(m)}
-                style={[
-                  styles.repeatChip,
-                  {
-                    backgroundColor: active ? colors.accentMuted : colors.bgSurface,
-                    borderColor: active ? colors.accent : colors.borderSubtle,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.repeatChipText,
-                    { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium },
-                  ]}
-                >
-                  {m === "advance" ? "Advance after match" : "Repeat same note"}
-                </Text>
-              </Pressable>
-            );
-          })}
+      <View style={styles.topRow}>
+        <View style={[styles.heroCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
+          <Text style={[styles.heroLabel, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
+            Sing this note
+          </Text>
+          <View style={styles.heroMain}>
+            <Text style={[styles.heroNote, { color: colors.textPrimary, fontFamily: Fonts.display }]}>
+              {targetNoteName}
+            </Text>
+            <Text style={[styles.heroSyllable, { color: colors.textSecondary, fontFamily: Fonts.display }]}>
+              {targetMidi != null ? syllables[noteIndex] ?? "" : "—"}
+            </Text>
+          </View>
+          <View style={[styles.matchBarTrack, { backgroundColor: colors.borderSubtle }]}>
+            <View
+              style={[
+                styles.matchBarFill,
+                {
+                  width: `${Math.round(matchProgress * 100)}%`,
+                  backgroundColor: matchProgress >= 1 ? colors.success : colors.success + "77",
+                },
+              ]}
+            />
+          </View>
+          <Text numberOfLines={1} style={[styles.liveLabel, { color: toneColor(liveTone, scheme), fontFamily: Fonts.bodyMedium }]}>
+            {liveLabel}
+          </Text>
         </View>
-        <Text style={[styles.subtle, { color: colors.textSecondary, fontFamily: Fonts.body }]}>
-          {repeatMode === "advance"
-            ? "Match the held note to advance through the pattern."
-            : "Stay on the same note and drill it. Toggle to advance when ready."}
-        </Text>
-      </GuidedSection>
 
-      <GuidedSection title={`Close-enough threshold · ±${tolCents}¢`} colors={colors}>
-        <View style={styles.tolRow}>
-          {TOLERANCE_OPTIONS.map((o) => {
-            const active = tolerance === o.id;
-            return (
-              <Pressable
-                key={o.id}
-                onPress={() => handleSetTolerance(o.id)}
-                style={[
-                  styles.tolChip,
-                  {
-                    backgroundColor: active ? colors.accentMuted : colors.bgSurface,
-                    borderColor: active ? colors.accent : colors.borderSubtle,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.tolChipLabel,
-                    { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium },
-                  ]}
-                >
-                  {o.label}
-                </Text>
-                <Text
-                  style={[
-                    styles.tolChipCents,
-                    { color: active ? colors.accent : colors.textTertiary, fontFamily: Fonts.mono },
-                  ]}
-                >
-                  ±{o.cents}¢
-                </Text>
-              </Pressable>
-            );
-          })}
+        <View style={styles.settingsCol}>
+          <Pressable
+            onPress={() => { setModeOpen((v) => !v); setTolOpen(false); }}
+            style={[styles.compactBtn, { backgroundColor: colors.bgSurface, borderColor: modeOpen ? colors.accent : colors.borderSubtle }]}
+            accessibilityRole="button"
+            accessibilityLabel={`Mode: ${repeatMode === "advance" ? "Advance after match" : "Repeat same note"}. ${modeOpen ? "Tap to collapse." : "Tap to change."}`}
+          >
+            <Text style={[styles.compactBtnEyebrow, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium }]}>Mode</Text>
+            <View style={styles.compactBtnRow}>
+              <Text numberOfLines={1} style={[styles.compactBtnValue, { color: colors.textPrimary, fontFamily: Fonts.bodySemibold }]}>
+                {repeatMode === "advance" ? "Advance" : "Repeat"}
+              </Text>
+              <Text style={[styles.compactBtnChevron, { color: colors.textTertiary, fontFamily: Fonts.mono }]}>{modeOpen ? "⌃" : "⌄"}</Text>
+            </View>
+          </Pressable>
+          <Pressable
+            onPress={() => { setTolOpen((v) => !v); setModeOpen(false); }}
+            style={[styles.compactBtn, { backgroundColor: colors.bgSurface, borderColor: tolOpen ? colors.accent : colors.borderSubtle }]}
+            accessibilityRole="button"
+            accessibilityLabel={`Threshold: ${TOLERANCE_OPTIONS.find((o) => o.id === tolerance)?.label}, plus or minus ${tolCents} cents. ${tolOpen ? "Tap to collapse." : "Tap to change."}`}
+          >
+            <Text style={[styles.compactBtnEyebrow, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium }]}>Threshold</Text>
+            <View style={styles.compactBtnRow}>
+              <Text numberOfLines={1} style={[styles.compactBtnValue, { color: colors.textPrimary, fontFamily: Fonts.bodySemibold }]}>
+                ±{tolCents}¢
+              </Text>
+              <Text style={[styles.compactBtnChevron, { color: colors.textTertiary, fontFamily: Fonts.mono }]}>{tolOpen ? "⌃" : "⌄"}</Text>
+            </View>
+          </Pressable>
         </View>
-      </GuidedSection>
-
-      <View style={[styles.heroCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
-        <Text style={[styles.heroLabel, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
-          Sing this note
-        </Text>
-        <Text style={[styles.heroNote, { color: colors.textPrimary, fontFamily: Fonts.display }]}>
-          {targetNoteName}
-        </Text>
-        <Text style={[styles.heroSyllable, { color: colors.textSecondary, fontFamily: Fonts.display }]}>
-          {targetMidi != null ? syllables[noteIndex] ?? "" : "—"}
-        </Text>
-        <View style={[styles.matchBarTrack, { backgroundColor: colors.borderSubtle }]}>
-          <View
-            style={[
-              styles.matchBarFill,
-              {
-                width: `${Math.round(matchProgress * 100)}%`,
-                backgroundColor: matchProgress >= 1 ? colors.success : colors.success + "77",
-              },
-            ]}
-          />
-        </View>
-        <Text style={[styles.liveLabel, { color: toneColor(liveTone, scheme), fontFamily: Fonts.bodyMedium }]}>
-          {liveLabel}
-        </Text>
       </View>
+
+      {modeOpen && (
+        <View style={styles.collapsibleBody}>
+          <View style={styles.repeatRow}>
+            {(["advance", "repeat"] as RepeatMode[]).map((m) => {
+              const active = repeatMode === m;
+              return (
+                <Pressable
+                  key={m}
+                  onPress={() => { setRepeatMode(m); setModeOpen(false); }}
+                  style={[
+                    styles.repeatChip,
+                    {
+                      backgroundColor: active ? colors.accentMuted : colors.bgSurface,
+                      borderColor: active ? colors.accent : colors.borderSubtle,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.repeatChipText,
+                      { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium },
+                    ]}
+                  >
+                    {m === "advance" ? "Advance after match" : "Repeat same note"}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      )}
+      {tolOpen && (
+        <View style={styles.collapsibleBody}>
+          <View style={styles.tolRow}>
+            {TOLERANCE_OPTIONS.map((o) => {
+              const active = tolerance === o.id;
+              return (
+                <Pressable
+                  key={o.id}
+                  onPress={() => { handleSetTolerance(o.id); setTolOpen(false); }}
+                  style={[
+                    styles.tolChip,
+                    {
+                      backgroundColor: active ? colors.accentMuted : colors.bgSurface,
+                      borderColor: active ? colors.accent : colors.borderSubtle,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.tolChipLabel,
+                      { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium },
+                    ]}
+                  >
+                    {o.label}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.tolChipCents,
+                      { color: active ? colors.accent : colors.textTertiary, fontFamily: Fonts.mono },
+                    ]}
+                  >
+                    ±{o.cents}¢
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       <MelodyDisplay
         notes={
@@ -537,12 +574,14 @@ export default function GuidedSession({
         size="compact"
       />
 
-      <View style={styles.statRow}>
-        <SmallStat label="Tonic" value={tonicLabel} colors={colors} />
-        <SmallStat label="Note" value={`${noteIndex + 1}/${exercise.scaleDegrees.length}`} colors={colors} />
-        <SmallStat label="Reps" value={`${matchesThisNote}`} colors={colors} />
-        <SmallStat label="Last" value={lastLabel} colors={colors} />
-      </View>
+      {(isRunning || phase === "complete") && (
+        <View style={styles.statRow}>
+          <SmallStat label="Tonic" value={tonicLabel} colors={colors} />
+          <SmallStat label="Note" value={`${noteIndex + 1}/${exercise.scaleDegrees.length}`} colors={colors} />
+          <SmallStat label="Reps" value={`${matchesThisNote}`} colors={colors} />
+          <SmallStat label="Last" value={lastLabel} colors={colors} />
+        </View>
+      )}
 
       {error && <Text style={[styles.error, { color: colors.error, fontFamily: Fonts.body }]}>{error}</Text>}
       {phase === "complete" && (
@@ -679,25 +718,6 @@ function delay(ms: number): Promise<void> {
 
 type ThemeColors = ReturnType<typeof useTheme>["colors"];
 
-function GuidedSection({
-  title,
-  children,
-  colors,
-}: {
-  title: string;
-  children: React.ReactNode;
-  colors: ThemeColors;
-}) {
-  return (
-    <View style={styles.section}>
-      <Text style={[styles.sectionH, { color: colors.textTertiary, fontFamily: Fonts.bodySemibold }]}>
-        {title}
-      </Text>
-      {children}
-    </View>
-  );
-}
-
 function SmallStat({
   label,
   value,
@@ -754,18 +774,51 @@ function NoteBreakdownCell({
 }
 
 const styles = StyleSheet.create({
-  container: { gap: Spacing.md },
-  section: { gap: Spacing["2xs"] },
-  sectionH: {
-    fontSize: Typography.xs.size,
-    lineHeight: Typography.xs.lineHeight,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: Spacing.xs,
-  },
+  container: { gap: Spacing.sm },
   subtle: {
     fontSize: Typography.sm.size,
     lineHeight: Typography.sm.lineHeight,
+  },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: Spacing.sm,
+  },
+  settingsCol: {
+    width: 150,
+    gap: Spacing.xs,
+  },
+  compactBtn: {
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing["2xs"],
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    justifyContent: "center",
+    gap: Spacing["3xs"],
+  },
+  compactBtnEyebrow: {
+    fontSize: Typography.xs.size,
+    lineHeight: Typography.xs.lineHeight,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  compactBtnRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  compactBtnValue: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+    flex: 1,
+  },
+  compactBtnChevron: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+  },
+  collapsibleBody: {
+    gap: Spacing.xs,
   },
   repeatRow: { flexDirection: "row", gap: Spacing.xs },
   repeatChip: {
@@ -803,11 +856,13 @@ const styles = StyleSheet.create({
     marginTop: Spacing["3xs"],
   },
   heroCard: {
+    flex: 1,
     borderRadius: Radii.lg,
-    padding: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     borderWidth: 1,
-    alignItems: "center",
-    gap: Spacing.sm,
+    gap: Spacing["2xs"],
+    justifyContent: "center",
   },
   heroLabel: {
     fontSize: Typography.xs.size,
@@ -815,27 +870,31 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
   },
+  heroMain: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: Spacing.sm,
+    flexWrap: "wrap",
+  },
   heroNote: {
-    fontSize: Typography['3xl'].size,
-    lineHeight: Typography['3xl'].lineHeight,
-    letterSpacing: -2,
+    fontSize: Typography.xl.size,
+    lineHeight: Typography.xl.lineHeight,
+    letterSpacing: -1,
   },
   heroSyllable: {
-    fontSize: Typography.lg.size,
-    lineHeight: Typography.lg.lineHeight,
-    marginTop: -Spacing["2xs"],
+    fontSize: Typography.md.size,
+    lineHeight: Typography.md.lineHeight,
   },
   matchBarTrack: {
     width: "100%",
     height: Spacing.xs,
     borderRadius: Radii.sm,
     overflow: "hidden",
-    marginTop: Spacing.xs,
   },
   matchBarFill: { height: "100%", borderRadius: Radii.sm },
   liveLabel: {
-    fontSize: Typography.md.size,
-    lineHeight: Typography.md.lineHeight,
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
   },
   statRow: { flexDirection: "row", gap: Spacing.xs },
   smallStat: {
