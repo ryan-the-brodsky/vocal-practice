@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import {
   Accidental,
+  Annotation,
   Beam,
   Dot,
   Formatter,
@@ -124,6 +125,11 @@ function buildMeasure(items: QOutItem[], clef: "treble" | "bass", sig: KeySignat
       const sn = new StaveNote({ clef, keys: [key], duration: dp.base });
       if (acc) sn.addModifier(new Accidental(acc), 0);
       if (dp.dotted) Dot.buildAndAttach([sn], { all: true });
+      if (it.syllable) {
+        const ann = new Annotation(it.syllable);
+        ann.setVerticalJustification(Annotation.VerticalJustify.BOTTOM);
+        sn.addModifier(ann, 0);
+      }
       notes.push(sn);
       midis.push(it.midi);
       bases.push(dp.base);
@@ -222,6 +228,7 @@ export default function VexFlowScore({
       midi: n.midi,
       durationBeats: n.durationBeats,
       restAfterBeats: n.restAfterBeats,
+      ...(n.syllable ? { syllable: n.syllable } : {}),
     }));
     return quantizeMelody(qNotes, timeSignature);
   }, [notes, timeSignature]);

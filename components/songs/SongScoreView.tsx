@@ -46,6 +46,9 @@ export interface SongScoreViewProps {
   onBoundaryDragMove?: (boundaryIdx: number, newStartNoteIdx: number) => void;
   /** Called when an inline-edited segment label commits. */
   onLabelRename?: (chunkIdx: number, name: string) => void;
+  /** Map from each entry in `notes` back to the original song.allNotes index.
+   *  When omitted, identity mapping (notes are 1:1 with the song). */
+  originalIndexMap?: number[];
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────
@@ -69,6 +72,8 @@ const PREFIX_GAP = STAFF_LINE_SPACING * 1.4;
 const NOTEHEAD_FONT_SIZE = STAFF_LINE_SPACING * 4;
 const REST_FONT_SIZE = STAFF_LINE_SPACING * 4;
 const FLAG_FONT_SIZE = STAFF_LINE_SPACING * 4;
+const SYLLABLE_FONT_SIZE = Typography.xs.size;
+const SYLLABLE_Y_OFFSET = STAFF_LINE_SPACING * 2; // below the bottom staff line
 
 // SMuFL glyphs
 const GLYPH = {
@@ -293,8 +298,31 @@ export default function SongScoreView({
   targetRowWidth = 720,
   onBoundaryDragMove,
   onLabelRename,
+  originalIndexMap,
 }: SongScoreViewProps) {
   const { colors } = useTheme();
+
+  // Map a local notes[] index → originating song.allNotes index. Identity when
+  // no lyrics expansion happened.
+  const toOriginal = useCallback(
+    (localIdx: number): number => (originalIndexMap ? (originalIndexMap[localIdx] ?? localIdx) : localIdx),
+    [originalIndexMap],
+  );
+  const chunkIdxAt = useCallback(
+    (localIdx: number): number => chunkIndexForNote(toOriginal(localIdx), chunks),
+    [chunks, toOriginal],
+  );
+  // First note in `notes` whose originating song.allNotes idx === original.
+  const firstLocalForOriginal = useCallback(
+    (original: number): number => {
+      if (!originalIndexMap) return original;
+      for (let i = 0; i < originalIndexMap.length; i++) {
+        if (originalIndexMap[i] === original) return i;
+      }
+      return -1;
+    },
+    [originalIndexMap],
+  );
 
   const { rows, clef, sig, prefixWidth, rowWidth } = useMemo(() => {
     const midis = notes.map((n) => n.midi);
@@ -324,8 +352,14 @@ export default function SongScoreView({
         const x = xCursor;
         items.push({ unit: u, x });
         if (u.kind === "note") {
-          const ci = chunkIndexForNote(u.noteIdx, chunks);
-          if (ci >= 0 && chunks[ci]!.startNoteIdx === u.noteIdx) {
+          // Divider fires only on the FIRST local note that maps to the chunk's
+          // original startNoteIdx — otherwise lyrics-split notes would re-fire.
+          const ci = chunkIdxAt(u.noteIdx);
+          if (
+            ci >= 0 &&
+            chunks[ci]!.startNoteIdx === toOriginal(u.noteIdx) &&
+            firstLocalForOriginal(chunks[ci]!.startNoteIdx) === u.noteIdx
+          ) {
             dividers.push({ chunkIdx: ci, x, isFirstOnRow: !firstNoteSeen });
           }
           firstNoteSeen = true;
@@ -334,7 +368,7 @@ export default function SongScoreView({
       });
       return { items, dividers };
     });
-  }, [rows, chunks, notesStartX]);
+  }, [rows, chunks, notesStartX, chunkIdxAt, toOriginal, firstLocalForOriginal]);
 
   const isWeb = Platform.OS === "web";
   const [editingChunkIdx, setEditingChunkIdx] = useState<number | null>(null);
@@ -384,8 +418,10 @@ export default function SongScoreView({
       const onMove = (ev: PointerEvent) => {
         const rect = rowEl.getBoundingClientRect();
         const localX = ev.clientX - rect.left;
-        const noteIdx = noteIdxAtRowX(rowIdx, localX);
-        if (noteIdx != null) onBoundaryDragMove(boundaryIdx, noteIdx);
+        const localIdx = noteIdxAtRowX(rowIdx, localX);
+        // Drag reports in ORIGINAL-note indices so chunk boundary math stays
+        // valid when lyrics have split notes 1:N.
+        if (localIdx != null) onBoundaryDragMove(boundaryIdx, toOriginal(localIdx));
       };
       const onUp = () => stopDrag();
       window.addEventListener("pointermove", onMove);
@@ -526,11 +562,14 @@ export default function SongScoreView({
                   : spelling.accidentalGlyph === "flat" ? GLYPH.flat
                   : GLYPH.natural)
                 : null;
-              const chunkIdx = chunkIndexForNote(u.noteIdx, chunks);
+              const chunkIdx = chunkIdxAt(u.noteIdx);
               const chunkColor =
                 chunkIdx >= 0 ? CHUNK_PALETTE[chunkIdx % CHUNK_PALETTE.length]! : colors.textPrimary;
 
-              const isChunkStart = chunkIdx > 0 && chunks[chunkIdx]!.startNoteIdx === u.noteIdx;
+              const isChunkStart =
+                chunkIdx > 0 &&
+                chunks[chunkIdx]!.startNoteIdx === toOriginal(u.noteIdx) &&
+                firstLocalForOriginal(chunks[chunkIdx]!.startNoteIdx) === u.noteIdx;
               const dividerX = it.x;
 
               const stemUp = step <= 4;
@@ -611,6 +650,18 @@ export default function SongScoreView({
                         : (stemUp ? GLYPH.flag16thUp : GLYPH.flag16thDown)}
                     </SvgText>
                   )}
+                  {u.syllable ? (
+                    <SvgText
+                      x={cx}
+                      y={ROW_TOP_PAD + STAFF_HEIGHT + SYLLABLE_Y_OFFSET}
+                      fontFamily={Fonts.body}
+                      fontSize={SYLLABLE_FONT_SIZE}
+                      fill={colors.textSecondary}
+                      textAnchor="middle"
+                    >
+                      {u.syllable}
+                    </SvgText>
+                  ) : null}
                 </G>
               );
             })}

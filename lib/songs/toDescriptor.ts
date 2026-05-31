@@ -13,11 +13,23 @@
 //   octave above the tonic = 12. The engine adds it to tonicMidi unchanged.
 
 import { ACCOMPANIMENT_PRESETS, type ExerciseDescriptor } from "../exercises/types";
+import { parseSyllables, zipSyllablesToNotes } from "./syllables";
 import { buildChunkId, type ChunkSpec, type StoredSong } from "./types";
 
-/** Build a synthetic ExerciseDescriptor for a single chunk. */
+/** Build a synthetic ExerciseDescriptor for a single chunk. When the song has
+ *  lyrics, held notes are bisected to match syllable count and the chunk's
+ *  range maps through the original-index map so boundaries stay correct. */
 export function chunkToDescriptor(song: StoredSong, chunk: ChunkSpec): ExerciseDescriptor {
-  const notes = song.allNotes.slice(chunk.startNoteIdx, chunk.endNoteIdx + 1);
+  // Apply lyrics-aware note splitting if present, then slice by original idx.
+  const matched = song.lyrics
+    ? zipSyllablesToNotes(parseSyllables(song.lyrics), song.allNotes)
+    : null;
+  const notes = matched
+    ? matched.notes.filter((_, i) => {
+        const o = matched.originalIndexMap[i]!;
+        return o >= chunk.startNoteIdx && o <= chunk.endNoteIdx;
+      })
+    : song.allNotes.slice(chunk.startNoteIdx, chunk.endNoteIdx + 1);
   if (notes.length === 0) {
     // Empty chunk — produce a stub descriptor; engine + scoring will tolerate
     // an empty scaleDegrees + durations array.

@@ -119,4 +119,32 @@ describe("chunkToDescriptor", () => {
     expect(range.step).toBe(1);
     expect(range.lowest).toBe(range.highest);
   });
+
+  test("lyrics with more syllables than notes bisect held notes within the chunk", () => {
+    // One long note (dur 4) in chunk; 3 syllables → 3 notes after split.
+    const notes = [note(0, 0, 2000, 4)];
+    const chunk: ChunkSpec = { id: "c1", name: "n", startNoteIdx: 0, endNoteIdx: 0 };
+    const song = { ...makeSong(notes, [chunk]), lyrics: "for-ev-er" };
+    const desc = chunkToDescriptor(song, chunk);
+    expect(desc.scaleDegrees).toEqual([0, 0, 0]);
+    expect(desc.syllables).toEqual(["for", "ev", "er"]);
+    // Durations sum back to the original 4 beats (split is 2 → 2,1,1 by stable longest).
+    const sum = desc.durations!.reduce((s, x) => s + x, 0);
+    expect(sum).toBeCloseTo(4, 6);
+  });
+
+  test("lyrics map through original index range — second chunk gets the right syllables", () => {
+    const notes = [note(0, 0, 500, 1), note(2, 500, 1000, 1), note(4, 1000, 2000, 2)];
+    const chunks: ChunkSpec[] = [
+      { id: "c1", name: "A", startNoteIdx: 0, endNoteIdx: 1 },
+      { id: "c2", name: "B", startNoteIdx: 2, endNoteIdx: 2 },
+    ];
+    // Total notes after split: 4 (note 2 bisects). Chunk B should still get only note-idx-2's syllables.
+    const song = { ...makeSong(notes, chunks), lyrics: "do re mi fa" };
+    const a = chunkToDescriptor(song, chunks[0]!);
+    const b = chunkToDescriptor(song, chunks[1]!);
+    expect(a.syllables).toEqual(["do", "re"]);
+    expect(b.syllables).toEqual(["mi", "fa"]);
+    expect(b.scaleDegrees).toEqual([4, 4]);
+  });
 });

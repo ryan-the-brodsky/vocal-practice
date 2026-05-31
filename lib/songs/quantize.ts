@@ -15,6 +15,7 @@ export interface QInputNote {
   midi: number;
   durationBeats: number;
   restAfterBeats: number;
+  syllable?: string;
 }
 
 /** Duration codes consumed by the renderer. "d" suffix = dotted, "r" suffix =
@@ -34,6 +35,9 @@ export interface QOutNote {
   tiedToNext: boolean;
   /** Index of the originating input QInputNote (shared across tied pieces). */
   originNoteIdx: number;
+  /** Set on the FIRST token of a fresh-attack note run; tied continuations
+   *  carry no syllable so the lyric reads under each new attack. */
+  syllable?: string;
 }
 export interface QOutRest {
   kind: "rest";
@@ -70,7 +74,7 @@ function snapToGrid(beats: number): number {
 }
 
 type Cell =
-  | { kind: "note"; midi: number; startsRun: boolean; originNoteIdx: number }
+  | { kind: "note"; midi: number; startsRun: boolean; originNoteIdx: number; syllable?: string }
   | { kind: "rest" };
 
 /** Flatten input notes onto a 16th-grid tape. Each input note occupies
@@ -91,7 +95,14 @@ function buildTape(notes: QInputNote[]): Cell[] {
     const startCell = Math.round(startBeat / GRID_BEATS);
     const endCell = Math.min(totalCells, startCell + Math.round(dur / GRID_BEATS));
     for (let c = startCell; c < endCell; c++) {
-      tape[c] = { kind: "note", midi: n.midi, startsRun: c === startCell, originNoteIdx: i };
+      const isFirst = c === startCell;
+      tape[c] = {
+        kind: "note",
+        midi: n.midi,
+        startsRun: isFirst,
+        originNoteIdx: i,
+        ...(isFirst && n.syllable ? { syllable: n.syllable } : {}),
+      };
     }
     beat += n.durationBeats + n.restAfterBeats;
   }
@@ -112,7 +123,7 @@ function decompose(cells: number, table: { code: DurationCode; cells: number }[]
 }
 
 type Run =
-  | { kind: "note"; midi: number; startCell: number; endCell: number; originNoteIdx: number }
+  | { kind: "note"; midi: number; startCell: number; endCell: number; originNoteIdx: number; syllable?: string }
   | { kind: "rest"; startCell: number; endCell: number };
 
 /** Walk the tape and group consecutive same-pitched note cells into runs;
@@ -130,13 +141,14 @@ function identifyRuns(tape: Cell[]): Run[] {
     } else {
       const midi = c.midi;
       const originNoteIdx = c.originNoteIdx;
+      const syllable = c.syllable;
       let j = i + 1;
       while (j < tape.length) {
         const cj = tape[j]!;
         if (cj.kind !== "note" || cj.midi !== midi || cj.startsRun) break;
         j++;
       }
-      runs.push({ kind: "note", midi, startCell: i, endCell: j, originNoteIdx });
+      runs.push({ kind: "note", midi, startCell: i, endCell: j, originNoteIdx, ...(syllable ? { syllable } : {}) });
       i = j;
     }
   }
@@ -180,6 +192,8 @@ export function quantizeMelody(notes: QInputNote[], timeSig: TimeSignature): Qua
           const tiedFromPrev = !(isFirstSliceOfRun && isFirstTokenInSlice);
           // Ties forward unless this is the very last token of the run.
           const tiedToNext = !(isLastSliceOfRun && isLastTokenInSlice);
+          // Lyric reads only under the first fresh attack of the run.
+          const carriesSyllable = isFirstSliceOfRun && isFirstTokenInSlice;
           measures[measureIdx]!.items.push({
             kind: "note",
             midi: run.midi,
@@ -187,6 +201,7 @@ export function quantizeMelody(notes: QInputNote[], timeSig: TimeSignature): Qua
             tiedFromPrev,
             tiedToNext,
             originNoteIdx: run.originNoteIdx,
+            ...(carriesSyllable && run.syllable ? { syllable: run.syllable } : {}),
           });
         });
       }

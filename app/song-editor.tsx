@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import ChunkDividerControls from "@/components/songs/ChunkDividerControls";
 import ChunkNameField from "@/components/songs/ChunkNameField";
@@ -13,6 +13,7 @@ import { noteToMidi } from "@/lib/exercises/music";
 import { reconcileChunkIds } from "@/lib/songs/chunker";
 import { previewChunk } from "@/lib/songs/preview";
 import { getSong, saveSong } from "@/lib/songs/store";
+import { parseSyllables, zipSyllablesToNotes } from "@/lib/songs/syllables";
 import type { ChunkSpec, StoredSong } from "@/lib/songs/types";
 
 export default function SongEditorScreen() {
@@ -22,6 +23,7 @@ export default function SongEditorScreen() {
 
   const [song, setSong] = useState<StoredSong | null>(null);
   const [chunks, setChunks] = useState<ChunkSpec[]>([]);
+  const [lyrics, setLyrics] = useState("");
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -46,6 +48,7 @@ export default function SongEditorScreen() {
         }
         setSong(s);
         setChunks(s.chunks);
+        setLyrics(s.lyrics ?? "");
       })
       .catch((e) => {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
@@ -58,11 +61,18 @@ export default function SongEditorScreen() {
     [song],
   );
 
+  // Apply lyrics-aware note splitting before building score data so syllables,
+  // chunk dividers, and durations all line up under the matched array.
+  const matched = useMemo(() => {
+    if (!song) return null;
+    return zipSyllablesToNotes(parseSyllables(lyrics), song.allNotes);
+  }, [song, lyrics]);
+
   const scoreNotes = useMemo(() => {
-    if (!song) return [];
+    if (!song || !matched) return [];
     const beatSec = 60 / song.tempoBpm;
-    return song.allNotes.map((n, i) => {
-      const next = song.allNotes[i + 1];
+    return matched.notes.map((n, i) => {
+      const next = matched.notes[i + 1];
       const gapMs = next ? Math.max(0, next.startMs - n.endMs) : 0;
       const restAfterBeats = (gapMs / 1000) / beatSec;
       return {
@@ -72,7 +82,16 @@ export default function SongEditorScreen() {
         syllable: n.syllable,
       };
     });
-  }, [song]);
+  }, [song, matched]);
+
+  const originalIndexMap = useMemo(
+    () => (matched ? matched.originalIndexMap : undefined),
+    [matched],
+  );
+
+  const syllableCount = useMemo(() => parseSyllables(lyrics).length, [lyrics]);
+  const noteCount = song?.allNotes.length ?? 0;
+  const splitsApplied = Math.max(0, syllableCount - noteCount);
 
   const handleChunksChange = useCallback((next: ChunkSpec[]) => {
     setChunks(next);
@@ -125,7 +144,11 @@ export default function SongEditorScreen() {
         ...c,
         name: chunks[i]?.name ?? c.name,
       }));
-      const next: StoredSong = { ...song, chunks: final };
+      const next: StoredSong = {
+        ...song,
+        chunks: final,
+        ...(lyrics.trim() ? { lyrics } : { lyrics: undefined }),
+      };
       await saveSong(next);
       setSong(next);
       setChunks(final);
@@ -134,7 +157,7 @@ export default function SongEditorScreen() {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, [song, chunks]);
+  }, [song, chunks, lyrics]);
 
   const stopPreview = useCallback(() => {
     if (previewPollRef.current) {
@@ -287,6 +310,7 @@ export default function SongEditorScreen() {
               tonicMidi={tonicMidi}
               onBoundaryDragMove={handleBoundaryDragMove}
               onLabelRename={handleRenameChunk}
+              originalIndexMap={originalIndexMap}
             />
           </ScrollView>
         ) : (
@@ -346,6 +370,36 @@ export default function SongEditorScreen() {
           Boundaries
         </Text>
         <ChunkDividerControls chunks={chunks} onChange={handleChunksChange} />
+      </View>
+
+      <View style={{ gap: Spacing.xs }}>
+        <Text style={{ color: colors.textTertiary, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, textTransform: "uppercase", letterSpacing: 0.6 }}>
+          Lyrics
+        </Text>
+        <TextInput
+          value={lyrics}
+          onChangeText={(v) => { setLyrics(v); setDirty(true); setSavedMsg(null); }}
+          multiline
+          numberOfLines={6}
+          placeholder="Type or paste lyrics. Use spaces between words and hyphens within multi-syllable words (e.g. for-ev-er)"
+          placeholderTextColor={colors.textTertiary}
+          style={{
+            backgroundColor: colors.bgSurface,
+            borderRadius: Radii.md,
+            borderWidth: 1,
+            borderColor: colors.borderSubtle,
+            padding: Spacing.sm,
+            minHeight: 96,
+            color: colors.textPrimary,
+            fontFamily: Fonts.body,
+            fontSize: Typography.base.size,
+            lineHeight: Typography.base.lineHeight,
+            textAlignVertical: "top",
+          }}
+        />
+        <Text style={{ color: colors.textTertiary, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.body }}>
+          {syllableCount} syllables · {noteCount} notes — {splitsApplied} splits applied
+        </Text>
       </View>
     </ScrollView>
   );

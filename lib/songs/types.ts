@@ -33,6 +33,9 @@ export interface StoredSong {
   allNotes: ExtractedNote[];
   /** Ordered, contiguous, covers all of allNotes. */
   chunks: ChunkSpec[];
+  /** Raw lyrics text. Parsed to syllables by `lib/songs/syllables.ts`; held
+   *  notes are bisected when syllable count exceeds note count. */
+  lyrics?: string;
   source: {
     importedAt: number;
     sourceFilename?: string;
