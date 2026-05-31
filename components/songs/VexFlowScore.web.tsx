@@ -1,7 +1,7 @@
 // VexFlow-based score view (web only). Renders the imported melody with
 // proper note values, beaming, barlines, ties, accidentals, and key/time sig.
-// Replaces the home-grown SongScoreView for users who opt into the new
-// notation engine.
+// Also paints per-segment chunk dividers + web pointer-drag handles for
+// boundary editing.
 
 import { Radii, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -12,7 +12,7 @@ import {
 } from "@/lib/music/keySignature";
 import { quantizeMelody, type DurationCode, type QOutItem } from "@/lib/songs/quantize";
 import type { ChunkSpec, TimeSignature } from "@/lib/songs/types";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import {
   Accidental,
@@ -27,14 +27,15 @@ import {
   Voice,
 } from "vexflow";
 
-import type { ScoreNote } from "./SongScoreView";
+import { CHUNK_PALETTE, type ScoreNote } from "./SongScoreView";
 
 export interface VexFlowScoreProps {
   notes: ScoreNote[];
-  chunks: ChunkSpec[];           // unused in v1 prototype (segment overlays TBD)
+  chunks: ChunkSpec[];
   tonicMidi: number;
   timeSignature: TimeSignature;
   targetRowWidth?: number;
+  onBoundaryDragMove?: (boundaryIdx: number, newStartNoteIdx: number) => void;
 }
 
 // ── Pitch / duration plumbing ─────────────────────────────────────────────
@@ -69,9 +70,6 @@ function chooseClef(notes: ScoreNote[]): "treble" | "bass" {
   return mean >= 60 ? "treble" : "bass";
 }
 
-// VexFlow key-signature strings: major key names. We pick the major name whose
-// accidental count matches our derived KeySignature (treating modal pieces as
-// the parent major — close enough for v1).
 const MAJOR_KEY_BY_FIFTHS: Record<number, string> = {
   [-7]: "Cb", [-6]: "Gb", [-5]: "Db", [-4]: "Ab", [-3]: "Eb", [-2]: "Bb", [-1]: "F",
   [0]: "C",
@@ -85,17 +83,24 @@ function vexKeySignature(sig: KeySignature): string {
 
 interface BuiltMeasure {
   notes: StaveNote[];
-  /** MIDI per note index (null for rests). Used for beam-group stem direction. */
   midis: (number | null)[];
-  /** VexFlow base duration per index ('w'/'h'/'q'/'8'/'16'), for grouping. */
   bases: ("w" | "h" | "q" | "8" | "16")[];
-  /** Pairs of (fromIndex, toIndex) within `notes` that should be tied. */
+  /** True iff the note at this index is the first attack of an origin note
+   *  (i.e., not a tied continuation and not a rest). Drag handles snap to
+   *  attack notes only. */
+  isAttack: boolean[];
+  /** Originating input-note index per StaveNote (null for rests). */
+  originNoteIdxs: (number | null)[];
+  /** Intra-measure ties as (fromIdx, toIdx) pairs. */
   ties: Array<{ from: number; to: number }>;
 }
+
 function buildMeasure(items: QOutItem[], clef: "treble" | "bass", sig: KeySignature): BuiltMeasure {
   const notes: StaveNote[] = [];
   const midis: (number | null)[] = [];
   const bases: ("w" | "h" | "q" | "8" | "16")[] = [];
+  const isAttack: boolean[] = [];
+  const originNoteIdxs: (number | null)[] = [];
   const ties: Array<{ from: number; to: number }> = [];
   let tiePending = false;
 
@@ -104,13 +109,15 @@ function buildMeasure(items: QOutItem[], clef: "treble" | "bass", sig: KeySignat
     if (it.kind === "rest") {
       const sn = new StaveNote({
         clef,
-        keys: [clef === "treble" ? "b/4" : "d/3"], // rest position is cosmetic
+        keys: [clef === "treble" ? "b/4" : "d/3"],
         duration: `${dp.base}r`,
       });
       if (dp.dotted) Dot.buildAndAttach([sn], { all: true });
       notes.push(sn);
       midis.push(null);
       bases.push(dp.base);
+      isAttack.push(false);
+      originNoteIdxs.push(null);
       tiePending = false;
     } else {
       const { key, acc } = midiToVexKey(it.midi, sig);
@@ -120,6 +127,8 @@ function buildMeasure(items: QOutItem[], clef: "treble" | "bass", sig: KeySignat
       notes.push(sn);
       midis.push(it.midi);
       bases.push(dp.base);
+      isAttack.push(!it.tiedFromPrev);
+      originNoteIdxs.push(it.originNoteIdx);
       const myIdx = notes.length - 1;
       if (tiePending) ties.push({ from: myIdx - 1, to: myIdx });
       tiePending = it.tiedToNext;
@@ -127,29 +136,24 @@ function buildMeasure(items: QOutItem[], clef: "treble" | "bass", sig: KeySignat
   }
 
   applyStemDirections(notes, midis, bases, clef);
-  return { notes, midis, bases, ties };
+  return { notes, midis, bases, isAttack, originNoteIdxs, ties };
 }
 
-/** Set each note's stem direction so beam groups share one direction (by the
- *  group's mean pitch). Unbeamable notes (quarters and longer, or rests) get
- *  their own per-pitch direction. Mirrors standard engraving convention. */
 function applyStemDirections(
   notes: StaveNote[],
   midis: (number | null)[],
   bases: ("w" | "h" | "q" | "8" | "16")[],
   clef: "treble" | "bass",
 ): void {
-  const middleMidi = clef === "treble" ? 71 : 50; // B4 / D3
+  const middleMidi = clef === "treble" ? 71 : 50;
   const isBeamable = (i: number) => midis[i] !== null && (bases[i] === "8" || bases[i] === "16");
 
-  // First pass: per-note default direction by its own pitch.
   for (let i = 0; i < notes.length; i++) {
     const m = midis[i];
     if (m === null) continue;
     notes[i]!.setStemDirection(m >= middleMidi ? Stem.DOWN : Stem.UP);
   }
 
-  // Second pass: unify stems within each contiguous beamable run.
   let i = 0;
   while (i < notes.length) {
     if (!isBeamable(i)) { i++; continue; }
@@ -170,16 +174,48 @@ function applyStemDirections(
   }
 }
 
+// ── Layout overlay types ──────────────────────────────────────────────────
+
+interface AttackPos {
+  x: number;             // absolute x within the wrapper
+  originNoteIdx: number; // input-note index this attack represents
+}
+interface RowLayout {
+  rowIdx: number;
+  staveTop: number;      // y of the stave's top line
+  staveBottom: number;   // y of the stave's bottom line
+  attacks: AttackPos[];  // ordered left → right across the row
+}
+interface DividerLayout {
+  chunkIdx: number;      // chunk index that STARTS at this divider (≥ 1 for drag)
+  rowIdx: number;
+  x: number;
+  yTop: number;
+  yBot: number;
+}
+interface SceneLayout {
+  rows: RowLayout[];
+  dividers: DividerLayout[];
+  totalWidth: number;
+  totalHeight: number;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────
 
 export default function VexFlowScore({
   notes,
+  chunks,
   tonicMidi,
   timeSignature,
   targetRowWidth = 1000,
+  onBoundaryDragMove,
 }: VexFlowScoreProps) {
   const { colors } = useTheme();
   const containerRef = useRef<View>(null);
+  const [scene, setScene] = useState<SceneLayout | null>(null);
+
+  const dragStateRef = useRef<{ chunkIdx: number; rowIdx: number; cleanup: () => void } | null>(null);
+  const [dragChunkIdx, setDragChunkIdx] = useState<number | null>(null);
 
   const quantized = useMemo(() => {
     const qNotes = notes.map((n) => ({
@@ -195,46 +231,109 @@ export default function VexFlowScore({
   const keySigStr = useMemo(() => vexKeySignature(sig), [sig]);
   const timeSigStr = `${timeSignature.num}/${timeSignature.den}`;
 
+  // Stable lookup: for each chunk index ≥ 1, the originNoteIdx of its first note.
+  const chunkStarts = useMemo(() => {
+    const out = new Map<number, number>();
+    for (let i = 1; i < chunks.length; i++) {
+      out.set(i, chunks[i]!.startNoteIdx);
+    }
+    return out;
+  }, [chunks]);
+
+  const stopDrag = useCallback(() => {
+    if (dragStateRef.current) {
+      dragStateRef.current.cleanup();
+      dragStateRef.current = null;
+    }
+    setDragChunkIdx(null);
+  }, []);
+
+  const noteIdxAtRowX = useCallback(
+    (rowIdx: number, rowX: number, sceneSnap: SceneLayout): number | null => {
+      const row = sceneSnap.rows[rowIdx];
+      if (!row) return null;
+      let best: number | null = null;
+      let bestDist = Infinity;
+      for (const a of row.attacks) {
+        const d = Math.abs(a.x - rowX);
+        if (d < bestDist) { bestDist = d; best = a.originNoteIdx; }
+      }
+      return best;
+    },
+    [],
+  );
+
+  const beginDrag = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>, chunkIdx: number, rowIdx: number) => {
+      if (!onBoundaryDragMove || !scene) return;
+      e.preventDefault();
+      const overlay = e.currentTarget;
+      try { overlay.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+      const wrapperEl = (containerRef.current as unknown as HTMLElement | null)?.parentElement
+        ?? overlay.parentElement;
+      const sceneSnap = scene;
+      const onMove = (ev: PointerEvent) => {
+        if (!wrapperEl) return;
+        const rect = wrapperEl.getBoundingClientRect();
+        const localX = ev.clientX - rect.left;
+        const noteIdx = noteIdxAtRowX(rowIdx, localX, sceneSnap);
+        if (noteIdx != null) onBoundaryDragMove(chunkIdx, noteIdx);
+      };
+      const onUp = () => stopDrag();
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+      dragStateRef.current = {
+        chunkIdx,
+        rowIdx,
+        cleanup: () => {
+          window.removeEventListener("pointermove", onMove);
+          window.removeEventListener("pointerup", onUp);
+          window.removeEventListener("pointercancel", onUp);
+        },
+      };
+      setDragChunkIdx(chunkIdx);
+    },
+    [onBoundaryDragMove, scene, noteIdxAtRowX, stopDrag],
+  );
+
+  useEffect(() => () => { stopDrag(); }, [stopDrag]);
+
   useEffect(() => {
-    // containerRef on web is a raw <div>. Clear and remount the VexFlow SVG on
-    // every render — VexFlow has no incremental API and rerender cost is fine.
     const el = containerRef.current as unknown as HTMLDivElement | null;
     if (!el) return;
     el.innerHTML = "";
-    if (notes.length === 0) return;
+    if (notes.length === 0) {
+      setScene(null);
+      return;
+    }
 
-    // Layout: pack measures across rows with a target row width. Each measure
-    // gets a baseline width plus a per-note allotment so dense measures don't
-    // crowd. The first measure of each row carries the clef + key + time sig.
     const ROW_PAD_X = 12;
-    const STAVE_LINE_HEIGHT = 110; // vertical spacing between staves
-    const MEASURE_BASE = 60;       // minimum width of a measure
-    const PER_NOTE = 38;           // approximate horizontal budget per tickable
-    const PREFIX_WIDTH = 100;      // extra width on first measure of each row
+    const STAVE_LINE_HEIGHT = 110;
+    const MEASURE_BASE = 60;
+    const PER_NOTE = 38;
+    const PREFIX_WIDTH = 100;
 
     const measureWidths = quantized.measures.map((m, idx) => {
       const base = MEASURE_BASE + m.items.length * PER_NOTE;
       return idx === 0 ? base + PREFIX_WIDTH : base;
     });
 
-    // Pack measures into rows so each row's total width ≤ targetRowWidth - 2*pad.
-    const rows: number[][] = []; // arrays of measure indices
+    const rows: number[][] = [];
     {
       const innerBudget = targetRowWidth - ROW_PAD_X * 2;
       let cur: number[] = [];
       let curW = 0;
       for (let i = 0; i < quantized.measures.length; i++) {
-        // First measure in a row carries the prefix; subsequent measures don't.
         const isFirstInRow = cur.length === 0;
-        const w = isFirstInRow ? measureWidths[i]! : measureWidths[i]! - PREFIX_WIDTH * 0; // already 0 prefix
-        const adjusted = isFirstInRow ? w : Math.max(MEASURE_BASE, w);
-        if (curW + adjusted > innerBudget && cur.length > 0) {
+        const w = measureWidths[i]!;
+        if (curW + w > innerBudget && cur.length > 0) {
           rows.push(cur);
           cur = [];
           curW = 0;
         }
         cur.push(i);
-        curW += isFirstInRow ? w : adjusted;
+        curW += isFirstInRow ? w : Math.max(MEASURE_BASE, w);
       }
       if (cur.length > 0) rows.push(cur);
     }
@@ -246,11 +345,14 @@ export default function VexFlowScore({
     ctx.setFillStyle(colors.textPrimary);
     ctx.setStrokeStyle(colors.textPrimary);
 
+    const rowLayouts: RowLayout[] = [];
+    const dividerLayouts: DividerLayout[] = [];
+
     let y = 10;
     for (let r = 0; r < rows.length; r++) {
       const measureIndices = rows[r]!;
       let x = ROW_PAD_X;
-      const drawnInRow: { stave: Stave; built: BuiltMeasure }[] = [];
+      const drawnInRow: { stave: Stave; built: BuiltMeasure; measureIdx: number; isFirstInRow: boolean }[] = [];
 
       measureIndices.forEach((mi, posInRow) => {
         const isFirstInRow = posInRow === 0;
@@ -265,28 +367,22 @@ export default function VexFlowScore({
 
         const built = buildMeasure(quantized.measures[mi]!.items, clef, sig);
 
-        let beams: Beam[] = [];
         if (built.notes.length > 0) {
-          // Generate beams BEFORE the voice draws — the beam constructor marks
-          // its member notes as beamed, which suppresses their individual flags.
-          beams = Beam.generateBeams(built.notes, { maintainStemDirections: true });
-
+          const beams = Beam.generateBeams(built.notes, { maintainStemDirections: true });
           const voice = new Voice({
             numBeats: timeSignature.num,
             beatValue: timeSignature.den,
           }).setStrict(false);
           voice.addTickables(built.notes);
           new Formatter().joinVoices([voice]).format([voice], width - (isFirstInRow ? PREFIX_WIDTH : 20));
-
           voice.draw(ctx, stave);
           for (const beam of beams) beam.setContext(ctx).draw();
         }
 
-        drawnInRow.push({ stave, built });
+        drawnInRow.push({ stave, built, measureIdx: mi, isFirstInRow });
         x += width;
       });
 
-      // Draw ties within each measure (cross-measure ties handled separately).
       for (const { built } of drawnInRow) {
         for (const t of built.ties) {
           new StaveTie({
@@ -298,8 +394,6 @@ export default function VexFlowScore({
         }
       }
 
-      // Cross-measure ties: connect the last note of measure N with the first
-      // note of measure N+1 when the source ran a tied chain across the bar.
       for (let k = 0; k + 1 < drawnInRow.length; k++) {
         const leftBuilt = drawnInRow[k]!.built;
         const rightBuilt = drawnInRow[k + 1]!.built;
@@ -325,13 +419,51 @@ export default function VexFlowScore({
         }
       }
 
+      // Collect attack-note positions for this row.
+      const staveSample = drawnInRow[0]?.stave;
+      const staveTop = staveSample ? staveSample.getYForLine(0) : y;
+      const staveBottom = staveSample ? staveSample.getYForLine(4) : y + 32;
+      const attacks: AttackPos[] = [];
+      for (const { built } of drawnInRow) {
+        for (let i = 0; i < built.notes.length; i++) {
+          if (!built.isAttack[i]) continue;
+          const oIdx = built.originNoteIdxs[i];
+          if (oIdx === null) continue;
+          attacks.push({ x: built.notes[i]!.getAbsoluteX(), originNoteIdx: oIdx });
+        }
+      }
+      rowLayouts.push({ rowIdx: r, staveTop, staveBottom, attacks });
+
+      // Find dividers in this row: any chunk start whose originNoteIdx appears
+      // as an attack within this row's measures.
+      for (let ci = 1; ci < chunks.length; ci++) {
+        const startIdx = chunkStarts.get(ci);
+        if (startIdx == null) continue;
+        const hit = attacks.find((a) => a.originNoteIdx === startIdx);
+        if (hit) {
+          dividerLayouts.push({
+            chunkIdx: ci,
+            rowIdx: r,
+            x: hit.x - 4, // sit just left of the notehead
+            yTop: staveTop - 8,
+            yBot: staveBottom + 8,
+          });
+        }
+      }
+
       y += STAVE_LINE_HEIGHT;
     }
-  }, [quantized, sig, clef, keySigStr, timeSigStr, timeSignature, notes.length, targetRowWidth, colors.textPrimary]);
+
+    setScene({
+      rows: rowLayouts,
+      dividers: dividerLayouts,
+      totalWidth: targetRowWidth,
+      totalHeight,
+    });
+  }, [quantized, sig, clef, keySigStr, timeSigStr, timeSignature, notes.length, targetRowWidth, colors.textPrimary, chunks, chunkStarts]);
 
   return (
     <View
-      ref={containerRef}
       style={{
         backgroundColor: colors.bgSurface,
         borderRadius: Radii.md,
@@ -339,8 +471,62 @@ export default function VexFlowScore({
         borderColor: colors.borderSubtle,
         padding: Spacing.sm,
         overflow: "hidden",
+        position: "relative",
       }}
-    />
+    >
+      <View ref={containerRef} />
+      {scene && (
+        <View
+          style={{
+            position: "absolute",
+            top: Spacing.sm,
+            left: Spacing.sm,
+            width: scene.totalWidth,
+            height: scene.totalHeight,
+            // @ts-ignore — RNW honors `pointerEvents` as DOM style.
+            pointerEvents: "box-none",
+          }}
+        >
+          {scene.dividers.map((d) => {
+            const color = CHUNK_PALETTE[d.chunkIdx % CHUNK_PALETTE.length]!;
+            const isDragging = dragChunkIdx === d.chunkIdx;
+            return (
+              <View key={`d-${d.chunkIdx}`}>
+                {/* Colored visual line */}
+                <View
+                  style={{
+                    position: "absolute",
+                    left: d.x,
+                    top: d.yTop,
+                    width: 2,
+                    height: d.yBot - d.yTop,
+                    backgroundColor: color,
+                    opacity: isDragging ? 1 : 0.85,
+                  }}
+                />
+                {/* Drag hit-target (web only) */}
+                {onBoundaryDragMove && (
+                  // @ts-ignore — react-native-web passes through raw DOM elements at runtime.
+                  <div
+                    onPointerDown={(e: React.PointerEvent<HTMLDivElement>) => beginDrag(e, d.chunkIdx, d.rowIdx)}
+                    style={{
+                      position: "absolute",
+                      left: d.x - 6,
+                      top: d.yTop - 4,
+                      width: 14,
+                      height: d.yBot - d.yTop + 8,
+                      cursor: "ew-resize",
+                      background: isDragging ? "rgba(168,106,36,0.18)" : "transparent",
+                    }}
+                    aria-label={`Drag boundary ${d.chunkIdx}`}
+                  />
+                )}
+              </View>
+            );
+          })}
+        </View>
+      )}
+    </View>
   );
 }
 

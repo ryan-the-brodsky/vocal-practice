@@ -32,6 +32,8 @@ export interface QOutNote {
   tiedFromPrev: boolean;
   /** True if the next item should be drawn as a tied continuation. */
   tiedToNext: boolean;
+  /** Index of the originating input QInputNote (shared across tied pieces). */
+  originNoteIdx: number;
 }
 export interface QOutRest {
   kind: "rest";
@@ -68,7 +70,7 @@ function snapToGrid(beats: number): number {
 }
 
 type Cell =
-  | { kind: "note"; midi: number; startsRun: boolean }
+  | { kind: "note"; midi: number; startsRun: boolean; originNoteIdx: number }
   | { kind: "rest" };
 
 /** Flatten input notes onto a 16th-grid tape. Each input note occupies
@@ -82,13 +84,14 @@ function buildTape(notes: QInputNote[]): Cell[] {
   for (let i = 0; i < totalCells; i++) tape[i] = { kind: "rest" };
 
   let beat = 0;
-  for (const n of notes) {
+  for (let i = 0; i < notes.length; i++) {
+    const n = notes[i]!;
     const startBeat = snapToGrid(beat);
     const dur = Math.max(GRID_BEATS, snapToGrid(n.durationBeats));
     const startCell = Math.round(startBeat / GRID_BEATS);
     const endCell = Math.min(totalCells, startCell + Math.round(dur / GRID_BEATS));
     for (let c = startCell; c < endCell; c++) {
-      tape[c] = { kind: "note", midi: n.midi, startsRun: c === startCell };
+      tape[c] = { kind: "note", midi: n.midi, startsRun: c === startCell, originNoteIdx: i };
     }
     beat += n.durationBeats + n.restAfterBeats;
   }
@@ -109,7 +112,7 @@ function decompose(cells: number, table: { code: DurationCode; cells: number }[]
 }
 
 type Run =
-  | { kind: "note"; midi: number; startCell: number; endCell: number }
+  | { kind: "note"; midi: number; startCell: number; endCell: number; originNoteIdx: number }
   | { kind: "rest"; startCell: number; endCell: number };
 
 /** Walk the tape and group consecutive same-pitched note cells into runs;
@@ -126,13 +129,14 @@ function identifyRuns(tape: Cell[]): Run[] {
       i = j;
     } else {
       const midi = c.midi;
+      const originNoteIdx = c.originNoteIdx;
       let j = i + 1;
       while (j < tape.length) {
         const cj = tape[j]!;
         if (cj.kind !== "note" || cj.midi !== midi || cj.startsRun) break;
         j++;
       }
-      runs.push({ kind: "note", midi, startCell: i, endCell: j });
+      runs.push({ kind: "note", midi, startCell: i, endCell: j, originNoteIdx });
       i = j;
     }
   }
@@ -182,6 +186,7 @@ export function quantizeMelody(notes: QInputNote[], timeSig: TimeSignature): Qua
             duration: code,
             tiedFromPrev,
             tiedToNext,
+            originNoteIdx: run.originNoteIdx,
           });
         });
       }

@@ -296,6 +296,7 @@ export default function SongEditorScreen() {
             tonicMidi={tonicMidi}
             timeSignature={song.timeSignature}
             targetRowWidth={1000}
+            onBoundaryDragMove={handleBoundaryDragMove}
           />
         )}
       </View>
