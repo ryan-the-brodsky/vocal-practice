@@ -321,6 +321,7 @@ export default function SongEditorScreen() {
             timeSignature={song.timeSignature}
             targetRowWidth={1000}
             onBoundaryDragMove={handleBoundaryDragMove}
+            originalIndexMap={originalIndexMap}
           />
         )}
       </View>

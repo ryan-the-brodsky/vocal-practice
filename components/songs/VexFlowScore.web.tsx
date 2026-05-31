@@ -37,6 +37,9 @@ export interface VexFlowScoreProps {
   timeSignature: TimeSignature;
   targetRowWidth?: number;
   onBoundaryDragMove?: (boundaryIdx: number, newStartNoteIdx: number) => void;
+  /** Map from each entry in `notes` back to the original song.allNotes index.
+   *  When omitted, identity mapping (notes are 1:1 with the song). */
+  originalIndexMap?: number[];
 }
 
 // ── Pitch / duration plumbing ─────────────────────────────────────────────
@@ -215,6 +218,7 @@ export default function VexFlowScore({
   timeSignature,
   targetRowWidth = 1000,
   onBoundaryDragMove,
+  originalIndexMap,
 }: VexFlowScoreProps) {
   const { colors } = useTheme();
   const containerRef = useRef<View>(null);
@@ -222,6 +226,24 @@ export default function VexFlowScore({
 
   const dragStateRef = useRef<{ chunkIdx: number; rowIdx: number; cleanup: () => void } | null>(null);
   const [dragChunkIdx, setDragChunkIdx] = useState<number | null>(null);
+
+  // Map a local notes[] index → originating song.allNotes index (identity when
+  // no lyrics expansion happened). Mirrors SongScoreView's contract so drag
+  // reports + chunk-start matches stay consistent across both renderers.
+  const toOriginal = useCallback(
+    (localIdx: number): number => (originalIndexMap ? (originalIndexMap[localIdx] ?? localIdx) : localIdx),
+    [originalIndexMap],
+  );
+  const firstLocalForOriginal = useCallback(
+    (original: number): number => {
+      if (!originalIndexMap) return original;
+      for (let i = 0; i < originalIndexMap.length; i++) {
+        if (originalIndexMap[i] === original) return i;
+      }
+      return -1;
+    },
+    [originalIndexMap],
+  );
 
   const quantized = useMemo(() => {
     const qNotes = notes.map((n) => ({
@@ -283,8 +305,10 @@ export default function VexFlowScore({
         if (!wrapperEl) return;
         const rect = wrapperEl.getBoundingClientRect();
         const localX = ev.clientX - rect.left;
-        const noteIdx = noteIdxAtRowX(rowIdx, localX, sceneSnap);
-        if (noteIdx != null) onBoundaryDragMove(chunkIdx, noteIdx);
+        const localIdx = noteIdxAtRowX(rowIdx, localX, sceneSnap);
+        // Drag reports in ORIGINAL-note indices so chunk math stays valid when
+        // lyrics have split notes 1:N.
+        if (localIdx != null) onBoundaryDragMove(chunkIdx, toOriginal(localIdx));
       };
       const onUp = () => stopDrag();
       window.addEventListener("pointermove", onMove);
@@ -441,17 +465,19 @@ export default function VexFlowScore({
       }
       rowLayouts.push({ rowIdx: r, staveTop, staveBottom, attacks });
 
-      // Find dividers in this row: any chunk start whose originNoteIdx appears
-      // as an attack within this row's measures.
+      // Find dividers in this row: place a divider at the FIRST local note
+      // that maps to the chunk's original startNoteIdx — otherwise lyrics-split
+      // notes would re-fire the divider at every split.
       for (let ci = 1; ci < chunks.length; ci++) {
         const startIdx = chunkStarts.get(ci);
         if (startIdx == null) continue;
-        const hit = attacks.find((a) => a.originNoteIdx === startIdx);
+        const firstLocal = firstLocalForOriginal(startIdx);
+        const hit = attacks.find((a) => a.originNoteIdx === firstLocal);
         if (hit) {
           dividerLayouts.push({
             chunkIdx: ci,
             rowIdx: r,
-            x: hit.x - 4, // sit just left of the notehead
+            x: hit.x - 4,
             yTop: staveTop - 8,
             yBot: staveBottom + 8,
           });
@@ -467,7 +493,7 @@ export default function VexFlowScore({
       totalWidth: targetRowWidth,
       totalHeight,
     });
-  }, [quantized, sig, clef, keySigStr, timeSigStr, timeSignature, notes.length, targetRowWidth, colors.textPrimary, chunks, chunkStarts]);
+  }, [quantized, sig, clef, keySigStr, timeSigStr, timeSignature, notes.length, targetRowWidth, colors.textPrimary, chunks, chunkStarts, firstLocalForOriginal]);
 
   return (
     <View

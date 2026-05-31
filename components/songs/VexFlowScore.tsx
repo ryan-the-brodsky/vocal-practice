@@ -17,6 +17,7 @@ export interface VexFlowScoreProps {
   timeSignature: TimeSignature;
   targetRowWidth?: number;
   onBoundaryDragMove?: (boundaryIdx: number, newStartNoteIdx: number) => void;
+  originalIndexMap?: number[];
 }
 
 export default function VexFlowScore(_props: VexFlowScoreProps) {
