@@ -3,7 +3,7 @@
 // Also paints per-segment chunk dividers + web pointer-drag handles for
 // boundary editing.
 
-import { Radii, Spacing } from "@/constants/theme";
+import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   keySignatureFor,
@@ -13,7 +13,7 @@ import {
 import { quantizeMelody, type DurationCode, type QOutItem } from "@/lib/songs/quantize";
 import type { ChunkSpec, TimeSignature } from "@/lib/songs/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View } from "react-native";
+import { Text, View } from "react-native";
 import {
   Accidental,
   Annotation,
@@ -40,6 +40,12 @@ export interface VexFlowScoreProps {
   /** Map from each entry in `notes` back to the original song.allNotes index.
    *  When omitted, identity mapping (notes are 1:1 with the song). */
   originalIndexMap?: number[];
+  /** When set, notes in this chunk render inline web text inputs beneath
+   *  their noteheads so the user can type per-note syllables. */
+  editingChunkId?: string | null;
+  /** Called with the ORIGINAL note idx (from originalIndexMap) on each input
+   *  change while in per-segment lyric edit mode. */
+  onSyllableChange?: (originalNoteIdx: number, syllable: string) => void;
 }
 
 // ── Pitch / duration plumbing ─────────────────────────────────────────────
@@ -99,7 +105,12 @@ interface BuiltMeasure {
   ties: Array<{ from: number; to: number }>;
 }
 
-function buildMeasure(items: QOutItem[], clef: "treble" | "bass", sig: KeySignature): BuiltMeasure {
+function buildMeasure(
+  items: QOutItem[],
+  clef: "treble" | "bass",
+  sig: KeySignature,
+  skipStaticSyllableFor: Set<number> | null,
+): BuiltMeasure {
   const notes: StaveNote[] = [];
   const midis: (number | null)[] = [];
   const bases: ("w" | "h" | "q" | "8" | "16")[] = [];
@@ -128,7 +139,9 @@ function buildMeasure(items: QOutItem[], clef: "treble" | "bass", sig: KeySignat
       const sn = new StaveNote({ clef, keys: [key], duration: dp.base });
       if (acc) sn.addModifier(new Accidental(acc), 0);
       if (dp.dotted) Dot.buildAndAttach([sn], { all: true });
-      if (it.syllable) {
+      // Skip the static Annotation when this note is in lyric-edit mode — the
+      // inline web <input> overlay takes its place to avoid double-rendering.
+      if (it.syllable && !(skipStaticSyllableFor && skipStaticSyllableFor.has(it.originNoteIdx))) {
         const ann = new Annotation(it.syllable);
         ann.setVerticalJustification(Annotation.VerticalJustify.BOTTOM);
         sn.addModifier(ann, 0);
@@ -187,7 +200,9 @@ function applyStemDirections(
 
 interface AttackPos {
   x: number;             // absolute x within the wrapper
-  originNoteIdx: number; // input-note index this attack represents
+  originNoteIdx: number; // matched-array idx this attack represents
+  editable: boolean;     // true when in per-segment lyric edit mode for its chunk
+  syllable: string;      // current syllable text (empty when none)
 }
 interface RowLayout {
   rowIdx: number;
@@ -201,6 +216,9 @@ interface DividerLayout {
   x: number;
   yTop: number;
   yBot: number;
+  /** When false, only the segment-name label is drawn (no colored line, no
+   *  drag handle). Used for label-only markers on row-leading continuations. */
+  withLine: boolean;
 }
 interface SceneLayout {
   rows: RowLayout[];
@@ -219,6 +237,8 @@ export default function VexFlowScore({
   targetRowWidth = 1000,
   onBoundaryDragMove,
   originalIndexMap,
+  editingChunkId,
+  onSyllableChange,
 }: VexFlowScoreProps) {
   const { colors } = useTheme();
   const containerRef = useRef<View>(null);
@@ -244,6 +264,21 @@ export default function VexFlowScore({
     },
     [originalIndexMap],
   );
+
+  // Matched-array indices whose translated-to-original idx lies within the
+  // chunk being edited. Drives both Annotation suppression and the inline
+  // <input> overlay.
+  const editableMatchedSet = useMemo(() => {
+    if (!editingChunkId) return null;
+    const target = chunks.find((c) => c.id === editingChunkId);
+    if (!target) return null;
+    const out = new Set<number>();
+    for (let i = 0; i < notes.length; i++) {
+      const orig = originalIndexMap ? (originalIndexMap[i] ?? i) : i;
+      if (orig >= target.startNoteIdx && orig <= target.endNoteIdx) out.add(i);
+    }
+    return out;
+  }, [editingChunkId, chunks, notes.length, originalIndexMap]);
 
   const quantized = useMemo(() => {
     const qNotes = notes.map((n) => ({
@@ -396,7 +431,7 @@ export default function VexFlowScore({
         }
         stave.setContext(ctx).draw();
 
-        const built = buildMeasure(quantized.measures[mi]!.items, clef, sig);
+        const built = buildMeasure(quantized.measures[mi]!.items, clef, sig, editableMatchedSet);
 
         if (built.notes.length > 0) {
           const beams = Beam.generateBeams(built.notes, { maintainStemDirections: true });
@@ -460,7 +495,12 @@ export default function VexFlowScore({
           if (!built.isAttack[i]) continue;
           const oIdx = built.originNoteIdxs[i];
           if (oIdx === null) continue;
-          attacks.push({ x: built.notes[i]!.getAbsoluteX(), originNoteIdx: oIdx });
+          attacks.push({
+            x: built.notes[i]!.getAbsoluteX(),
+            originNoteIdx: oIdx,
+            editable: editableMatchedSet?.has(oIdx) ?? false,
+            syllable: notes[oIdx]?.syllable ?? "",
+          });
         }
       }
       rowLayouts.push({ rowIdx: r, staveTop, staveBottom, attacks });
@@ -480,6 +520,31 @@ export default function VexFlowScore({
             x: hit.x - 4,
             yTop: staveTop - 8,
             yBot: staveBottom + 8,
+            withLine: true,
+          });
+        }
+      }
+      // Label-only marker for whichever chunk this row starts inside (so the
+      // first segment and any wrap-induced continuations still show a name).
+      if (attacks.length > 0) {
+        const firstAttack = attacks[0]!;
+        const original = toOriginal(firstAttack.originNoteIdx);
+        let leadingCi = 0;
+        for (let ci = 0; ci < chunks.length; ci++) {
+          if (original >= chunks[ci]!.startNoteIdx && original <= chunks[ci]!.endNoteIdx) {
+            leadingCi = ci;
+            break;
+          }
+        }
+        const alreadyDrawn = dividerLayouts.some((d) => d.chunkIdx === leadingCi && d.rowIdx === r);
+        if (!alreadyDrawn) {
+          dividerLayouts.push({
+            chunkIdx: leadingCi,
+            rowIdx: r,
+            x: firstAttack.x - 4,
+            yTop: staveTop - 8,
+            yBot: staveBottom + 8,
+            withLine: false,
           });
         }
       }
@@ -493,7 +558,7 @@ export default function VexFlowScore({
       totalWidth: targetRowWidth,
       totalHeight,
     });
-  }, [quantized, sig, clef, keySigStr, timeSigStr, timeSignature, notes.length, targetRowWidth, colors.textPrimary, chunks, chunkStarts, firstLocalForOriginal]);
+  }, [quantized, sig, clef, keySigStr, timeSigStr, timeSignature, notes, targetRowWidth, colors.textPrimary, chunks, chunkStarts, firstLocalForOriginal, toOriginal, editableMatchedSet]);
 
   return (
     <View
@@ -523,22 +588,40 @@ export default function VexFlowScore({
           {scene.dividers.map((d) => {
             const color = CHUNK_PALETTE[d.chunkIdx % CHUNK_PALETTE.length]!;
             const isDragging = dragChunkIdx === d.chunkIdx;
+            const labelName = chunks[d.chunkIdx]?.name ?? "";
             return (
               <View key={`d-${d.chunkIdx}`}>
-                {/* Colored visual line */}
-                <View
-                  style={{
-                    position: "absolute",
-                    left: d.x,
-                    top: d.yTop,
-                    width: 2,
-                    height: d.yBot - d.yTop,
-                    backgroundColor: color,
-                    opacity: isDragging ? 1 : 0.85,
-                  }}
-                />
-                {/* Drag hit-target (web only) */}
-                {onBoundaryDragMove && (
+                {/* Segment name label sitting above the divider. */}
+                {labelName ? (
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      position: "absolute",
+                      left: d.x + 4,
+                      top: Math.max(0, d.yTop - 16),
+                      color,
+                      fontFamily: Fonts.bodySemibold,
+                      fontSize: Typography.xs.size,
+                      lineHeight: Typography.xs.lineHeight,
+                    }}
+                  >
+                    {labelName}
+                  </Text>
+                ) : null}
+                {d.withLine && (
+                  <View
+                    style={{
+                      position: "absolute",
+                      left: d.x,
+                      top: d.yTop,
+                      width: 2,
+                      height: d.yBot - d.yTop,
+                      backgroundColor: color,
+                      opacity: isDragging ? 1 : 0.85,
+                    }}
+                  />
+                )}
+                {d.withLine && onBoundaryDragMove && (
                   // @ts-ignore — react-native-web passes through raw DOM elements at runtime.
                   <div
                     onPointerDown={(e: React.PointerEvent<HTMLDivElement>) => beginDrag(e, d.chunkIdx, d.rowIdx)}
@@ -557,6 +640,40 @@ export default function VexFlowScore({
               </View>
             );
           })}
+
+          {/* Per-note syllable inputs for the segment being edited. */}
+          {onSyllableChange && scene.rows.flatMap((row) =>
+            row.attacks
+              .filter((a) => a.editable)
+              .map((a) => (
+                // @ts-ignore — react-native-web passes through raw DOM elements at runtime.
+                <input
+                  key={`syl-${row.rowIdx}-${a.originNoteIdx}`}
+                  type="text"
+                  defaultValue={a.syllable}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onSyllableChange(toOriginal(a.originNoteIdx), e.target.value)
+                  }
+                  placeholder="—"
+                  style={{
+                    position: "absolute",
+                    left: a.x - 28,
+                    top: row.staveBottom + 14,
+                    width: 56,
+                    height: 22,
+                    padding: "0 4px",
+                    borderRadius: 4,
+                    border: `1px solid ${colors.accent}`,
+                    background: colors.bgSurface,
+                    color: colors.textPrimary,
+                    fontFamily: Fonts.body,
+                    fontSize: Typography.xs.size,
+                    textAlign: "center",
+                    outline: "none",
+                  }}
+                />
+              ))
+          )}
         </View>
       )}
     </View>

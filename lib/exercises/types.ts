@@ -1,3 +1,5 @@
+import type { TimeSignature } from "../analyze/types";
+
 export type VoicePart =
   | "tenor"
   | "baritone"
@@ -94,6 +96,14 @@ export interface ExerciseDescriptor {
   // notes. Used by song chunks to surface real rests instead of folding gaps
   // into the preceding note's duration. Trailing entry is typically 0.
   restsAfter?: number[];
+  // Set on song-chunk descriptors. Carries enough info for VexFlowMelodyDisplay
+  // to render the chunk with proper rhythm + key/time sig + beaming + syllables.
+  // When absent, surfaces fall back to the old MelodyDisplay (uniform-spacing
+  // staff). Length of `notes` must equal scaleDegrees.length.
+  songDisplay?: {
+    notes: { midi: number; durationBeats: number; restAfterBeats: number; syllable?: string }[];
+    timeSignature: TimeSignature;
+  };
 }
 
 export type NoteEventType = "melody" | "accompaniment" | "cue" | "tick" | "rest";

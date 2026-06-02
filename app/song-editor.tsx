@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 
 import ChunkDividerControls from "@/components/songs/ChunkDividerControls";
 import ChunkNameField from "@/components/songs/ChunkNameField";
@@ -16,14 +16,23 @@ import { getSong, saveSong } from "@/lib/songs/store";
 import { parseSyllables, zipSyllablesToNotes } from "@/lib/songs/syllables";
 import type { ChunkSpec, StoredSong } from "@/lib/songs/types";
 
+const SIDEBAR_WIDTH = 340;
+const DESKTOP_BREAKPOINT = 1024;
+
 export default function SongEditorScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { songId } = useLocalSearchParams<{ songId?: string }>();
+  const { width: windowWidth } = useWindowDimensions();
+  const isDesktop = windowWidth >= DESKTOP_BREAKPOINT;
+  const scoreTargetWidth = isDesktop
+    ? Math.max(560, windowWidth - SIDEBAR_WIDTH - 96)
+    : Math.max(560, windowWidth - 64);
 
   const [song, setSong] = useState<StoredSong | null>(null);
   const [chunks, setChunks] = useState<ChunkSpec[]>([]);
   const [lyrics, setLyrics] = useState("");
+  const [lyricEditChunkId, setLyricEditChunkId] = useState<string | null>(null);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -61,8 +70,36 @@ export default function SongEditorScreen() {
     [song],
   );
 
-  // Apply lyrics-aware note splitting before building score data so syllables,
-  // chunk dividers, and durations all line up under the matched array.
+  // One-time: legacy songs saved with whole-song `lyrics: string` migrate to
+  // per-note `allNotes[i].syllable` so per-note editing is the only edit path.
+  useEffect(() => {
+    if (!song) return;
+    if (!song.lyrics || !song.lyrics.trim()) return;
+    const syllables = parseSyllables(song.lyrics);
+    if (syllables.length === 0) return;
+    const zipped = zipSyllablesToNotes(syllables, song.allNotes);
+    const map = zipped.originalIndexMap;
+    const newChunks = song.chunks.map((c) => {
+      let first = -1;
+      let last = -1;
+      for (let i = 0; i < map.length; i++) {
+        if (map[i] === c.startNoteIdx && first < 0) first = i;
+        if (map[i] === c.endNoteIdx) last = i;
+      }
+      return {
+        ...c,
+        startNoteIdx: first >= 0 ? first : 0,
+        endNoteIdx: last >= 0 ? last : map.length - 1,
+      };
+    });
+    setSong({ ...song, allNotes: zipped.notes, chunks: newChunks, lyrics: undefined });
+    setChunks(newChunks);
+    setLyrics("");
+    setDirty(true);
+  }, [song?.id]); // eslint-disable-line react-hooks/exhaustive-deps -- run once per song load
+
+  // After migration `lyrics` stays empty for per-note editing; matched is then
+  // just an identity wrapper around song.allNotes (zip preserves order + syllables).
   const matched = useMemo(() => {
     if (!song) return null;
     return zipSyllablesToNotes(parseSyllables(lyrics), song.allNotes);
@@ -89,10 +126,6 @@ export default function SongEditorScreen() {
     [matched],
   );
 
-  const syllableCount = useMemo(() => parseSyllables(lyrics).length, [lyrics]);
-  const noteCount = song?.allNotes.length ?? 0;
-  const splitsApplied = Math.max(0, syllableCount - noteCount);
-
   const handleChunksChange = useCallback((next: ChunkSpec[]) => {
     setChunks(next);
     setDirty(true);
@@ -102,6 +135,23 @@ export default function SongEditorScreen() {
   const handleRenameChunk = useCallback(
     (idx: number, name: string) => {
       setChunks((prev) => prev.map((c, i) => (i === idx ? { ...c, name } : c)));
+      setDirty(true);
+      setSavedMsg(null);
+    },
+    [],
+  );
+
+  // Per-note syllable edit. Writes directly to song.allNotes[origIdx].syllable
+  // so the matched pipeline picks it up via identity (lyrics stays empty).
+  const handleSyllableChange = useCallback(
+    (originalNoteIdx: number, syllable: string) => {
+      setSong((prev) => {
+        if (!prev) return prev;
+        if (originalNoteIdx < 0 || originalNoteIdx >= prev.allNotes.length) return prev;
+        const next = prev.allNotes.slice();
+        next[originalNoteIdx] = { ...next[originalNoteIdx]!, syllable };
+        return { ...prev, allNotes: next };
+      });
       setDirty(true);
       setSavedMsg(null);
     },
@@ -301,107 +351,126 @@ export default function SongEditorScreen() {
         })}
       </View>
 
-      <View style={{ backgroundColor: colors.bgSurface, borderRadius: Radii.md, borderWidth: 1, borderColor: colors.borderSubtle, paddingVertical: Spacing.sm }}>
-        {scoreEngine === "classic" ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <SongScoreView
-              notes={scoreNotes}
-              chunks={chunks}
-              tonicMidi={tonicMidi}
-              onBoundaryDragMove={handleBoundaryDragMove}
-              onLabelRename={handleRenameChunk}
-              originalIndexMap={originalIndexMap}
-            />
-          </ScrollView>
-        ) : (
-          <VexFlowScore
-            notes={scoreNotes}
-            chunks={chunks}
-            tonicMidi={tonicMidi}
-            timeSignature={song.timeSignature}
-            targetRowWidth={1000}
-            onBoundaryDragMove={handleBoundaryDragMove}
-            originalIndexMap={originalIndexMap}
-          />
-        )}
-      </View>
+      {(() => {
+        const scoreBlock = (
+          <View style={{ backgroundColor: colors.bgSurface, borderRadius: Radii.md, borderWidth: 1, borderColor: colors.borderSubtle, paddingVertical: Spacing.sm, flex: isDesktop ? 1 : undefined }}>
+            {scoreEngine === "classic" ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <SongScoreView
+                  notes={scoreNotes}
+                  chunks={chunks}
+                  tonicMidi={tonicMidi}
+                  targetRowWidth={scoreTargetWidth}
+                  onBoundaryDragMove={handleBoundaryDragMove}
+                  onLabelRename={handleRenameChunk}
+                  originalIndexMap={originalIndexMap}
+                />
+              </ScrollView>
+            ) : (
+              <VexFlowScore
+                notes={scoreNotes}
+                chunks={chunks}
+                tonicMidi={tonicMidi}
+                timeSignature={song.timeSignature}
+                targetRowWidth={scoreTargetWidth}
+                onBoundaryDragMove={handleBoundaryDragMove}
+                originalIndexMap={originalIndexMap}
+                editingChunkId={lyricEditChunkId}
+                onSyllableChange={handleSyllableChange}
+              />
+            )}
+          </View>
+        );
 
-      <View style={{ gap: Spacing.xs }}>
-        <Text style={{ color: colors.textTertiary, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, textTransform: "uppercase", letterSpacing: 0.6 }}>
-          Segments
-        </Text>
-        {chunks.map((c, i) => {
-          const color = CHUNK_PALETTE[i % CHUNK_PALETTE.length]!;
-          const size = c.endNoteIdx - c.startNoteIdx + 1;
-          const isPlaying = playingChunkId === c.id;
-          return (
-            <View key={c.id} style={{ backgroundColor: colors.bgSurface, borderRadius: Radii.md, borderWidth: 1, borderColor: colors.borderSubtle, padding: Spacing.sm, gap: Spacing["2xs"] }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs }}>
-                <View style={{ width: 8, height: 24, backgroundColor: color, borderRadius: 2 }} />
-                <Pressable
-                  onPress={() => handlePreview(c.id)}
-                  accessibilityLabel={isPlaying ? `Stop ${c.name}` : `Play ${c.name}`}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: isPlaying ? colors.accent : colors.bgEmphasis,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text style={{ color: isPlaying ? colors.bgCanvas : colors.textOnEmphasis, fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.bodySemibold }}>
-                    {isPlaying ? "■" : "▶"}
-                  </Text>
-                </Pressable>
-                <View style={{ flex: 1 }}>
-                  <ChunkNameField value={c.name} onChange={(v) => handleRenameChunk(i, v)} />
+        const segmentsBlock = (
+          <View style={{ gap: Spacing.xs }}>
+            <Text style={{ color: colors.textTertiary, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, textTransform: "uppercase", letterSpacing: 0.6 }}>
+              Segments
+            </Text>
+            {chunks.map((c, i) => {
+              const color = CHUNK_PALETTE[i % CHUNK_PALETTE.length]!;
+              const size = c.endNoteIdx - c.startNoteIdx + 1;
+              const isPlaying = playingChunkId === c.id;
+              return (
+                <View key={c.id} style={{ backgroundColor: colors.bgSurface, borderRadius: Radii.md, borderWidth: 1, borderColor: colors.borderSubtle, padding: Spacing.sm, gap: Spacing["2xs"] }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs }}>
+                    <View style={{ width: 8, height: 24, backgroundColor: color, borderRadius: 2 }} />
+                    <Pressable
+                      onPress={() => handlePreview(c.id)}
+                      accessibilityLabel={isPlaying ? `Stop ${c.name}` : `Play ${c.name}`}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: isPlaying ? colors.accent : colors.bgEmphasis,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Text style={{ color: isPlaying ? colors.bgCanvas : colors.textOnEmphasis, fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.bodySemibold }}>
+                        {isPlaying ? "■" : "▶"}
+                      </Text>
+                    </Pressable>
+                    <View style={{ flex: 1 }}>
+                      <ChunkNameField value={c.name} onChange={(v) => handleRenameChunk(i, v)} />
+                    </View>
+                    <Text style={{ color: colors.textTertiary, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.mono }}>
+                      {c.startNoteIdx + 1}–{c.endNoteIdx + 1} ({size})
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+                    <Pressable
+                      onPress={() => setLyricEditChunkId((cur) => (cur === c.id ? null : c.id))}
+                      accessibilityLabel={lyricEditChunkId === c.id ? `Done editing lyrics for ${c.name}` : `Edit lyrics for ${c.name}`}
+                      style={{
+                        paddingHorizontal: Spacing.sm,
+                        paddingVertical: Spacing["2xs"],
+                        borderRadius: Radii.pill,
+                        borderWidth: 1,
+                        borderColor: lyricEditChunkId === c.id ? colors.accent : colors.borderSubtle,
+                        backgroundColor: lyricEditChunkId === c.id ? colors.accentMuted : colors.bgSurface,
+                      }}
+                    >
+                      <Text style={{ color: lyricEditChunkId === c.id ? colors.accent : colors.textSecondary, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium }}>
+                        {lyricEditChunkId === c.id ? "Done" : "Edit lyrics"}
+                      </Text>
+                    </Pressable>
+                  </View>
                 </View>
-                <Text style={{ color: colors.textTertiary, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.mono }}>
-                  notes {c.startNoteIdx + 1}–{c.endNoteIdx + 1} ({size})
-                </Text>
+              );
+            })}
+          </View>
+        );
+
+        const boundariesBlock = (
+          <View style={{ gap: Spacing.xs }}>
+            <Text style={{ color: colors.textTertiary, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, textTransform: "uppercase", letterSpacing: 0.6 }}>
+              Boundaries
+            </Text>
+            <ChunkDividerControls chunks={chunks} onChange={handleChunksChange} />
+          </View>
+        );
+
+        if (isDesktop) {
+          return (
+            <View style={{ flexDirection: "row", gap: Spacing.md, alignItems: "flex-start" }}>
+              {scoreBlock}
+              <View style={{ width: SIDEBAR_WIDTH, gap: Spacing.md }}>
+                {segmentsBlock}
+                {boundariesBlock}
               </View>
             </View>
           );
-        })}
-      </View>
+        }
+        return (
+          <>
+            {scoreBlock}
+            {segmentsBlock}
+            {boundariesBlock}
+          </>
+        );
+      })()}
 
-      <View style={{ gap: Spacing.xs }}>
-        <Text style={{ color: colors.textTertiary, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, textTransform: "uppercase", letterSpacing: 0.6 }}>
-          Boundaries
-        </Text>
-        <ChunkDividerControls chunks={chunks} onChange={handleChunksChange} />
-      </View>
-
-      <View style={{ gap: Spacing.xs }}>
-        <Text style={{ color: colors.textTertiary, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, textTransform: "uppercase", letterSpacing: 0.6 }}>
-          Lyrics
-        </Text>
-        <TextInput
-          value={lyrics}
-          onChangeText={(v) => { setLyrics(v); setDirty(true); setSavedMsg(null); }}
-          multiline
-          numberOfLines={6}
-          placeholder="Type or paste lyrics. Use spaces between words and hyphens within multi-syllable words (e.g. for-ev-er)"
-          placeholderTextColor={colors.textTertiary}
-          style={{
-            backgroundColor: colors.bgSurface,
-            borderRadius: Radii.md,
-            borderWidth: 1,
-            borderColor: colors.borderSubtle,
-            padding: Spacing.sm,
-            minHeight: 96,
-            color: colors.textPrimary,
-            fontFamily: Fonts.body,
-            fontSize: Typography.base.size,
-            lineHeight: Typography.base.lineHeight,
-            textAlignVertical: "top",
-          }}
-        />
-        <Text style={{ color: colors.textTertiary, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.body }}>
-          {syllableCount} syllables · {noteCount} notes — {splitsApplied} splits applied
-        </Text>
-      </View>
     </ScrollView>
   );
 }

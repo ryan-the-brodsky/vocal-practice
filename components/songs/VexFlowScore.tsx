@@ -18,6 +18,8 @@ export interface VexFlowScoreProps {
   targetRowWidth?: number;
   onBoundaryDragMove?: (boundaryIdx: number, newStartNoteIdx: number) => void;
   originalIndexMap?: number[];
+  editingChunkId?: string | null;
+  onSyllableChange?: (originalNoteIdx: number, syllable: string) => void;
 }
 
 export default function VexFlowScore(_props: VexFlowScoreProps) {

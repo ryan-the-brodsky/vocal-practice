@@ -17,6 +17,7 @@ import {
   summarizeKey,
 } from "@/components/practice";
 import { MicStatus, type MicStatusState } from "@/components/practice/MicStatus";
+import VexFlowMelodyDisplay from "@/components/practice/VexFlowMelodyDisplay";
 import { PostSessionPanel } from "@/components/practice/PostSessionPanel";
 import { createAudioPlayer, type AudioPlayer, type SequenceHandle } from "@/lib/audio";
 import {
@@ -1502,6 +1503,17 @@ function StandardModeBody({
           sing on 1
         </Text>
       </View>
+    ) : exercise.songDisplay ? (
+      <VexFlowMelodyDisplay
+        notes={exercise.songDisplay.notes}
+        tonicMidi={
+          snapshot
+            ? iterationsRef.current[snapshot.currentKeyIndex]?.tonicMidi ?? startTonicMidi ?? 60
+            : startTonicMidi ?? 60
+        }
+        timeSignature={exercise.songDisplay.timeSignature}
+        activeNoteIdx={status === "playing" && snapshot ? snapshot.currentNoteIndex : -1}
+      />
     ) : (
       <MelodyDisplay
         notes={currentKeyMelodyNotes(iterationsRef.current, snapshot, exercise, startTonicMidi)}
@@ -1871,7 +1883,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   // Desktop two-column: staff stage (flex) + fixed-width command console.
-  practiceRow: { flexDirection: "row", gap: Spacing.md, alignItems: "stretch" },
+  // alignItems: flex-start so each column takes its natural height — the
+  // staff doesn't stretch when the command console is taller (lots of chips).
+  practiceRow: { flexDirection: "row", gap: Spacing.md, alignItems: "flex-start" },
   practiceStage: { flex: 1, minWidth: 0, overflow: "hidden" },
   console: {
     width: 340,

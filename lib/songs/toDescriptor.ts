@@ -12,7 +12,7 @@
 // - scaleDegree is taken straight from ExtractedNote.scaleDegree, so a note an
 //   octave above the tonic = 12. The engine adds it to tonicMidi unchanged.
 
-import { ACCOMPANIMENT_PRESETS, type ExerciseDescriptor } from "../exercises/types";
+import { ACCOMPANIMENT_PRESETS, type ExerciseDescriptor, type VoicePart } from "../exercises/types";
 import { parseSyllables, zipSyllablesToNotes } from "./syllables";
 import { buildChunkId, type ChunkSpec, type StoredSong } from "./types";
 
@@ -50,7 +50,20 @@ export function chunkToDescriptor(song: StoredSong, chunk: ChunkSpec): ExerciseD
     restsAfter[i] = (gapMs / 1000) / beatSec;
   }
 
-  return baseDescriptor(song, chunk, scaleDegrees, durations, syllables, restsAfter);
+  // Rich-notation payload so Practice / Coaching / Guided can render this
+  // chunk through VexFlow with real durations + rests + syllables.
+  const songDisplay = {
+    notes: notes.map((n, i) => ({
+      midi: n.snappedMidi,
+      durationBeats: n.durationBeats,
+      restAfterBeats: restsAfter[i]!,
+      ...(n.syllable ? { syllable: n.syllable } : {}),
+    })),
+    timeSignature: song.timeSignature,
+  };
+
+  const desc = baseDescriptor(song, chunk, scaleDegrees, durations, syllables, restsAfter);
+  return { ...desc, songDisplay };
 }
 
 function baseDescriptor(
@@ -69,13 +82,20 @@ function baseDescriptor(
     syllables,
     noteValue: "8n", // ignored when durations is present
     tempo: song.tempoBpm,
-    voicePartRanges: {
-      [song.voicePart]: {
-        lowest: song.tonic,
-        highest: song.tonic,
-        step: 1,
-      },
-    },
+    // Songs are sung at their imported key regardless of selected voice part —
+    // user picks "Down an octave" manually if needed. Populate every voice
+    // with the same single-key range so the picker never errors out.
+    voicePartRanges: ((): Record<VoicePart, { lowest: string; highest: string; step: number }> => {
+      const range = { lowest: song.tonic, highest: song.tonic, step: 1 };
+      return {
+        soprano: range,
+        alto: range,
+        tenor: range,
+        baritone: range,
+        bass: range,
+        mezzo: range,
+      };
+    })(),
     accompaniment: ACCOMPANIMENT_PRESETS[song.accompaniment],
     direction: "ascending",
     tags: ["song", "chunk"],
