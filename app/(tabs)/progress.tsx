@@ -1,10 +1,10 @@
-// COMPONENT TEST: app/__tests__/explore.test.tsx asserts on the "Progress"
+// COMPONENT TEST: app/__tests__/progress.test.tsx asserts on the "Progress"
 // title, the "This week" summary header, the empty-state copy ("No sessions
 // yet"), exercise display names, and the "Recent sessions" / "Coach this"
 // labels + the router.push payload `{ pathname: "/coaching", params: { sessionId } }`.
 // Edits to those surfaces here MUST be mirrored in the test file or it will go red.
 import { useEffect, useState } from "react";
-import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { createAsyncStorageStore, thisWeekSummary, bestKeyPerExercise, progressForExercise, bestSessionAccuracy } from "@/lib/progress";
@@ -802,15 +802,6 @@ export default function ProgressScreen() {
             })}
           </>
         )}
-
-        <TouchableOpacity
-          onPress={() => Linking.openURL("https://forms.gle/ZKmozH8Koyq84i9J8")}
-          style={{ alignSelf: "center", marginTop: Spacing.lg, paddingVertical: Spacing.xs }}
-        >
-          <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.accent }}>
-            Send feedback ↗
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
 
       {/* Edit Routine Modal */}

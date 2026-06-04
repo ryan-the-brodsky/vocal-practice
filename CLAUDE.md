@@ -64,11 +64,12 @@ lib/music/keySignature.ts                # major-key signature derivation (circl
 assets/fonts/BravuraText.{otf,woff2}     # SMuFL music notation font (SIL OFL); WOFF2 for web (Chrome rejects Bravura's OTF), OTF for iOS native
 metro.config.js                          # extends Expo defaults to register woff2 as a Metro asset extension
 components/practice/                     # GuidedSession, CoachingBanner, TuningMeter, NoteChip, etc.
-components/practice/TodayRoutineCard.tsx # routine card. compact-collapsed: "TODAY'S ROUTINE" eyebrow + status + next-up line + dot bar + "Show all ⌄" pill + Edit. compact-expanded: header (Edit + collapse-chevron) + per-item rows (chevron-right when onItemPress) + "Edit routine — add or swap exercises" footer. non-compact (Progress): header (Edit) + rows. Practice's Edit deep-links to /explore?editRoutine=1, which auto-opens the editor modal (param then cleared via router.setParams).
+components/practice/TodayRoutineCard.tsx # routine card. compact-collapsed: "TODAY'S ROUTINE" eyebrow + status + next-up line + dot bar + "Show all ⌄" pill + Edit. compact-expanded: header (Edit + collapse-chevron) + per-item rows (chevron-right when onItemPress) + "Edit routine — add or swap exercises" footer. non-compact (Progress): header (Edit) + rows. Practice's Edit deep-links to /progress?editRoutine=1, which auto-opens the editor modal (param then cleared via router.setParams).
 app/(tabs)/_layout.tsx        # Tab bar — dark "brass bookmark": bgEmphasis (#2c2118) bar, active tab amber (accentOnEmphasis) on a faint amber pill, inactive dim-cream (textOnEmphasisDim). Custom TabBarButton wraps each tab in the pill + carries the iOS haptic. Responsive position: `tabBarPosition` = 'top' when window width ≥768 px (desktop/iPad), 'bottom' below — react-navigation draws the hairline divider on the correct edge and adds the matching safe-area inset, so the explicit height is content-height + that inset.
 app/(tabs)/index.tsx          # Practice screen. Desktop ≥1024px: command console (Start + starting-key + Reset + Exercise + Voice + Session Settings, all in one card) on the LEFT, staff card on the RIGHT, one row. <1024px: stacked. Pickers+settings live in the shared <PracticeControls> component.
 app/(tabs)/coaching.tsx       # Coaching screen — diagnosis, your-version playback, retry, multi-mistake iteration
-app/(tabs)/explore.tsx        # Progress tab — weekly summary, exercise list, recent sessions
+app/(tabs)/progress.tsx       # Progress tab (route /progress) — weekly summary, exercise list, recent sessions
+components/FeedbackButton.tsx  # Floating bottom-right "Feedback" pill, mounted once in app/_layout.tsx over every screen; opens the Google Form via Linking.openURL. Lifts above the bottom tab bar on <768px layouts.
 
 # Test infrastructure (PRs 1–2 of automated-testing slice, 2026-05-09 → 2026-05-10)
 test/setup-component.ts       # installFakeAudio() + installFakePitch() helpers; Reanimated/AsyncStorage/Haptics/Tone/@expo/vector-icons mocks (vector-icons mocked because MaterialIcons calls Font.loadAsync on mount → blows up in jsdom)
@@ -90,7 +91,7 @@ lib/__tests__/integration/engineIntegration.test.ts  # 5 fixture-driven scenario
 lib/exercises/__tests__/engine.rests.test.ts   # 5 tests — descriptor restsAfter shifts onsets, emits "rest" NoteEvent, defensive length mismatch, scorer-target filter unaffected
 # PR 4 component-test scaffolding (added 2026-05-10):
 app/__tests__/coaching.test.tsx           # 3 cases — flat-session diagnosis + bookmark persistence + error states
-app/__tests__/explore.test.tsx            # 3 cases — weekly summary + recent-session "Coach this" router.push
+app/__tests__/progress.test.tsx           # 3 cases — weekly summary + recent-session "Coach this" router.push
 app/__tests__/practice.test.tsx           # describe.skip — Practice deferred until UX audits stabilize the screen
 .github/workflows/test.yml                # typecheck + jest CI (Playwright e2e lands in PR 5)
 ```
@@ -117,7 +118,7 @@ ExerciseDescriptor + voicePart → `planExercise()` → `KeyIteration[]` → `fl
 - Karaoke syllable strip (active scaled 2× and underlined), per-key summaries + per-note chip strips (Standard) — but no real-time pitch readout / tuning meter on the Practice screen (deliberately removed; see above)
 - **Guided mode**: hold-and-match per-note with configurable threshold (±25/50/75/100¢). On pattern complete, a per-note results breakdown shows the best cents achieved on each syllable in the pattern (color-coded vs threshold) — review surface, not live feedback.
 - **Coaching screen** (`coaching.tsx`): diagnoses the most-glaring or most-consistent mistake, plays "Correct version" / "Your version" (Hz substitution into the sequence), single-key retry with live scoring, "Find next mistake" iteration, child-session persistence
-- **Progress tab** (`explore.tsx`): Today's routine card at top (configurable, 4 defaults, edit modal) → weekly summary card → per-exercise list (last-practiced + best key + best-ever% + tap-to-expand sparkline trend) → recent sessions list (last 20, each tap-to-expand into per-note breakdown chips + "Coach this" button that loads the historical session into coaching via `?sessionId=` route param). Vanilla View-based sparkline; no chart library. Empty state for no data.
+- **Progress tab** (`progress.tsx`, route `/progress`): Today's routine card at top (configurable, 4 defaults, edit modal) → weekly summary card → per-exercise list (last-practiced + best key + best-ever% + tap-to-expand sparkline trend) → recent sessions list (last 20, each tap-to-expand into per-note breakdown chips + "Coach this" button that loads the historical session into coaching via `?sessionId=` route param). Vanilla View-based sparkline; no chart library. Empty state for no data.
 - **Opt-in logging** for Standard sessions: "Log session" with optional note / "Discard" UI after each session ends. Coaching child sessions still auto-save.
 - Session persistence: SessionRecord at `vocal-training:sessions:v1` (AsyncStorage); coaching child sessions linked via `parentSessionId`. Routine config at `vocal-training:routine:v1`.
 - Stop button cancels pending audio events on both platforms

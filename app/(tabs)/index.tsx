@@ -749,7 +749,7 @@ export default function PracticeScreen() {
           compact
           routine={activeRoutine}
           status={routineStatus}
-          onPressEdit={() => router.push("/explore?editRoutine=1")}
+          onPressEdit={() => router.push("/progress?editRoutine=1")}
           onItemPress={status === "idle" ? handleExerciseChange : undefined}
         />
       )}

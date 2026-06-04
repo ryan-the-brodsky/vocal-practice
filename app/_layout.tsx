@@ -16,10 +16,11 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { Colors } from '@/constants/theme';
+import FeedbackButton from '@/components/FeedbackButton';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -74,12 +75,15 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={navTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        <Stack.Screen name="coaching-saved" options={{ headerShown: false }} />
-        <Stack.Screen name="song-editor" options={{ headerShown: false }} />
-      </Stack>
+      <View style={{ flex: 1 }}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          <Stack.Screen name="coaching-saved" options={{ headerShown: false }} />
+          <Stack.Screen name="song-editor" options={{ headerShown: false }} />
+        </Stack>
+        <FeedbackButton />
+      </View>
       <StatusBar style="auto" />
     </ThemeProvider>
   );

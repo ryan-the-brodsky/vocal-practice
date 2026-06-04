@@ -1,5 +1,5 @@
 // ProgressScreen integration: pre-seed AsyncStorage with sessions across 3
-// exercises, render explore.tsx, assert that the weekly summary, exercise list,
+// exercises, render progress.tsx, assert that the weekly summary, exercise list,
 // and recent-sessions list render — then expand a session row and assert that
 // "Coach this" calls router.push with the session id.
 
@@ -7,7 +7,7 @@ import React from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import ProgressScreen from "@/app/(tabs)/explore";
+import ProgressScreen from "@/app/(tabs)/progress";
 import { getMockRouter } from "@/test/setup-component";
 import { seedSessionRecord } from "@/test/fixtures/sessions";
 
