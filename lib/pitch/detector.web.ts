@@ -1,6 +1,9 @@
-// Web pitch detector: getUserMedia → AnalyserNode → pitchy (MPM) → PitchPostprocessor
-// Uses requestAnimationFrame for the polling loop; AudioContext is lazy-created on start()
-// to comply with autoplay policy (must be called after a user gesture).
+// Web pitch detector: getUserMedia → pitchy (MPM) → PitchPostprocessor.
+// Detection is driven by an AudioWorklet whose process() runs on the audio
+// rendering thread, so sampling keeps going when the tab is backgrounded
+// (requestAnimationFrame is paused for hidden tabs — the old loop froze there).
+// A RAF/AnalyserNode loop remains as a fallback for browsers without AudioWorklet.
+// AudioContext is lazy-created on start() to comply with autoplay policy.
 
 import { PitchDetector as PitchyDetector } from "pitchy";
 import type {
@@ -10,6 +13,22 @@ import type {
   PitchSample,
 } from "./detector";
 import { PitchPostprocessor } from "./postprocess";
+
+// Worklet that forwards each render quantum of mic PCM to the main thread.
+// Posting frames (not pitch results) keeps pitchy on the main thread, so the
+// existing pitchy import chain doesn't need to be bundled into the worklet.
+const CAPTURE_WORKLET_SRC = `
+class PitchCaptureProcessor extends AudioWorkletProcessor {
+  process(inputs) {
+    const input = inputs[0];
+    if (input && input[0] && input[0].length) {
+      this.port.postMessage(input[0].slice());
+    }
+    return true;
+  }
+}
+registerProcessor('pitch-capture-processor', PitchCaptureProcessor);
+`;
 
 export function createPitchDetector(opts: PitchDetectorOptions = {}): PitchDetector {
   const fftSize = opts.fftSize ?? 4096;
@@ -22,6 +41,7 @@ export function createPitchDetector(opts: PitchDetectorOptions = {}): PitchDetec
 
   let audioContext: AudioContext | null = null;
   let stream: MediaStream | null = null;
+  let workletNode: AudioWorkletNode | null = null;
   let rafId: number | null = null;
   let active = false;
 
@@ -31,10 +51,13 @@ export function createPitchDetector(opts: PitchDetectorOptions = {}): PitchDetec
   let captureChunks: Float32Array[] = [];
   let captureSampleRate = 0;
 
-  // Reuse a single Float32Array for the time-domain buffer (allocated after start()).
-  // Explicit ArrayBuffer (not SharedArrayBuffer) so DOM types match.
+  // Rolling time-domain window (most recent fftSize samples) + the hop counter
+  // that throttles detection to ~60 Hz to match the cadence the postprocessor
+  // was tuned against. Explicit ArrayBuffer (not SharedArrayBuffer) for DOM types.
   let timeDomainBuf: Float32Array<ArrayBuffer> | null = null;
   let pitchyDetector: PitchyDetector<Float32Array> | null = null;
+  let hopSamples = 0;
+  let samplesSinceEmit = 0;
 
   function emit(sample: PitchSample): void {
     listeners.forEach((fn) => fn(sample));
@@ -49,18 +72,40 @@ export function createPitchDetector(opts: PitchDetectorOptions = {}): PitchDetec
     return Math.sqrt(sum / buf.length);
   }
 
-  function poll(analyser: AnalyserNode): void {
-    if (!active) return;
-
-    analyser.getFloatTimeDomainData(timeDomainBuf!);
+  // Run one detection over the current fftSize window and emit the result.
+  function runDetection(): void {
     const [rawHz, clarity] = pitchyDetector!.findPitch(
       timeDomainBuf!,
       audioContext!.sampleRate   // read dynamically — Safari may use 48 kHz
     );
     const rms = computeRms(timeDomainBuf!);
-    const sample = postprocessor.push(rawHz, clarity, rms, performance.now());
-    emit(sample);
+    emit(postprocessor.push(rawHz, clarity, rms, performance.now()));
+  }
 
+  // AudioWorklet path: append the incoming quantum to the rolling window, then
+  // detect once we've accumulated a hop's worth of new samples.
+  function onWorkletFrame(frame: Float32Array): void {
+    if (!active) return;
+    const n = frame.length;
+    if (n >= fftSize) {
+      timeDomainBuf!.set(frame.subarray(n - fftSize));
+    } else {
+      timeDomainBuf!.copyWithin(0, n);
+      timeDomainBuf!.set(frame, fftSize - n);
+    }
+    samplesSinceEmit += n;
+    if (samplesSinceEmit >= hopSamples) {
+      samplesSinceEmit -= hopSamples;
+      runDetection();
+    }
+  }
+
+  // Fallback path: poll the AnalyserNode via requestAnimationFrame (frozen when
+  // the tab is hidden, but only reached when AudioWorklet is unavailable).
+  function poll(analyser: AnalyserNode): void {
+    if (!active) return;
+    analyser.getFloatTimeDomainData(timeDomainBuf!);
+    runDetection();
     rafId = requestAnimationFrame(() => poll(analyser));
   }
 
@@ -80,13 +125,9 @@ export function createPitchDetector(opts: PitchDetectorOptions = {}): PitchDetec
       });
 
       const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = fftSize;
-      analyser.smoothingTimeConstant = 0; // pitchy does its own smoothing
-      source.connect(analyser);
 
       // Raw capture: tap the same source with a continuous ScriptProcessor so
-      // every sample is recorded gap-free (the RAF analyser read overlaps/skips).
+      // every sample is recorded gap-free.
       if (rawCaptureEnabled) {
         captureChunks = [];
         captureSampleRate = audioContext.sampleRate;
@@ -106,12 +147,34 @@ export function createPitchDetector(opts: PitchDetectorOptions = {}): PitchDetec
       // Allocate against ArrayBuffer (not SharedArrayBuffer) so DOM type matches.
       timeDomainBuf = new Float32Array(new ArrayBuffer(fftSize * 4));
       pitchyDetector = PitchyDetector.forFloat32Array(fftSize);
+      hopSamples = Math.max(1, Math.round(audioContext.sampleRate / 60));
+      samplesSinceEmit = 0;
 
       postprocessor.reset();
       postprocessor.setStartTime(performance.now());
-
       active = true;
-      rafId = requestAnimationFrame(() => poll(analyser));
+
+      if (audioContext.audioWorklet) {
+        const blob = new Blob([CAPTURE_WORKLET_SRC], { type: "application/javascript" });
+        const url = URL.createObjectURL(blob);
+        try {
+          await audioContext.audioWorklet.addModule(url);
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+        workletNode = new AudioWorkletNode(audioContext, "pitch-capture-processor");
+        workletNode.port.onmessage = (e) => onWorkletFrame(e.data as Float32Array);
+        source.connect(workletNode);
+        // Connect to destination so the node is pulled; process() writes no
+        // output, so the graph stays silent (no mic echo).
+        workletNode.connect(audioContext.destination);
+      } else {
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = fftSize;
+        analyser.smoothingTimeConstant = 0; // pitchy does its own smoothing
+        source.connect(analyser);
+        rafId = requestAnimationFrame(() => poll(analyser));
+      }
     },
 
     async stop(): Promise<void> {
@@ -121,6 +184,12 @@ export function createPitchDetector(opts: PitchDetectorOptions = {}): PitchDetec
       if (rafId !== null) {
         cancelAnimationFrame(rafId);
         rafId = null;
+      }
+
+      if (workletNode) {
+        workletNode.port.onmessage = null;
+        workletNode.disconnect();
+        workletNode = null;
       }
 
       // Disconnect the capture tap before closing the context. captureChunks /
@@ -139,6 +208,7 @@ export function createPitchDetector(opts: PitchDetectorOptions = {}): PitchDetec
 
       timeDomainBuf = null;
       pitchyDetector = null;
+      samplesSinceEmit = 0;
       postprocessor.reset();
     },
 
