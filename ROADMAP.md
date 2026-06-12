@@ -63,10 +63,10 @@ Personal vocal-warmup app. Goal: pitch detection + accuracy scoring with piano a
 - `lib/progress/stats.ts`: `summarizeSessions`, `progressForExercise` (trend, best-key), `thisWeekSummary`, `bestKeyPerExercise`, `rollingAccuracy` — all implemented and now surfaced via the Progress tab.
 
 ### Voice Parts
-- All 8 exercises define ranges for soprano, alto, tenor, baritone. Voice picker in `app/(tabs)/index.tsx` shows all four (`VOICE_PARTS = ["soprano", "alto", "tenor", "baritone"]`). Per-exercise tonic memory keys by `${exerciseId}|${voicePart}`, so each voice part has its own remembered tonic position.
+- All 9 exercises define ranges for soprano, alto, tenor, baritone. Voice picker in `app/(tabs)/index.tsx` shows all four (`VOICE_PARTS = ["soprano", "alto", "tenor", "baritone"]`). Per-exercise tonic memory keys by `${exerciseId}|${voicePart}`, so each voice part has its own remembered tonic position.
 - Pedagogically tuned ranges peak at typical warmup levels per voice: soprano A5 (narrow-span) / A5 (octave-span); alto E5 / D5; tenor C5 / A4; baritone F#4 / F#4. Rossini lip trill goes higher (SOVT-relaxed). Baritone passaggio crossings are tighter than tenor's by design.
 - Validator (`lib/music/voiceRanges.ts`) enforces: (a) every descriptor defines all 4 parts; (b) no two voice-part ranges within a descriptor are byte-identical; (c) ranges follow soprano > alto > tenor > baritone by lowest tonic; (d) sung pitches stay within each voice's anatomical limits with SOVT overshoot allowance; (e) the highest tonic iteration crosses the passaggio (catches off-by-octave bugs).
-- **Native sample-cap caveat:** all 8 soprano configurations peak at A5 (MIDI 81), 3 semitones above the bundled Salamander pitch-shift cap of F#5 (MIDI 78). Audible only on iOS native — web's full Salamander CDN handles up to C8. Snapshot test in `voiceRanges.test.ts` locks the known list of out-of-cap entries so a regression is visible in PR diffs. Resolution: bundle a C6 Salamander sample in `assets/salamander/` to extend native coverage.
+- **Native sample-cap caveat:** 8 of 9 soprano configurations peak at A5 (MIDI 81), 3 semitones above the bundled Salamander pitch-shift cap of F#5 (MIDI 78). Audible only on iOS native — web's full Salamander CDN handles up to C8. Snapshot test in `voiceRanges.test.ts` locks the known list of out-of-cap entries so a regression is visible in PR diffs. Resolution: bundle a C6 Salamander sample in `assets/salamander/` to extend native coverage.
 
 ### Notation
 - **MelodyDisplay** (`components/practice/MelodyDisplay.tsx`): SVG staff (5 lines) + noteheads aligned in shared columns above the syllable strip, replacing the bare syllable list on Practice / Guided / Coaching surfaces. Clef chosen per-render from mean MIDI (≥60 → treble with bottom line E4, else bass with bottom line G2). Ledger lines for notes outside the staff. Uses `react-native-svg` (web + native). Syllable font sizes bumped one Typography tier in `SyllableDisplay.tsx`.
@@ -85,7 +85,7 @@ Personal vocal-warmup app. Goal: pitch detection + accuracy scoring with piano a
 - 7 smoke tests verify the wiring (5 unit + 2 component); 28 keySignature tests landed alongside the staff-notation work.
 
 ### Exercise Library
-- 8 JSON descriptors in `data/exercises/`: Rossini lip trill, five-note scale (mee-may-mah), Goog octave arpeggio, Nay 1-3-5-3-1, Ng siren, octave leap (wow), staccato arpeggio, descending 5-to-1. Matches the PRD's recommended v1 set.
+- 9 JSON descriptors in `data/exercises/`: Rossini lip trill, five-note scale (mee-may-mah), Goog octave arpeggio, Nay 1-3-5-3-1, Ng siren, octave leap (wow), staccato arpeggio, descending 5-to-1 (the PRD's recommended v1 set), plus user-defined Head Voice Vwohm (6-4, 4-1 descending slides on vwo/ohm; first built-in to use per-note `durations` + `restsAfter`).
 
 ### Platform Support
 - Web: fully working. SPA only (`web.output: "single"` due to tslib SSR bug — not worth fixing for personal use).
@@ -93,8 +93,8 @@ Personal vocal-warmup app. Goal: pitch detection + accuracy scoring with piano a
 
 ### Gaps
 - iOS dev build not yet generated; Salamander player + native pitch detector both unvalidated on a real device.
-- iOS native pitch-shift cap is F#5 (sample C5 + 6 semitones); soprano warmups peak at A5 across all 8 exercises and would exhibit artifacts on iOS until a C6 Salamander sample is bundled in `assets/salamander/`. Web is unaffected (full CDN range).
-- No standalone Library tab (Progress tab covers history + best-key but not a pedagogy-first browser of all 8 exercises).
+- iOS native pitch-shift cap is F#5 (sample C5 + 6 semitones); soprano warmups peak at A5 across 8 of the 9 exercises and would exhibit artifacts on iOS until a C6 Salamander sample is bundled in `assets/salamander/`. Web is unaffected (full CDN range).
+- No standalone Library tab (Progress tab covers history + best-key but not a pedagogy-first browser of all 9 exercises).
 - No session prune/delete — AsyncStorage accumulates indefinitely (coaching saved-tips list also grows unboundedly).
 - pitchy MPM octave errors (sub-harmonic on chesty notes, second-harmonic up high) are now tolerated by *scoring* (`align.ts` octave-aware match + snap), but the live "YOU" readout still shows the raw octave-erred pitch, and the postprocessor's octave-jump constraint can anchor a note's median at a sub-harmonic if the first stable frame lands there. See CLAUDE.md "Known limitations" for candidate follow-ups.
 - Web still depends on the external Salamander CDN; native is bundled but web is not.
@@ -161,14 +161,14 @@ The data model and stat functions exist; this milestone surfaces them.
 | Per-exercise trend (text-based) | `rollingAccuracy` and `progressForExercise` wired to expandable date/accuracy table per exercise | M | shipped (text table; no chart library) |
 | Best-key badge per exercise | `bestKeyPerExercise` shown on each exercise row | S | shipped |
 | Weekly summary card | `thisWeekSummary` shown at top of Progress tab | S | shipped |
-| Library tab (exercise browser) | Standalone tab listing all 8 exercises with pedagogy description, tags, PRD reference — distinct from Progress's "what you've practiced" framing | S | open |
+| Library tab (exercise browser) | Standalone tab listing all 9 exercises with pedagogy description, tags, PRD reference — distinct from Progress's "what you've practiced" framing | S | open |
 | Per-exercise trend chart (visual) | Text table works; a real line/bar chart would be more glanceable | M | open |
 | Session deletion / prune policy | AsyncStorage sessions accumulate indefinitely | S | open |
 | Coaching deep-link from session history | Tap a past session → jump into a coaching session against its weakest note | S | open |
 
 ### M4: Pedagogy Expansion
 
-PRD defines 18 exercises; 8 are shipped. This milestone closes the gap and adds practice modalities.
+PRD defines 18 exercises; 8 are shipped (a 9th built-in, Head Voice Vwohm, is user-defined rather than from the PRD). This milestone closes the gap and adds practice modalities.
 
 | Item | Why | Size | Status |
 |---|---|---|---|

@@ -8,6 +8,7 @@ export const EXERCISE_NAMES: Record<string, string> = {
   "staccato-arpeggio": "Staccato Arpeggio",
   "goog-octave-arpeggio": "Goog Octave Arpeggio",
   "nay-1-3-5-3-1": "Nay 1-3-5-3-1",
+  "head-voice-vwohm": "Head Voice Vwohm",
 };
 
 export function exerciseName(id: string): string {

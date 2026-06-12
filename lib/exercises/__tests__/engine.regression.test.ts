@@ -3,9 +3,13 @@ import { planExercise, flattenIterations } from "../engine";
 import { noteValueToSeconds } from "../music";
 import type { ExerciseDescriptor, NoteEvent, VoicePart } from "../types";
 
-// Regression guard for the durations? schema extension. The 8 bundled
-// descriptors do not declare durations, so they exercise the fallback path —
-// the resulting NoteEvent stream must match the pre-extension behaviour.
+// Regression guard for the durations? schema extension. Bundled descriptors
+// without durations exercise the fallback path — the resulting NoteEvent
+// stream must match the pre-extension behaviour. head-voice-vwohm opts into
+// durations + restsAfter, so it is excluded from the parity suite (the
+// snapshot suite below still locks its event stream).
+
+const uniformExercises = exerciseLibrary.filter((ex) => !ex.durations);
 
 function eachVoicePart(ex: ExerciseDescriptor): VoicePart[] {
   return Object.keys(ex.voicePartRanges) as VoicePart[];
@@ -16,14 +20,13 @@ function approxEq(a: number, b: number, eps = 1e-9) {
 }
 
 describe("engine durations fallback — pre-extension parity", () => {
-  test("the 8 bundled descriptors do not declare durations", () => {
-    expect(exerciseLibrary).toHaveLength(8);
-    for (const ex of exerciseLibrary) {
-      expect(ex.durations).toBeUndefined();
-    }
+  test("only head-voice-vwohm declares durations", () => {
+    expect(exerciseLibrary).toHaveLength(9);
+    const withDurations = exerciseLibrary.filter((ex) => ex.durations).map((ex) => ex.id);
+    expect(withDurations).toEqual(["head-voice-vwohm"]);
   });
 
-  for (const ex of exerciseLibrary) {
+  for (const ex of uniformExercises) {
     for (const voicePart of eachVoicePart(ex)) {
       test(`${ex.id} (${voicePart}): melody onsets and durations match uniform noteValue`, () => {
         const noteSec = noteValueToSeconds(ex.noteValue, ex.tempo);
@@ -114,7 +117,7 @@ describe("engine durations override — opt-in path", () => {
   });
 });
 
-describe("engine event-stream snapshot — locks all 8 descriptors", () => {
+describe("engine event-stream snapshot — locks every bundled descriptor", () => {
   // Round to 6 decimals so float drift across machines doesn't trip the snapshot.
   function round(n: number): number {
     return Math.round(n * 1e6) / 1e6;
