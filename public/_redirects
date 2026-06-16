@@ -1,0 +1,4 @@
+# SPA fallback for Expo Router (web.output: "single").
+# Serve index.html for any deep route so direct-load / refresh on
+# /progress, /coaching, etc. doesn't 404. 200 = rewrite, not redirect.
+/*    /index.html   200
