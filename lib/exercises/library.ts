@@ -16,6 +16,7 @@ import staccatoArpeggio from '../../data/exercises/staccato-arpeggio.json';
 import googOctaveArpeggio from '../../data/exercises/goog-octave-arpeggio.json';
 import nay13531 from '../../data/exercises/nay-1-3-5-3-1.json';
 import headVoiceVwohm from '../../data/exercises/head-voice-vwohm.json';
+import bubMixVoice from '../../data/exercises/bub-mix-voice.json';
 
 export const exerciseLibrary: ExerciseDescriptor[] = [
   rossiniLipTrill as ExerciseDescriptor,
@@ -27,6 +28,7 @@ export const exerciseLibrary: ExerciseDescriptor[] = [
   googOctaveArpeggio as ExerciseDescriptor,
   nay13531 as ExerciseDescriptor,
   headVoiceVwohm as ExerciseDescriptor,
+  bubMixVoice as ExerciseDescriptor,
 ];
 
 export function getExercise(id: string): ExerciseDescriptor | undefined {

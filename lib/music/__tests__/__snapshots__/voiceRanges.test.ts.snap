@@ -2,6 +2,7 @@
 
 exports[`Library audit — every shipped exercise has sensible ranges warns when peaks exceed the native Salamander pitch-shift cap of F#5 (MIDI 78) 1`] = `
 [
+  "bub-mix-voice soprano: peaks at MIDI 81 (above native cap 78 = F#5)",
   "descending-five-to-one-nay soprano: peaks at MIDI 81 (above native cap 78 = F#5)",
   "five-note-scale-mee-may-mah soprano: peaks at MIDI 81 (above native cap 78 = F#5)",
   "goog-octave-arpeggio soprano: peaks at MIDI 81 (above native cap 78 = F#5)",

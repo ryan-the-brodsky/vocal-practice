@@ -85,7 +85,7 @@ Personal vocal-warmup app. Goal: pitch detection + accuracy scoring with piano a
 - 7 smoke tests verify the wiring (5 unit + 2 component); 28 keySignature tests landed alongside the staff-notation work.
 
 ### Exercise Library
-- 9 JSON descriptors in `data/exercises/`: Rossini lip trill, five-note scale (mee-may-mah), Goog octave arpeggio, Nay 1-3-5-3-1, Ng siren, octave leap (wow), staccato arpeggio, descending 5-to-1 (the PRD's recommended v1 set), plus user-defined Head Voice Vwohm (6-4, 4-1 descending slides on vwo/ohm; first built-in to use per-note `durations` + `restsAfter`).
+- 10 JSON descriptors in `data/exercises/`: Rossini lip trill, five-note scale (mee-may-mah), Goog octave arpeggio, Nay 1-3-5-3-1, Ng siren, octave leap (wow), staccato arpeggio, descending 5-to-1 (the PRD's recommended v1 set), plus user-defined Head Voice Vwohm (6-4, 4-1 descending slides on vwo/ohm; first built-in to use per-note `durations` + `restsAfter`) and Bub Mix Voice (8-5-3-1 descending arpeggio on "bub", keys ascend then descend for mix coordination).
 
 ### Platform Support
 - Web: fully working. SPA only (`web.output: "single"` due to tslib SSR bug — not worth fixing for personal use).
@@ -168,7 +168,7 @@ The data model and stat functions exist; this milestone surfaces them.
 
 ### M4: Pedagogy Expansion
 
-PRD defines 18 exercises; 8 are shipped (a 9th built-in, Head Voice Vwohm, is user-defined rather than from the PRD). This milestone closes the gap and adds practice modalities.
+PRD defines 18 exercises; 8 are shipped (two more built-ins, Head Voice Vwohm and Bub Mix Voice, are user-defined rather than from the PRD). This milestone closes the gap and adds practice modalities.
 
 | Item | Why | Size | Status |
 |---|---|---|---|

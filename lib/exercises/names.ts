@@ -9,6 +9,7 @@ export const EXERCISE_NAMES: Record<string, string> = {
   "goog-octave-arpeggio": "Goog Octave Arpeggio",
   "nay-1-3-5-3-1": "Nay 1-3-5-3-1",
   "head-voice-vwohm": "Head Voice Vwohm",
+  "bub-mix-voice": "Bub Mix Voice",
 };
 
 export function exerciseName(id: string): string {
