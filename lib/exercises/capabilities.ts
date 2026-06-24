@@ -9,8 +9,9 @@ export type Capability =
   | "warmup-sovt"
   | "onset"
   | "resonance"
+  | "chest-voice"
   | "mix"
-  | "range-passaggio"
+  | "head-voice"
   | "agility"
   | "dynamics"
   | "vibrato"
@@ -49,40 +50,46 @@ export const CAPABILITIES: readonly CapabilityMeta[] = [
     order: 3,
   },
   {
-    id: "mix",
-    label: "Mix & Registration",
-    blurb: "Blend chest and head into one connected voice through the bridge — no flip, no strain.",
+    id: "chest-voice",
+    label: "Chest Voice",
+    blurb: "Build a strong, connected chest register — full, grounded low notes that carry without pushing.",
     order: 4,
   },
   {
-    id: "range-passaggio",
-    label: "Range & Passaggio",
-    blurb: "Navigate the bridge and extend your range smoothly into head voice.",
+    id: "mix",
+    label: "Mix & Registration",
+    blurb: "Blend chest and head into one connected voice through the bridge — no flip, no strain.",
     order: 5,
+  },
+  {
+    id: "head-voice",
+    label: "Head Voice",
+    blurb: "Free and strengthen your upper register, and bridge into it smoothly without flipping or straining.",
+    order: 6,
   },
   {
     id: "agility",
     label: "Agility & Runs",
     blurb: "Fast, accurate scales and arpeggios that build the control behind runs and riffs.",
-    order: 6,
+    order: 7,
   },
   {
     id: "dynamics",
     label: "Dynamics & Control",
     blurb: "Swell and soften on a held note — messa di voce and volume control for expressive phrasing.",
-    order: 7,
+    order: 8,
   },
   {
     id: "vibrato",
     label: "Vibrato",
     blurb: "Free up an even, natural vibrato — and the control to turn it on and off at will.",
-    order: 8,
+    order: 9,
   },
   {
     id: "style",
     label: "Belt & Style",
     blurb: "Twang, belt, and riff-and-run coordination for contemporary and theatrical singing.",
-    order: 9,
+    order: 10,
   },
 ];
 

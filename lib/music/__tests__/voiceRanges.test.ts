@@ -87,11 +87,14 @@ describe("Library audit — every shipped exercise has sensible ranges", () => {
   // check the same way SOVT does, keyed by ID (not tag) so it can't silently
   // hide a real range bug in a normal exercise.
   const SUSTAIN_EXERCISE_IDS = new Set(["straight-tone-vibrato", "messa-di-voce"]);
+  // Chest-voice exercises intentionally sit in the lower register (below the
+  // passaggio) — strengthening chest, not crossing the bridge. Same relaxation.
+  const CHEST_EXERCISE_IDS = new Set(["chest-voice-mum", "chest-descent-mah"]);
 
   it("every voice-part range is anatomically plausible for its voice", () => {
     const allIssues: string[] = [];
     for (const desc of exerciseLibrary) {
-      const relaxed = SOVT_EXERCISE_IDS.has(desc.id) || SUSTAIN_EXERCISE_IDS.has(desc.id);
+      const relaxed = SOVT_EXERCISE_IDS.has(desc.id) || SUSTAIN_EXERCISE_IDS.has(desc.id) || CHEST_EXERCISE_IDS.has(desc.id);
       const issues = validateDescriptorRanges(desc as DescriptorLike, { sovt: relaxed });
       for (const issue of issues) {
         if (relaxed && issue.kind === "below") continue;

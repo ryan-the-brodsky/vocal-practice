@@ -1,0 +1,25 @@
+{
+  "id": "chest-descent-mah",
+  "name": "Chest Descent Mah",
+  "pedagogy": "A descending 5-4-3-2-1 on an open 'mah' that strengthens the bottom of your range. Releasing down into chest with a full, supported tone trains a confident low register without weight or strain. Let each note settle rather than reaching for it.",
+  "capability": "chest-voice",
+  "scaleDegrees": [7, 5, 4, 2, 0],
+  "syllables": ["mah", "mah", "mah", "mah", "mah"],
+  "noteValue": "4n",
+  "tempo": 96,
+  "voicePartRanges": {
+    "soprano": { "lowest": "C4", "highest": "A4", "step": 1 },
+    "alto": { "lowest": "A3", "highest": "D4", "step": 1 },
+    "tenor": { "lowest": "D3", "highest": "A3", "step": 1 },
+    "baritone": { "lowest": "C3", "highest": "F#3", "step": 1 }
+  },
+  "accompaniment": {
+    "pattern": "blockChordOnDownbeat",
+    "doubleMelody": false,
+    "cueType": "bell",
+    "cueDurationBeats": 1,
+    "voicing": "close"
+  },
+  "direction": "both",
+  "tags": ["chest", "lower-register", "release"]
+}

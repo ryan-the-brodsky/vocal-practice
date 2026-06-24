@@ -40,8 +40,8 @@ export const PATHWAYS: readonly Pathway[] = [
   {
     id: "open-your-range",
     name: "Open Your Range",
-    description: "Connect registers and extend smoothly through the passaggio into head voice.",
-    focus: "range-passaggio",
+    description: "Connect registers and extend smoothly through the bridge into head voice.",
+    focus: "head-voice",
     exerciseIds: [
       "ng-siren",
       "passaggio-leap-and-back",
@@ -49,6 +49,13 @@ export const PATHWAYS: readonly Pathway[] = [
       "octave-leap-wow",
       "head-voice-vwohm",
     ],
+  },
+  {
+    id: "ground-your-chest",
+    name: "Ground Your Chest",
+    description: "Build a strong, connected chest register that carries without pushing.",
+    focus: "chest-voice",
+    exerciseIds: ["chest-voice-mum", "chest-descent-mah"],
   },
   {
     id: "agility-and-release",

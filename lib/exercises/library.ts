@@ -28,6 +28,8 @@ import beltNyahDescending from '../../data/exercises/belt-nyah-descending.json';
 import highBeltWee from '../../data/exercises/high-belt-wee.json';
 import straightToneVibrato from '../../data/exercises/straight-tone-vibrato.json';
 import messaDiVoce from '../../data/exercises/messa-di-voce.json';
+import chestVoiceMum from '../../data/exercises/chest-voice-mum.json';
+import chestDescentMah from '../../data/exercises/chest-descent-mah.json';
 
 export const exerciseLibrary: ExerciseDescriptor[] = [
   rossiniLipTrill as ExerciseDescriptor,
@@ -50,6 +52,8 @@ export const exerciseLibrary: ExerciseDescriptor[] = [
   highBeltWee as ExerciseDescriptor,
   straightToneVibrato as ExerciseDescriptor,
   messaDiVoce as ExerciseDescriptor,
+  chestVoiceMum as ExerciseDescriptor,
+  chestDescentMah as ExerciseDescriptor,
 ];
 
 export function getExercise(id: string): ExerciseDescriptor | undefined {

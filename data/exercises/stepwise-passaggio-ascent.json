@@ -2,7 +2,7 @@
   "id": "stepwise-passaggio-ascent",
   "name": "Stepwise Passaggio Ascent",
   "pedagogy": "Climbs the first five scale degrees on the close vowel 'oo', walking the voice up through the bridge one step at a time. Keeping the vowel narrow lowers the first formant so the turn-over happens gradually and evenly, not as a flip. (Bozeman.)",
-  "capability": "range-passaggio",
+  "capability": "head-voice",
   "scaleDegrees": [0, 2, 4, 5, 7],
   "syllables": ["oo", "oo", "oo", "oo", "oo"],
   "noteValue": "8n",

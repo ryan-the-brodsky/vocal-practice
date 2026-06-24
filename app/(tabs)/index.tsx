@@ -845,7 +845,7 @@ export default function PracticeScreen() {
       {/* Header row: title left, compact mic-status pill right. */}
       <View style={styles.headerRow}>
         <Text style={[styles.h1, { color: colors.textPrimary, fontFamily: Fonts.displaySemibold }]}>
-          Vocal Warm-up
+          Vocal Habit
         </Text>
         <MicStatus
           compact

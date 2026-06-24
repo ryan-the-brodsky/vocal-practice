@@ -66,7 +66,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Practice',
+          // Browser-tab/document title carries the brand; the tab bar still reads "Practice".
+          title: 'Vocal Habit',
+          tabBarLabel: 'Practice',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="music.note" color={color} />,
         }}
       />

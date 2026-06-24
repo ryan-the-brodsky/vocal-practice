@@ -2,7 +2,7 @@
   "id": "passaggio-leap-and-back",
   "name": "Passaggio Leap-and-Back",
   "pedagogy": "Leaps an octave to a note above the passaggio on the close vowel 'oo', then releases back to the tonic. The close vowel keeps the first formant low so the second harmonic can pass through it smoothly — training the bridge's 'turn-over' without a hard register break. (Bozeman.)",
-  "capability": "range-passaggio",
+  "capability": "head-voice",
   "scaleDegrees": [0, 12, 0],
   "syllables": ["oo", "oo", "oo"],
   "noteValue": "4n",

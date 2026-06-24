@@ -20,6 +20,8 @@ export const EXERCISE_NAMES: Record<string, string> = {
   "high-belt-wee": "High Belt (Wee)",
   "straight-tone-vibrato": "Straight Tone → Vibrato",
   "messa-di-voce": "Messa di Voce",
+  "chest-voice-mum": "Chest Voice Mum",
+  "chest-descent-mah": "Chest Descent Mah",
 };
 
 export function exerciseName(id: string): string {
