@@ -18,6 +18,11 @@ import googOctaveArpeggio from '../../data/exercises/goog-octave-arpeggio.json';
 import nay13531 from '../../data/exercises/nay-1-3-5-3-1.json';
 import headVoiceVwohm from '../../data/exercises/head-voice-vwohm.json';
 import bubMixVoice from '../../data/exercises/bub-mix-voice.json';
+import humWarmup from '../../data/exercises/hum-warmup.json';
+import staccatoOnset from '../../data/exercises/staccato-onset.json';
+import passaggioLeapAndBack from '../../data/exercises/passaggio-leap-and-back.json';
+import stepwisePassaggioAscent from '../../data/exercises/stepwise-passaggio-ascent.json';
+import agilityRun from '../../data/exercises/agility-run.json';
 
 export const exerciseLibrary: ExerciseDescriptor[] = [
   rossiniLipTrill as ExerciseDescriptor,
@@ -30,6 +35,11 @@ export const exerciseLibrary: ExerciseDescriptor[] = [
   nay13531 as ExerciseDescriptor,
   headVoiceVwohm as ExerciseDescriptor,
   bubMixVoice as ExerciseDescriptor,
+  humWarmup as ExerciseDescriptor,
+  staccatoOnset as ExerciseDescriptor,
+  passaggioLeapAndBack as ExerciseDescriptor,
+  stepwisePassaggioAscent as ExerciseDescriptor,
+  agilityRun as ExerciseDescriptor,
 ];
 
 export function getExercise(id: string): ExerciseDescriptor | undefined {

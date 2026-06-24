@@ -25,6 +25,7 @@ export const PATHWAYS: readonly Pathway[] = [
     focus: "warmup-sovt",
     exerciseIds: [
       "rossini-lip-trill",
+      "hum-warmup",
       "nay-1-3-5-3-1",
       "five-note-scale-mee-may-mah",
     ],
@@ -41,14 +42,25 @@ export const PATHWAYS: readonly Pathway[] = [
     name: "Open Your Range",
     description: "Connect registers and extend smoothly through the passaggio into head voice.",
     focus: "range-passaggio",
-    exerciseIds: ["ng-siren", "octave-leap-wow", "head-voice-vwohm"],
+    exerciseIds: [
+      "ng-siren",
+      "passaggio-leap-and-back",
+      "stepwise-passaggio-ascent",
+      "octave-leap-wow",
+      "head-voice-vwohm",
+    ],
   },
   {
     id: "agility-and-release",
     name: "Agility & Release",
     description: "Build fast, accurate control and a relaxed descent for runs and riffs.",
     focus: "agility",
-    exerciseIds: ["staccato-arpeggio", "descending-five-to-one-nay"],
+    exerciseIds: [
+      "staccato-arpeggio",
+      "agility-run",
+      "staccato-onset",
+      "descending-five-to-one-nay",
+    ],
   },
 ];
 

@@ -1,0 +1,25 @@
+{
+  "id": "staccato-onset",
+  "name": "Staccato Onset",
+  "pedagogy": "Short, separated 'gug' onsets leaping between the tonic, its third, and its fifth. The hard 'g' sets a clean, balanced vocal-fold closure at the start of each note — the foundation of a clear, un-breathy tone — while the staccato keeps every onset crisp and independent.",
+  "capability": "onset",
+  "scaleDegrees": [0, 4, 0, 7, 0],
+  "syllables": ["gug", "gug", "gug", "gug", "gug"],
+  "noteValue": "8n",
+  "tempo": 100,
+  "voicePartRanges": {
+    "soprano": { "lowest": "F4", "highest": "D5", "step": 1 },
+    "alto": { "lowest": "C4", "highest": "A4", "step": 1 },
+    "tenor": { "lowest": "G3", "highest": "F4", "step": 1 },
+    "baritone": { "lowest": "E3", "highest": "B3", "step": 1 }
+  },
+  "accompaniment": {
+    "pattern": "blockChordOnDownbeat",
+    "doubleMelody": false,
+    "cueType": "ding",
+    "cueDurationBeats": 1,
+    "voicing": "close"
+  },
+  "direction": "both",
+  "tags": ["onset", "adduction", "staccato"]
+}

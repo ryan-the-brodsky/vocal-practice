@@ -21,7 +21,7 @@ function approxEq(a: number, b: number, eps = 1e-9) {
 
 describe("engine durations fallback — pre-extension parity", () => {
   test("only head-voice-vwohm declares durations", () => {
-    expect(exerciseLibrary).toHaveLength(10);
+    expect(exerciseLibrary).toHaveLength(15);
     const withDurations = exerciseLibrary.filter((ex) => ex.durations).map((ex) => ex.id);
     expect(withDurations).toEqual(["head-voice-vwohm"]);
   });

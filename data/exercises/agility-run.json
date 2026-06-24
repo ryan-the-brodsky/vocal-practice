@@ -1,0 +1,25 @@
+{
+  "id": "agility-run",
+  "name": "Agility Run",
+  "pedagogy": "A brisk nine-note run up and down the first five degrees on 'ah', training fast, even coordination — the control behind runs and riffs. The speed challenges pitch accuracy and steady breath flow without letting notes smear into each other.",
+  "capability": "agility",
+  "scaleDegrees": [0, 2, 4, 5, 7, 5, 4, 2, 0],
+  "syllables": ["ah", "ah", "ah", "ah", "ah", "ah", "ah", "ah", "ah"],
+  "noteValue": "8n",
+  "tempo": 144,
+  "voicePartRanges": {
+    "soprano": { "lowest": "F4", "highest": "D5", "step": 1 },
+    "alto": { "lowest": "C4", "highest": "A4", "step": 1 },
+    "tenor": { "lowest": "G3", "highest": "F4", "step": 1 },
+    "baritone": { "lowest": "E3", "highest": "B3", "step": 1 }
+  },
+  "accompaniment": {
+    "pattern": "blockChordOnDownbeat",
+    "doubleMelody": false,
+    "cueType": "bell",
+    "cueDurationBeats": 1,
+    "voicing": "close"
+  },
+  "direction": "both",
+  "tags": ["agility", "flexibility", "runs"]
+}

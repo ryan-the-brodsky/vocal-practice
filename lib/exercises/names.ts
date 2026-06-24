@@ -10,6 +10,11 @@ export const EXERCISE_NAMES: Record<string, string> = {
   "nay-1-3-5-3-1": "Nay 1-3-5-3-1",
   "head-voice-vwohm": "Head Voice Vwohm",
   "bub-mix-voice": "Bub Mix Voice",
+  "hum-warmup": "Hum Warm-Up",
+  "staccato-onset": "Staccato Onset",
+  "passaggio-leap-and-back": "Passaggio Leap-and-Back",
+  "stepwise-passaggio-ascent": "Stepwise Passaggio Ascent",
+  "agility-run": "Agility Run",
 };
 
 export function exerciseName(id: string): string {

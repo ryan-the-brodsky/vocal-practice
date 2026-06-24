@@ -12,7 +12,8 @@ From `EXERCISE_TAXONOMY_RESEARCH.md` (deep-research, adversarially verified). Tu
 - **Benefit-grouped Practice picker** — exercises now render under capability headers with their blurb + a capability badge on the selected exercise (songs + Import preserved).
 - **4 curated growth paths** (`lib/exercises/pathways.ts`, ungated): Daily Foundations, Build Your Mix, Open Your Range, Agility & Release. `PathwaysCard` on Progress shows progress (practiced/total + done-today), expands to exercises (deep-link to Practice), and "Practice this path" sets the routine.
 - **No mastery-gating** — "graduate when X" deferred until aggregate usage data can stratify it honestly; progress = streaks + completions + per-exercise accuracy.
-- **Next** (open): expand the library with evidence-grounded new exercises per category (SOVT straw/hum, mix, Bozeman passaggio family); a dedicated browse/library surface; the thin-evidence categories (dynamics, vibrato, belt/twang) need more sourcing before exercises are added.
+- **Library expanded 10 → 15** (shipped 2026-06-23): 5 evidence-grounded exercises reusing proven voice-range templates — `passaggio-leap-and-back` (1-8-1 on "oo", Bozeman, range-passaggio), `stepwise-passaggio-ascent` (1-2-3-4-5 on "oo", Bozeman, range-passaggio), `agility-run` (nine-note "ah", agility), `staccato-onset` ("gug" 1-3-1-5-1, onset), `hum-warmup` ("mmm" 1-3-5-3-1, warmup-sovt, follow-along). All slotted into pathways; validator + snapshots updated; engine parity holds.
+- **Next** (open): a dedicated browse/library surface; the thin-evidence categories (dynamics, vibrato, belt/twang) need more sourcing or a user-authored spec before exercises are added.
 
 ## Usability & Hardening Sprint — shipped 2026-06-23
 
