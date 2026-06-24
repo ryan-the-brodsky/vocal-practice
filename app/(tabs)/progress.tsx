@@ -675,19 +675,6 @@ export default function ProgressScreen() {
           onPressEdit={() => setEditModalVisible(true)}
         />
 
-        {pathConfirmation !== null && (
-          <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.success }}>
-            {pathConfirmation}
-          </Text>
-        )}
-
-        {/* Growth Paths — curated, never-gated exercise sets */}
-        <PathwaysCard
-          sessions={allSessions}
-          onPracticeExercise={handlePracticeExercise}
-          onUsePath={handleUsePath}
-        />
-
         <WeeklySummaryCard
           sessionCount={weeklySummary.count}
           meanAccuracy={weeklySummary.meanAccuracyPct}
@@ -701,13 +688,26 @@ export default function ProgressScreen() {
               Nothing logged yet
             </Text>
             <Text style={{ fontSize: Typography.lg.size, lineHeight: Typography.lg.lineHeight, fontFamily: Fonts.display, color: colors.textPrimary, marginBottom: Spacing.xs }}>
-              Sing your first warmup to start tracking.
+              Sing your first exercise to start tracking.
             </Text>
             <Text style={{ fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, fontFamily: Fonts.body, color: colors.textSecondary }}>
               After each practice you'll see your accuracy trend, best key, and weekly streak here.
             </Text>
           </View>
         )}
+
+        {pathConfirmation !== null && (
+          <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.success }}>
+            {pathConfirmation}
+          </Text>
+        )}
+
+        {/* Growth Paths — curated, never-gated exercise sets (below the core stats) */}
+        <PathwaysCard
+          sessions={allSessions}
+          onPracticeExercise={handlePracticeExercise}
+          onUsePath={handleUsePath}
+        />
 
         {(exerciseIds.length > 0 || userExercises.length > 0 || songs.length > 0) && (
           <>

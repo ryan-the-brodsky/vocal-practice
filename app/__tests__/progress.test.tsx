@@ -95,7 +95,7 @@ describe("<ProgressScreen />", () => {
     );
     render(<ProgressScreen />);
     await waitFor(() => {
-      expect(screen.getByText("Sing your first warmup to start tracking.")).toBeTruthy();
+      expect(screen.getByText("Sing your first exercise to start tracking.")).toBeTruthy();
     });
     expect(screen.getByText("Nothing logged yet")).toBeTruthy();
   });
