@@ -2,7 +2,9 @@ import * as Tone from "tone";
 import type { NoteEvent } from "../exercises/types";
 import type { AudioPlayer, LatencyInfo, NoteHandle, SequenceHandle } from "./player";
 
-const SALAMANDER_BASE = "https://tonejs.github.io/audio/salamander/";
+// Bundled in public/salamander/ (served at the site root) — no third-party CDN
+// dependency, works offline after first load. See ROADMAP "no external resources".
+const SALAMANDER_BASE = "/salamander/";
 
 const SAMPLE_MAP: Record<string, string> = {
   A1: "A1.mp3",
