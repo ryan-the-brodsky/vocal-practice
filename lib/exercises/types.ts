@@ -87,6 +87,10 @@ export interface ExerciseDescriptor {
   lockAccompaniment?: boolean;
   direction?: Direction;
   tags?: string[];
+  // Default true. Set false for SOVT/trill exercises (lip trills, etc.) whose
+  // sound defeats pitch detection — Practice runs them as an unscored follow-along
+  // (no mic, no Guided mode, completion logged without accuracy).
+  pitchDetection?: boolean;
   scoringHints?: ScoringHints;
   // Per-note durations in beats relative to descriptor.tempo. When present,
   // length must equal scaleDegrees.length and overrides noteValue.

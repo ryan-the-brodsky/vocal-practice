@@ -37,6 +37,7 @@
   },
   "lockAccompaniment": true,
   "direction": "both",
+  "pitchDetection": false,
   "tags": ["sovt", "passaggio", "range", "chest-mix"],
   "scoringHints": {
     "clarityThreshold": 0.55,

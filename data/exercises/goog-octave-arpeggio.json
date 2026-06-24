@@ -5,7 +5,7 @@
   "scaleDegrees": [0, 4, 7, 12, 7, 4, 0],
   "syllables": ["goog", "goog", "goog", "goog", "goog", "goog", "goog"],
   "noteValue": "8n",
-  "tempo": 150,
+  "tempo": 90,
   "voicePartRanges": {
     "soprano": {
       "lowest": "C4",
@@ -36,6 +36,5 @@
     "voicing": "close"
   },
   "direction": "both",
-  "tags": ["speech-level", "passaggio", "chest-mix", "head-mix"],
-  "scoringHints": { "octaveJumpFrames": 2 }
+  "tags": ["speech-level", "passaggio", "chest-mix", "head-mix"]
 }

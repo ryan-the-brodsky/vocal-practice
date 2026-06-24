@@ -15,7 +15,8 @@ HOLD-SCOPE batch from the `/plan-ceo-review` (plan at `USABILITY_HARDENING_PLAN.
 - **B2 — Desktop fill (above-the-fold-safe):** right-column "LAST TIME" panel + current-streak (`currentStreak` in `stats.ts`) + one-line "what this trains" — fills the former desktop void without pushing Start below the fold.
 - **B3 — Warm states:** Progress empty state, Coaching rotating-tip (no more "No session id provided."), decoded "Piano / Guide / Demo" settings-icon labels.
 - **C1 — Delight:** personal-best badge (`isPersonalBest`), spacebar Start/Stop + → next exercise.
-- **Deferred (flagged, not dropped):** bundle the web piano locally to drop the `tonejs.github.io` CDN (size↔quality call); fix last-key-degradation (needs a repro); **disable pitch detection per-exercise for SOVT/trill exercises** (next sprint — see below).
+- **Per-exercise pitch-detection disable + follow-along** (shipped 2026-06-23): `ExerciseDescriptor.pitchDetection?: boolean` (default true). `rossini-lip-trill` set `false` → unscored follow-along (no mic, no Guided, no meter, headphones bypassed, "not scored — match the piano" banner, "Mark done"/"Skip" completion that logs a `keyAttempts:[]` record for routine tracking). `stats.ts` excludes unscored sessions from accuracy/best/trend. `goog-octave-arpeggio` tempo 150→90 to cross the sustained detector-tuning threshold (was too fast to detect).
+- **Deferred (flagged, not dropped):** bundle the web piano locally to drop the `tonejs.github.io` CDN (size↔quality call); fix last-key-degradation (needs a repro).
 
 ---
 

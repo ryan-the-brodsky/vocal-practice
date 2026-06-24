@@ -281,6 +281,10 @@ export default function PracticeScreen() {
 
   const supportsVoicePart = exercise.voicePartRanges[voicePart] !== undefined;
 
+  // Follow-along: exercises that can't be pitch-detected (e.g. lip trills) play
+  // as an unscored guide — no mic, no scoring, no Guided mode.
+  const detectionEnabled = exercise.pitchDetection !== false;
+
   /** Map key for per-exercise tonic memory. */
   const tonicMapKey = `${exerciseId}|${voicePart}`;
 
@@ -364,6 +368,11 @@ export default function PracticeScreen() {
     }
   }, [routine, loggedSessions, exerciseId, availableExercises, status, switchExerciseTo]);
 
+  // Guided requires pitch detection — coerce to Standard for follow-along exercises.
+  useEffect(() => {
+    if (!detectionEnabled && mode === "guided") setMode("standard");
+  }, [detectionEnabled, mode]);
+
   const handleCheckMic = useCallback(async () => {
     setMicState("checking");
     const result = await sniffMicrophone(createPitchDetector);
@@ -421,7 +430,8 @@ export default function PracticeScreen() {
 
     try {
       if (!playerRef.current) playerRef.current = createAudioPlayer();
-      if (!detectorRef.current) detectorRef.current = createPitchDetector();
+      // Follow-along exercises never touch the mic — skip the detector entirely.
+      if (detectionEnabled && !detectorRef.current) detectorRef.current = createPitchDetector();
 
       await playerRef.current.init();
 
@@ -442,29 +452,32 @@ export default function PracticeScreen() {
         octaveShift,
       });
 
+      const hints = exercise.scoringHints;
       // Acquire + validate the mic before any piano plays — a dead mic should
       // surface the recovery panel, not a half-played demo. Apply detector
-      // tuning + raw capture first (both must precede start()).
-      const hints = exercise.scoringHints;
-      const noteSec = (() => {
-        try { return noteValueToSeconds(exercise.noteValue, exercise.tempo); }
-        catch { return 0.5; }
-      })();
-      const tuning = resolveDetectorTuning({ noteSec, hints });
-      detectorRef.current.setClarityThreshold(tuning.clarityThreshold);
-      detectorRef.current.setOctaveJumpFrames(tuning.octaveJumpFrames);
-      if (__DEV__ && rawCaptureEnabled) {
-        detectorRef.current.enableRawCapture?.();
+      // tuning + raw capture first (both must precede start()). Skipped for
+      // follow-along (unscored) exercises.
+      if (detectionEnabled && detectorRef.current) {
+        const noteSec = (() => {
+          try { return noteValueToSeconds(exercise.noteValue, exercise.tempo); }
+          catch { return 0.5; }
+        })();
+        const tuning = resolveDetectorTuning({ noteSec, hints });
+        detectorRef.current.setClarityThreshold(tuning.clarityThreshold);
+        detectorRef.current.setOctaveJumpFrames(tuning.octaveJumpFrames);
+        if (__DEV__ && rawCaptureEnabled) {
+          detectorRef.current.enableRawCapture?.();
+        }
+        try {
+          await detectorRef.current.start();
+        } catch (micErr: unknown) {
+          setMicErrorReason(classifyMicError(micErr));
+          await detectorRef.current.stop().catch(() => {});
+          setStatus("idle");
+          return;
+        }
+        detectorStartMsRef.current = performance.now();
       }
-      try {
-        await detectorRef.current.start();
-      } catch (micErr: unknown) {
-        setMicErrorReason(classifyMicError(micErr));
-        await detectorRef.current.stop().catch(() => {});
-        setStatus("idle");
-        return;
-      }
-      detectorStartMsRef.current = performance.now();
 
       // Demo: play first-tonic pattern once (no scoring) so user hears it.
       // Always use guidance:'full' so the demo shows the complete accompaniment
@@ -509,7 +522,7 @@ export default function PracticeScreen() {
         // If Stop was pressed during demo, bail out — the mic is already
         // running, so stop it here (handleStop set state but can't reach it).
         if (demoAbortedRef.current) {
-          await detectorRef.current.stop().catch(() => {});
+          await detectorRef.current?.stop().catch(() => {});
           return;
         }
         setStatus("loading");
@@ -523,20 +536,24 @@ export default function PracticeScreen() {
       const handle = playerRef.current.playSequence(flat.events);
       sequenceHandleRef.current = handle;
 
-      const tracker = new SessionTracker(
-        iterations,
-        flat.keyStarts,
-        audioStartMsRef.current,
-        detectorStartMsRef.current,
-        hints,
-      );
-      trackerRef.current = tracker;
+      // Follow-along plays as a guide only — no tracker, no mic subscription.
+      let tracker: SessionTracker | null = null;
+      if (detectionEnabled && detectorRef.current) {
+        tracker = new SessionTracker(
+          iterations,
+          flat.keyStarts,
+          audioStartMsRef.current,
+          detectorStartMsRef.current,
+          hints,
+        );
+        trackerRef.current = tracker;
 
-      const rmsGate = rmsGateFor(accompanimentPreset, headphonesConfirmed ?? false);
-      detectorUnsubRef.current = detectorRef.current.on((sample) => {
-        setLatestSample(sample);
-        if (sample.rmsDb >= rmsGate) tracker.pushSample(sample);
-      });
+        const rmsGate = rmsGateFor(accompanimentPreset, headphonesConfirmed ?? false);
+        detectorUnsubRef.current = detectorRef.current.on((sample) => {
+          setLatestSample(sample);
+          if (sample.rmsDb >= rmsGate) tracker!.pushSample(sample);
+        });
+      }
 
       setStatus("playing");
 
@@ -580,7 +597,7 @@ export default function PracticeScreen() {
         }
         setLeadInCountdown(countdown);
 
-        setSnapshot(tracker.getSnapshot(t));
+        if (tracker) setSnapshot(tracker.getSnapshot(t));
 
         if (p >= 1) handleStop().catch(() => {});
       }, 80);
@@ -609,7 +626,7 @@ export default function PracticeScreen() {
     handleStart,
     handleStop,
     goToNextRoutineExercise,
-    modalOpen: importModalVisible || headphonesConfirmed === null,
+    modalOpen: importModalVisible || (detectionEnabled && headphonesConfirmed === null),
   };
   useEffect(() => {
     if (Platform.OS !== "web") return;
@@ -654,6 +671,10 @@ export default function PracticeScreen() {
     const iterations = iterationsRef.current;
     trackerRef.current = null;
     iterationsRef.current = [];
+
+    // Capture completion before stopping the handle — distinguishes a natural
+    // finish (log it) from a manual Stop (discard) for follow-along sessions.
+    const wasComplete = (sequenceHandleRef.current?.getProgress() ?? 0) >= 1;
 
     setStatus("stopping");
     if (tickRef.current) clearInterval(tickRef.current);
@@ -734,6 +755,26 @@ export default function PracticeScreen() {
       } else {
         setSavedMessage("No singing detected.");
       }
+    } else if (!detectionEnabled && wasComplete && iterations.length > 0) {
+      // Follow-along: no scoring, but offer a minimal record so the warmup can
+      // be logged and the routine checks off (empty keyAttempts = unscored).
+      const id =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `s-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const record: SessionRecord = {
+        id,
+        startedAt: sessionStartMsRef.current,
+        completedAt: Date.now(),
+        exerciseId: exercise.id,
+        voicePart,
+        octaveShift,
+        tempo: exercise.tempo,
+        keyAttempts: [],
+        totalDurationMs: Date.now() - sessionStartMsRef.current,
+      };
+      setPendingSession(record);
+      setLoggedMessage(null);
     }
 
     setStatus("idle");
@@ -828,33 +869,36 @@ export default function PracticeScreen() {
         />
       )}
 
-      {/* Mode toggle */}
-      <View style={[styles.modeRow, { backgroundColor: colors.borderSubtle }]}>
-        {(["standard", "guided"] as Mode[]).map((m) => (
-          <Pressable
-            key={m}
-            onPress={() => handleSetMode(m)}
-            style={[
-              styles.modeChip,
-              mode === m && { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong },
-            ]}
-            disabled={status !== "idle"}
-          >
-            <Text
+      {/* Mode toggle — hidden for follow-along exercises (Guided needs detection). */}
+      {detectionEnabled && (
+        <View style={[styles.modeRow, { backgroundColor: colors.borderSubtle }]}>
+          {(["standard", "guided"] as Mode[]).map((m) => (
+            <Pressable
+              key={m}
+              onPress={() => handleSetMode(m)}
               style={[
-                styles.modeChipText,
-                { color: mode === m ? colors.textPrimary : colors.textSecondary, fontFamily: Fonts.bodyMedium },
+                styles.modeChip,
+                mode === m && { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong },
               ]}
+              disabled={status !== "idle"}
             >
-              {m === "standard" ? "Standard" : "Guided (slow drill)"}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+              <Text
+                style={[
+                  styles.modeChipText,
+                  { color: mode === m ? colors.textPrimary : colors.textSecondary, fontFamily: Fonts.bodyMedium },
+                ]}
+              >
+                {m === "standard" ? "Standard" : "Guided (slow drill)"}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
 
       {/* Modal shown once per session — gates Start until answered. Suppressed
-          while unfocused so its portal can't bleed over the onboarding route. */}
-      {isFocused && <HeadphonesBanner onConfirm={setHeadphonesConfirmed} />}
+          while unfocused so its portal can't bleed over the onboarding route, and
+          for follow-along exercises (no mic → headphones irrelevant). */}
+      {isFocused && detectionEnabled && <HeadphonesBanner onConfirm={setHeadphonesConfirmed} />}
 
       <ImportModal
         visible={importModalVisible}
@@ -863,7 +907,7 @@ export default function PracticeScreen() {
         onSaved={(newId) => { void handleImportSaved(newId); }}
       />
 
-      {mode === "guided" ? (
+      {mode === "guided" && detectionEnabled ? (
         <>
           {isDesktop ? (
             <View style={styles.practiceRow}>
@@ -908,6 +952,7 @@ export default function PracticeScreen() {
         <StandardModeBody
           coachingCta={coachingCta}
           demoSkipRef={demoSkipRef}
+          detectionEnabled={detectionEnabled}
           error={error}
           exercise={exercise}
           handleResetTonic={handleResetTonic}
@@ -1527,6 +1572,8 @@ function ResetButton({ onPress }: { onPress: () => void }) {
 interface StandardBodyProps {
   coachingCta: { sessionId: string; previewText: string; previewSubline?: string } | null;
   demoSkipRef: React.MutableRefObject<(() => void) | null>;
+  /** False for follow-along exercises — no mic, no scoring, no headphones gate. */
+  detectionEnabled: boolean;
   error: string | null;
   exercise: ExerciseDescriptor;
   handleResetTonic: () => void;
@@ -1563,6 +1610,7 @@ interface StandardBodyProps {
 function StandardModeBody({
   coachingCta,
   demoSkipRef,
+  detectionEnabled,
   error,
   exercise,
   handleResetTonic,
@@ -1650,7 +1698,8 @@ function StandardModeBody({
   // the stacked mobile bar.
   const primaryButton = (large: boolean, extra?: StyleProp<ViewStyle>) => {
     const idle = status === "idle";
-    const disabled = idle && headphonesConfirmed === null;
+    // Follow-along has no mic, so the headphones check is irrelevant — never gate it.
+    const disabled = idle && detectionEnabled && headphonesConfirmed === null;
     const label = idle
       ? disabled ? "Waiting for headphones check…" : "Start"
       : status === "loading" || status === "stopping" ? "Loading…" : "Stop";
@@ -1675,11 +1724,12 @@ function StandardModeBody({
     return Math.min(1, Math.max(0, (db + 60) / 45));
   })();
   const micListening = status === "playing" || micState === "checking";
-  const micMeter = (
+  // Follow-along never touches the mic — no level meter.
+  const micMeter = detectionEnabled ? (
     <View style={styles.micMeterRow}>
       <MicLevelMeter level={micLevel} listening={micListening} />
     </View>
-  );
+  ) : null;
 
   // No live pitch readout: real-time detection octave-errors enough to look
   // wildly off when it isn't, and scoring is post-pattern anyway. Just show
@@ -1714,6 +1764,46 @@ function StandardModeBody({
     </View>
   );
 
+  // Calm note above the staff for unscored exercises (banner pattern: surface + accent left-border).
+  const followAlongNote = !detectionEnabled ? (
+    <View style={[styles.followAlongBanner, { backgroundColor: colors.bgSurface, borderColor: colors.accent }]}>
+      <Text style={[styles.followAlongText, { color: colors.textSecondary, fontFamily: Fonts.body }]}>
+        Follow along — lip trills can't be pitch-detected, so this plays as a guide and isn't
+        scored. Match the piano.
+      </Text>
+    </View>
+  ) : null;
+
+  // Unscored completion: warm line + Mark done / Skip. Replaces the scored PostSessionPanel.
+  const followAlongDone =
+    !detectionEnabled && pendingSession && status === "idle" && !loggedMessage ? (
+      <View style={[styles.logPanel, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
+        <Text style={[styles.doneLine, { color: colors.textPrimary, fontFamily: Fonts.bodyMedium }]}>
+          Nice — warmup complete.
+        </Text>
+        <Pressable
+          style={[styles.btn, { backgroundColor: colors.accent, minHeight: 44 }]}
+          onPress={() => handleLogSession("")}
+          accessibilityRole="button"
+          accessibilityLabel="Mark this warmup done"
+        >
+          <Text style={[styles.btnText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>
+            Mark done
+          </Text>
+        </Pressable>
+        <Pressable
+          style={styles.discardLink}
+          onPress={handleDiscardSession}
+          accessibilityRole="button"
+          accessibilityLabel="Skip logging this warmup"
+        >
+          <Text style={[styles.discardLinkText, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
+            Skip
+          </Text>
+        </Pressable>
+      </View>
+    ) : null;
+
   const afterStage = (
     <>
       {snapshot && snapshot.completedKeys.length > 0 && (
@@ -1741,19 +1831,30 @@ function StandardModeBody({
       )}
       {error && <Text style={[styles.error, { color: colors.error, fontFamily: Fonts.body }]}>{error}</Text>}
       {savedMessage && <Text style={[styles.saved, { color: colors.success, fontFamily: Fonts.body }]}>{savedMessage}</Text>}
-      <PostSessionPanel
-        pendingSession={pendingSession}
-        loggedMessage={loggedMessage}
-        onLog={(note) => handleLogSession(note)}
-        onDiscard={handleDiscardSession}
-        coachingCta={coachingCta}
-        onTapCoaching={(sessionId) =>
-          router.push({ pathname: "/coaching", params: { sessionId } })
-        }
-        isIdle={status === "idle"}
-        allSessions={loggedSessions}
-        onUseDownAnOctave={onUseDownAnOctave}
-      />
+      {!detectionEnabled ? (
+        <>
+          {followAlongDone}
+          {loggedMessage && (
+            <Text style={[styles.saved, { color: colors.success, fontFamily: Fonts.body, textAlign: "center" }]}>
+              {loggedMessage}
+            </Text>
+          )}
+        </>
+      ) : (
+        <PostSessionPanel
+          pendingSession={pendingSession}
+          loggedMessage={loggedMessage}
+          onLog={(note) => handleLogSession(note)}
+          onDiscard={handleDiscardSession}
+          coachingCta={coachingCta}
+          onTapCoaching={(sessionId) =>
+            router.push({ pathname: "/coaching", params: { sessionId } })
+          }
+          isIdle={status === "idle"}
+          allSessions={loggedSessions}
+          onUseDownAnOctave={onUseDownAnOctave}
+        />
+      )}
     </>
   );
 
@@ -1780,6 +1881,7 @@ function StandardModeBody({
             )}
           </View>
           <View style={styles.practiceStage}>
+            {followAlongNote}
             <View style={[styles.hero, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
               {heroContent}
             </View>
@@ -1798,6 +1900,7 @@ function StandardModeBody({
   return (
     <>
       {status === "demo" && demoBanner}
+      {followAlongNote}
       <View style={[styles.hero, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
         {heroContent}
       </View>
@@ -1838,19 +1941,23 @@ function DesktopGlancePanel({
   const { colors } = useTheme();
   const now = Date.now();
 
+  // Follow-along sessions have no accuracy — show a plain "not scored" line.
   const last = useMemo(() => {
     const forExercise = loggedSessions
       .filter((s) => s.exerciseId === exercise.id)
       .sort((a, b) => b.startedAt - a.startedAt);
     const s = forExercise[0];
-    if (!s || s.keyAttempts.length === 0) return null;
+    if (!s) return null;
+    if (s.keyAttempts.length === 0) {
+      return { text: `Follow-along warmup — not scored · ${relativeDay(s.startedAt, now)}` };
+    }
     const pct = Math.round(
       s.keyAttempts.reduce((a, k) => a + k.meanAccuracyPct, 0) / s.keyAttempts.length,
     );
     const startKey = s.keyAttempts[0].tonic;
     const endKey = s.keyAttempts[s.keyAttempts.length - 1].tonic;
     const span = startKey === endKey ? startKey : `${startKey}–${endKey}`;
-    return { pct, span, when: relativeDay(s.startedAt, now) };
+    return { text: `${pct}% · ${span} · ${relativeDay(s.startedAt, now)}` };
   }, [loggedSessions, exercise.id, now]);
 
   const streak = useMemo(() => currentStreak(loggedSessions, now), [loggedSessions, now]);
@@ -1873,9 +1980,7 @@ function DesktopGlancePanel({
         )}
       </View>
       <Text style={[styles.glanceValue, { color: colors.textPrimary, fontFamily: Fonts.bodyMedium }]}>
-        {last
-          ? `${last.pct}% · ${last.span} · ${last.when}`
-          : "No sessions yet — your first one shows here."}
+        {last ? last.text : "No sessions yet — your first one shows here."}
       </Text>
       <Text numberOfLines={1} style={[styles.glanceTrains, { color: colors.textSecondary, fontFamily: Fonts.body }]}>
         {exercise.pedagogy}
@@ -2243,6 +2348,35 @@ const styles = StyleSheet.create({
     lineHeight: Typography.sm.lineHeight,
   },
   demoSkipText: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+    textDecorationLine: "underline",
+  },
+
+  // Follow-along (unscored) info banner + completion card.
+  followAlongBanner: {
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    borderLeftWidth: 3,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  followAlongText: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+  },
+  logPanel: {
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  doneLine: {
+    fontSize: Typography.md.size,
+    lineHeight: Typography.md.lineHeight,
+  },
+  discardLink: { alignItems: "center", paddingVertical: Spacing.xs, minHeight: 36 },
+  discardLinkText: {
     fontSize: Typography.sm.size,
     lineHeight: Typography.sm.lineHeight,
     textDecorationLine: "underline",

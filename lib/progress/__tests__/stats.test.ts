@@ -394,3 +394,119 @@ describe("isPersonalBest", () => {
     });
   });
 });
+
+// Follow-along (unscored) sessions have empty keyAttempts. They count toward
+// session totals but must never feed the accuracy/cents means or personal-best.
+describe("unscored (follow-along) sessions", () => {
+  it("summary accuracy reflects only scored sessions; count includes unscored", () => {
+    const scored = seedSessionRecord({
+      exerciseId: "five-note-scale-mee-may-mah",
+      startedAt: FIXED_NOW,
+      attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 80 }] }],
+    });
+    const unscored = seedSessionRecord({
+      exerciseId: "rossini-lip-trill",
+      startedAt: FIXED_NOW,
+      attempts: [], // follow-along — no scoring
+    });
+    const out = summarizeSessions([scored, unscored]);
+    expect(out.count).toBe(2); // both sessions count
+    expect(out.meanAccuracyPct).toBe(80); // averaged over the one scored session only
+    expect(out.exercisesPracticed.sort()).toEqual([
+      "five-note-scale-mee-may-mah",
+      "rossini-lip-trill",
+    ]);
+  });
+
+  it("thisWeekSummary accuracy ignores unscored sessions; count includes them", () => {
+    const scored = seedSessionRecord({
+      exerciseId: "ex",
+      startedAt: FIXED_NOW - 2 * DAY_MS,
+      attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 90 }] }],
+    });
+    const unscored = seedSessionRecord({
+      exerciseId: "rossini-lip-trill",
+      startedAt: FIXED_NOW - 1 * DAY_MS,
+      attempts: [],
+    });
+    const out = thisWeekSummary([scored, unscored], FIXED_NOW);
+    expect(out.count).toBe(2);
+    expect(out.meanAccuracyPct).toBe(90);
+  });
+
+  it("yields accuracy 0 (no NaN) when every session is unscored", () => {
+    const sessions = [
+      seedSessionRecord({ exerciseId: "rossini-lip-trill", startedAt: FIXED_NOW, attempts: [] }),
+      seedSessionRecord({ exerciseId: "rossini-lip-trill", startedAt: FIXED_NOW, attempts: [] }),
+    ];
+    const out = summarizeSessions(sessions);
+    expect(out.count).toBe(2);
+    expect(out.meanAccuracyPct).toBe(0);
+    expect(Number.isNaN(out.meanAccuracyPct)).toBe(false);
+    expect(out.meanCentsDeviation).toBe(0);
+    expect(Number.isNaN(out.meanCentsDeviation)).toBe(false);
+    expect(thisWeekSummary(sessions, FIXED_NOW).meanAccuracyPct).toBe(0);
+  });
+
+  it("isPersonalBest ignores unscored sessions and never marks one a best", () => {
+    const prior = seedSessionRecord({
+      exerciseId: "ex",
+      startedAt: FIXED_NOW - DAY_MS,
+      attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 70 }] }],
+    });
+    // A scored candidate should ignore an unscored prior when computing best.
+    const unscoredPrior = seedSessionRecord({
+      exerciseId: "ex",
+      startedAt: FIXED_NOW - DAY_MS,
+      attempts: [],
+    });
+    const scoredCandidate = seedSessionRecord({
+      exerciseId: "ex",
+      startedAt: FIXED_NOW,
+      attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 90 }] }],
+    });
+    expect(
+      isPersonalBest([prior, unscoredPrior, scoredCandidate], scoredCandidate),
+    ).toEqual({ isBest: true, previousBest: 70 });
+
+    // An unscored candidate is never a personal best.
+    const unscoredCandidate = seedSessionRecord({
+      exerciseId: "ex",
+      startedAt: FIXED_NOW,
+      attempts: [],
+    });
+    expect(isPersonalBest([prior, unscoredCandidate], unscoredCandidate)).toEqual({
+      isBest: false,
+      previousBest: null,
+    });
+  });
+
+  it("progressForExercise skips unscored sessions entirely", () => {
+    const scored = seedSessionRecord({
+      exerciseId: "ex",
+      startedAt: FIXED_NOW,
+      attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 90 }] }],
+    });
+    const unscored = seedSessionRecord({
+      exerciseId: "ex",
+      startedAt: FIXED_NOW + 1000,
+      attempts: [],
+    });
+    const out = progressForExercise([scored, unscored], "ex");
+    expect(out.sessionsCount).toBe(1); // unscored not counted
+    expect(out.recentMeanAccuracy).toBe(90); // unscored doesn't drag it down
+  });
+
+  it("bestKeyPerExercise omits an exercise that only has unscored sessions", () => {
+    const sessions = [
+      seedSessionRecord({ exerciseId: "rossini-lip-trill", startedAt: FIXED_NOW, attempts: [] }),
+      seedSessionRecord({
+        exerciseId: "ex",
+        startedAt: FIXED_NOW,
+        attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 90 }] }],
+      }),
+    ];
+    const out = bestKeyPerExercise(sessions);
+    expect(out).toEqual({ ex: "C3" }); // rossini-lip-trill absent — no scored attempts
+  });
+});

@@ -89,13 +89,21 @@ export function summarizeSessions(
     0
   );
 
+  // Unscored (follow-along) sessions have no keyAttempts — they count toward
+  // session totals but must not drag the accuracy/cents means toward zero.
+  const scored = filtered.filter((s) => s.keyAttempts.length > 0);
+
   const meanAccuracyPct =
-    filtered.reduce((acc, s) => acc + _sessionMeanAccuracy(s), 0) /
-    filtered.length;
+    scored.length === 0
+      ? 0
+      : scored.reduce((acc, s) => acc + _sessionMeanAccuracy(s), 0) /
+        scored.length;
 
   const meanCentsDeviation =
-    filtered.reduce((acc, s) => acc + _sessionMeanCentsDeviation(s), 0) /
-    filtered.length;
+    scored.length === 0
+      ? 0
+      : scored.reduce((acc, s) => acc + _sessionMeanCentsDeviation(s), 0) /
+        scored.length;
 
   const exercisesPracticed = Array.from(
     new Set(filtered.map((s) => s.exerciseId))
@@ -126,8 +134,9 @@ export function progressForExercise(
   const threshold = opts?.accuracyThresholdPct ?? 70;
   const trendWindow = opts?.trendWindow ?? 30;
 
+  // Skip unscored (follow-along) sessions — they have no accuracy or keys.
   const relevant = sessions
-    .filter((s) => s.exerciseId === exerciseId)
+    .filter((s) => s.exerciseId === exerciseId && s.keyAttempts.length > 0)
     .sort((a, b) => a.startedAt - b.startedAt);
 
   if (relevant.length === 0) {
@@ -217,6 +226,7 @@ export function bestKeyPerExercise(
   const bestMidi: Record<string, number> = {};
 
   for (const session of sessions) {
+    if (session.keyAttempts.length === 0) continue; // skip unscored (follow-along)
     const exId = session.exerciseId;
     if (!(exId in result)) {
       result[exId] = null;
@@ -294,8 +304,14 @@ export function isPersonalBest(
   sessions: SessionRecord[],
   candidate: SessionRecord,
 ): { isBest: boolean; previousBest: number | null } {
+  // An unscored (follow-along) candidate has no accuracy to compare.
+  if (candidate.keyAttempts.length === 0) return { isBest: false, previousBest: null };
+
   const others = sessions.filter(
-    (s) => s.exerciseId === candidate.exerciseId && s.id !== candidate.id,
+    (s) =>
+      s.exerciseId === candidate.exerciseId &&
+      s.id !== candidate.id &&
+      s.keyAttempts.length > 0,
   );
   if (others.length === 0) return { isBest: true, previousBest: null };
 
