@@ -62,6 +62,20 @@ export const PATHWAYS: readonly Pathway[] = [
       "descending-five-to-one-nay",
     ],
   },
+  {
+    id: "belt-and-power",
+    name: "Belt & Power",
+    description: "Bright-vowel belt set-ups and twang for carrying, contemporary power.",
+    focus: "style",
+    exerciseIds: ["belt-arpeggio-mah", "belt-nyah-descending", "high-belt-wee"],
+  },
+  {
+    id: "control-and-expression",
+    name: "Control & Expression",
+    description: "Dynamic swells and vibrato control — the finishing touches on a free voice.",
+    focus: "dynamics",
+    exerciseIds: ["messa-di-voce", "straight-tone-vibrato"],
+  },
 ];
 
 export function getPathway(id: string): Pathway | undefined {

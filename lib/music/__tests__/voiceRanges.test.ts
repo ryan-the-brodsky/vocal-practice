@@ -82,14 +82,19 @@ describe("Library audit — every shipped exercise has sensible ranges", () => {
   // tags, so a misapplied "sovt" tag doesn't silently relax the validator and
   // hide a real range bug.
   const SOVT_EXERCISE_IDS = new Set(["rossini-lip-trill", "ng-siren"]);
+  // Single-note sustain exercises (vibrato / messa di voce) intentionally never
+  // traverse the passaggio — they hold one pitch. Relax the passaggio-crossing
+  // check the same way SOVT does, keyed by ID (not tag) so it can't silently
+  // hide a real range bug in a normal exercise.
+  const SUSTAIN_EXERCISE_IDS = new Set(["straight-tone-vibrato", "messa-di-voce"]);
 
   it("every voice-part range is anatomically plausible for its voice", () => {
     const allIssues: string[] = [];
     for (const desc of exerciseLibrary) {
-      const isSovt = SOVT_EXERCISE_IDS.has(desc.id);
-      const issues = validateDescriptorRanges(desc as DescriptorLike, { sovt: isSovt });
+      const relaxed = SOVT_EXERCISE_IDS.has(desc.id) || SUSTAIN_EXERCISE_IDS.has(desc.id);
+      const issues = validateDescriptorRanges(desc as DescriptorLike, { sovt: relaxed });
       for (const issue of issues) {
-        if (isSovt && issue.kind === "below") continue;
+        if (relaxed && issue.kind === "below") continue;
         allIssues.push(issue.message);
       }
     }

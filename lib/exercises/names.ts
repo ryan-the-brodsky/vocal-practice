@@ -15,6 +15,11 @@ export const EXERCISE_NAMES: Record<string, string> = {
   "passaggio-leap-and-back": "Passaggio Leap-and-Back",
   "stepwise-passaggio-ascent": "Stepwise Passaggio Ascent",
   "agility-run": "Agility Run",
+  "belt-arpeggio-mah": "Belt Arpeggio (Mah)",
+  "belt-nyah-descending": "Belt Nyah (Descending)",
+  "high-belt-wee": "High Belt (Wee)",
+  "straight-tone-vibrato": "Straight Tone → Vibrato",
+  "messa-di-voce": "Messa di Voce",
 };
 
 export function exerciseName(id: string): string {

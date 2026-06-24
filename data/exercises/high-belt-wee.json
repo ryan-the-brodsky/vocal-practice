@@ -1,0 +1,25 @@
+{
+  "id": "high-belt-wee",
+  "name": "High Belt (Wee)",
+  "pedagogy": "A high-belt set-up on a descending 5-3-1 triad sung on a closed 'wee' (/wi/). As belt climbs above C5 it shifts from chest-dominant toward a bright, narrow head-voice mix — the closed /i/ vowel keeps the resonance forward and the larynx from over-weighting, so the top stays connected, not shouted. Source: Broadway belt pedagogy (Roll 2016, Journal of Voice). The app scores pitch; keep the tone narrow and forward.",
+  "capability": "style",
+  "scaleDegrees": [7, 4, 0],
+  "syllables": ["wee", "wee", "wee"],
+  "noteValue": "4n",
+  "tempo": 96,
+  "voicePartRanges": {
+    "soprano": { "lowest": "F4", "highest": "D5", "step": 1 },
+    "alto": { "lowest": "C4", "highest": "A4", "step": 1 },
+    "tenor": { "lowest": "G3", "highest": "F4", "step": 1 },
+    "baritone": { "lowest": "E3", "highest": "B3", "step": 1 }
+  },
+  "accompaniment": {
+    "pattern": "blockChordOnDownbeat",
+    "doubleMelody": false,
+    "cueType": "bell",
+    "cueDurationBeats": 1,
+    "voicing": "close"
+  },
+  "direction": "both",
+  "tags": ["belt", "high-belt", "closed-vowel"]
+}

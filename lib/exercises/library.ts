@@ -23,6 +23,11 @@ import staccatoOnset from '../../data/exercises/staccato-onset.json';
 import passaggioLeapAndBack from '../../data/exercises/passaggio-leap-and-back.json';
 import stepwisePassaggioAscent from '../../data/exercises/stepwise-passaggio-ascent.json';
 import agilityRun from '../../data/exercises/agility-run.json';
+import beltArpeggioMah from '../../data/exercises/belt-arpeggio-mah.json';
+import beltNyahDescending from '../../data/exercises/belt-nyah-descending.json';
+import highBeltWee from '../../data/exercises/high-belt-wee.json';
+import straightToneVibrato from '../../data/exercises/straight-tone-vibrato.json';
+import messaDiVoce from '../../data/exercises/messa-di-voce.json';
 
 export const exerciseLibrary: ExerciseDescriptor[] = [
   rossiniLipTrill as ExerciseDescriptor,
@@ -40,6 +45,11 @@ export const exerciseLibrary: ExerciseDescriptor[] = [
   passaggioLeapAndBack as ExerciseDescriptor,
   stepwisePassaggioAscent as ExerciseDescriptor,
   agilityRun as ExerciseDescriptor,
+  beltArpeggioMah as ExerciseDescriptor,
+  beltNyahDescending as ExerciseDescriptor,
+  highBeltWee as ExerciseDescriptor,
+  straightToneVibrato as ExerciseDescriptor,
+  messaDiVoce as ExerciseDescriptor,
 ];
 
 export function getExercise(id: string): ExerciseDescriptor | undefined {

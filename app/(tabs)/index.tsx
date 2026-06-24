@@ -1781,8 +1781,8 @@ function StandardModeBody({
   const followAlongNote = !detectionEnabled ? (
     <View style={[styles.followAlongBanner, { backgroundColor: colors.bgSurface, borderColor: colors.accent }]}>
       <Text style={[styles.followAlongText, { color: colors.textSecondary, fontFamily: Fonts.body }]}>
-        Follow along — lip trills can't be pitch-detected, so this plays as a guide and isn't
-        scored. Match the piano.
+        Follow along — this one isn't scored, so play it as a guide and match the piano. (See
+        the note below for what it trains.)
       </Text>
     </View>
   ) : null;

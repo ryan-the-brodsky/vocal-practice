@@ -71,21 +71,18 @@ export const CAPABILITIES: readonly CapabilityMeta[] = [
     label: "Dynamics & Control",
     blurb: "Swell and soften on a held note — messa di voce and volume control for expressive phrasing.",
     order: 7,
-    comingSoon: true,
   },
   {
     id: "vibrato",
     label: "Vibrato",
     blurb: "Free up an even, natural vibrato — and the control to turn it on and off at will.",
     order: 8,
-    comingSoon: true,
   },
   {
     id: "style",
     label: "Belt & Style",
     blurb: "Twang, belt, and riff-and-run coordination for contemporary and theatrical singing.",
     order: 9,
-    comingSoon: true,
   },
 ];
 
