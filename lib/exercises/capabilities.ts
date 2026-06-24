@@ -11,7 +11,10 @@ export type Capability =
   | "resonance"
   | "mix"
   | "range-passaggio"
-  | "agility";
+  | "agility"
+  | "dynamics"
+  | "vibrato"
+  | "style";
 
 export interface CapabilityMeta {
   id: Capability;
@@ -21,6 +24,9 @@ export interface CapabilityMeta {
   blurb: string;
   /** Display order, foundation -> advanced. */
   order: number;
+  /** Acknowledged technique with no trusted exercises yet — shown as "coming
+   *  soon" on the browse so the vocabulary is complete without faking content. */
+  comingSoon?: boolean;
 }
 
 export const CAPABILITIES: readonly CapabilityMeta[] = [
@@ -60,7 +66,33 @@ export const CAPABILITIES: readonly CapabilityMeta[] = [
     blurb: "Fast, accurate scales and arpeggios that build the control behind runs and riffs.",
     order: 6,
   },
+  {
+    id: "dynamics",
+    label: "Dynamics & Control",
+    blurb: "Swell and soften on a held note — messa di voce and volume control for expressive phrasing.",
+    order: 7,
+    comingSoon: true,
+  },
+  {
+    id: "vibrato",
+    label: "Vibrato",
+    blurb: "Free up an even, natural vibrato — and the control to turn it on and off at will.",
+    order: 8,
+    comingSoon: true,
+  },
+  {
+    id: "style",
+    label: "Belt & Style",
+    blurb: "Twang, belt, and riff-and-run coordination for contemporary and theatrical singing.",
+    order: 9,
+    comingSoon: true,
+  },
 ];
+
+/** Capabilities that currently have no trusted exercises (browse shows "coming soon"). */
+export function isComingSoon(id: Capability): boolean {
+  return capabilityMeta(id)?.comingSoon === true;
+}
 
 const BY_ID: Record<Capability, CapabilityMeta> = CAPABILITIES.reduce(
   (acc, c) => {

@@ -13,7 +13,8 @@ From `EXERCISE_TAXONOMY_RESEARCH.md` (deep-research, adversarially verified). Tu
 - **4 curated growth paths** (`lib/exercises/pathways.ts`, ungated): Daily Foundations, Build Your Mix, Open Your Range, Agility & Release. `PathwaysCard` on Progress shows progress (practiced/total + done-today), expands to exercises (deep-link to Practice), and "Practice this path" sets the routine.
 - **No mastery-gating** — "graduate when X" deferred until aggregate usage data can stratify it honestly; progress = streaks + completions + per-exercise accuracy.
 - **Library expanded 10 → 15** (shipped 2026-06-23): 5 evidence-grounded exercises reusing proven voice-range templates — `passaggio-leap-and-back` (1-8-1 on "oo", Bozeman, range-passaggio), `stepwise-passaggio-ascent` (1-2-3-4-5 on "oo", Bozeman, range-passaggio), `agility-run` (nine-note "ah", agility), `staccato-onset` ("gug" 1-3-1-5-1, onset), `hum-warmup` ("mmm" 1-3-5-3-1, warmup-sovt, follow-along). All slotted into pathways; validator + snapshots updated; engine parity holds.
-- **Next** (open): a dedicated browse/library surface; the thin-evidence categories (dynamics, vibrato, belt/twang) need more sourcing or a user-authored spec before exercises are added.
+- **Plan tab** (shipped 2026-06-24): third top-level surface (`app/(tabs)/plan.tsx`) — browse the full library by capability (all 9 categories; tap → Practice), edit Today's Routine (shared `RoutineEditModal` extracted from Progress), and a clear "Bring your own" import route. The 3 thin-evidence categories (Dynamics, Vibrato, Belt & Style) now exist as `comingSoon` capabilities — shown as "Exercises coming soon" on the browse so the technique vocabulary is complete without faking content.
+- **Next** (open): author exercises for the coming-soon categories once specs are trusted (dynamics/vibrato/belt/twang need more sourcing or a user-authored spec).
 
 ## Usability & Hardening Sprint — shipped 2026-06-23
 

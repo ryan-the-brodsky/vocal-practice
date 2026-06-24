@@ -32,6 +32,7 @@ const MAPPING = {
   'music.note': 'music-note',
   'chart.bar.fill': 'bar-chart',
   'arrow.counterclockwise': 'replay',
+  'list.bullet.clipboard': 'assignment',
 } as IconMapping;
 
 /**
