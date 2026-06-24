@@ -4,6 +4,16 @@ Personal vocal-warmup app. Pitch detection + accuracy scoring with piano accompa
 
 > **Scope (2026-06-23):** web-only, single-user, local-first static site — no mobile/native app, no accounts, no externally-maintained resources. The iOS/TestFlight milestone (M1) is **dead scope**; native sections below are retained for history only. Focus is usability, delight, and hardening existing web features.
 
+## Capability Taxonomy & Growth Paths — shipped 2026-06-23
+
+From `EXERCISE_TAXONOMY_RESEARCH.md` (deep-research, adversarially verified). Turns the random warm-up collection into a purpose-directed, categorized library.
+
+- **6 capability categories** (`lib/exercises/capabilities.ts`): Warm-Up & SOVT, Onset & Clarity, Resonance & Vowels, Mix & Registration, Range & Passaggio, Agility & Runs — each with a "what this builds" blurb, ordered foundation→advanced. All 10 exercises tagged via `ExerciseDescriptor.capability`.
+- **Benefit-grouped Practice picker** — exercises now render under capability headers with their blurb + a capability badge on the selected exercise (songs + Import preserved).
+- **4 curated growth paths** (`lib/exercises/pathways.ts`, ungated): Daily Foundations, Build Your Mix, Open Your Range, Agility & Release. `PathwaysCard` on Progress shows progress (practiced/total + done-today), expands to exercises (deep-link to Practice), and "Practice this path" sets the routine.
+- **No mastery-gating** — "graduate when X" deferred until aggregate usage data can stratify it honestly; progress = streaks + completions + per-exercise accuracy.
+- **Next** (open): expand the library with evidence-grounded new exercises per category (SOVT straw/hum, mix, Bozeman passaggio family); a dedicated browse/library surface; the thin-evidence categories (dynamics, vibrato, belt/twang) need more sourcing before exercises are added.
+
 ## Usability & Hardening Sprint — shipped 2026-06-23
 
 HOLD-SCOPE batch from the `/plan-ceo-review` (plan at `USABILITY_HARDENING_PLAN.md`). All green: `tsc` clean, 525 tests, visually verified.

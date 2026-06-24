@@ -1,4 +1,5 @@
 import type { TimeSignature } from "../analyze/types";
+import type { Capability } from "./capabilities";
 
 export type VoicePart =
   | "tenor"
@@ -86,6 +87,9 @@ export interface ExerciseDescriptor {
   // When true, AccompanimentPreset overrides on PlanInput are ignored.
   lockAccompaniment?: boolean;
   direction?: Direction;
+  // Primary capability this exercise builds (selection-page grouping + "what
+  // this builds" label). See lib/exercises/capabilities.ts.
+  capability?: Capability;
   tags?: string[];
   // Default true. Set false for SOVT/trill exercises (lip trills, etc.) whose
   // sound defeats pitch detection — Practice runs them as an unscored follow-along

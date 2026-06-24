@@ -2,8 +2,17 @@
   "id": "octave-leap-wow",
   "name": "Octave Leap on Wow",
   "pedagogy": "Trains the register bridge and reinforces belt-zone arrivals by demanding a clean pitch jump of exactly one octave with sustained hold on the upper note. The 'w' onset softens glottal attack, helping the larynx stay stable through the leap while the sustained top pitch builds register confidence.",
-  "scaleDegrees": [0, 12, 0],
-  "syllables": ["wow", "wow", "wow"],
+  "capability": "range-passaggio",
+  "scaleDegrees": [
+    0,
+    12,
+    0
+  ],
+  "syllables": [
+    "wow",
+    "wow",
+    "wow"
+  ],
   "noteValue": "4n",
   "tempo": 70,
   "voicePartRanges": {
@@ -36,6 +45,13 @@
     "voicing": "open"
   },
   "direction": "both",
-  "tags": ["belt", "range", "chest-mix", "onset"],
-  "scoringHints": { "octaveJumpFrames": 2 }
+  "tags": [
+    "belt",
+    "range",
+    "chest-mix",
+    "onset"
+  ],
+  "scoringHints": {
+    "octaveJumpFrames": 2
+  }
 }

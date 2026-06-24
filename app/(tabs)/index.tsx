@@ -30,7 +30,8 @@ import {
   fromKeyAttempts,
 } from "@/lib/coaching";
 import { flattenIterations, planExercise } from "@/lib/exercises/engine";
-import { exerciseLibrary, getAllExercises } from "@/lib/exercises/library";
+import { exerciseLibrary, getAllExercises, groupByCapability } from "@/lib/exercises/library";
+import { capabilityMeta } from "@/lib/exercises/capabilities";
 import { parseChunkId } from "@/lib/songs/types";
 import { midiToNote, noteToMidi, noteValueToSeconds } from "@/lib/exercises/music";
 import { resolveDetectorTuning } from "@/lib/pitch/tuning";
@@ -1020,30 +1021,29 @@ function PracticeControls(p: PracticeControlsProps) {
   const [octaveOpen, setOctaveOpen] = useState(false);
   const [expandedSongs, setExpandedSongs] = useState<Set<string>>(new Set());
 
-  // Group the flat available list: songs collapse to a parent row that expands
-  // to reveal each chunk; non-song descriptors stay as standalone chips.
-  type Group =
-    | { kind: "single"; descriptor: ExerciseDescriptor }
-    | { kind: "song"; songId: string; songName: string; chunks: ExerciseDescriptor[] };
-  const groups: Group[] = useMemo(() => {
-    const out: Group[] = [];
-    const byParent = new Map<string, Extract<Group, { kind: "song" }>>();
+  // Standalone (non-song) descriptors group by capability into "what this builds"
+  // sections; song chunks collapse to a parent row that expands to its segments.
+  type SongGroup = { songId: string; songName: string; chunks: ExerciseDescriptor[] };
+  const { capabilityGroups, songGroups } = useMemo(() => {
+    const standalone: ExerciseDescriptor[] = [];
+    const byParent = new Map<string, SongGroup>();
+    const songs: SongGroup[] = [];
     for (const d of p.availableExercises) {
       const parsed = parseChunkId(d.id);
       if (parsed) {
         let g = byParent.get(parsed.songId);
         if (!g) {
           const songName = d.name.split(" — ")[0] ?? d.name;
-          g = { kind: "song", songId: parsed.songId, songName, chunks: [] };
+          g = { songId: parsed.songId, songName, chunks: [] };
           byParent.set(parsed.songId, g);
-          out.push(g);
+          songs.push(g);
         }
         g.chunks.push(d);
       } else {
-        out.push({ kind: "single", descriptor: d });
+        standalone.push(d);
       }
     }
-    return out;
+    return { capabilityGroups: groupByCapability(standalone), songGroups: songs };
   }, [p.availableExercises]);
 
   function toggleSong(songId: string) {
@@ -1070,79 +1070,89 @@ function PracticeControls(p: PracticeControlsProps) {
       </Pressable>
       {exerciseOpen && (
         <View style={styles.collapsibleBody}>
-          <View style={styles.row}>
-            {groups.map((g) => {
-              if (g.kind === "single") {
-                const e = g.descriptor;
-                const isImported = e.tags?.includes("imported") ?? false;
-                const active = p.exerciseId === e.id;
+          {capabilityGroups.map((cg) => (
+            <View key={cg.capability ?? "imports"} style={styles.capabilityGroup}>
+              <Text style={[styles.capabilityLabel, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium }]}>{cg.label}</Text>
+              <Text style={[styles.capabilityBlurb, { color: colors.textTertiary, fontFamily: Fonts.body }]}>{cg.blurb}</Text>
+              <View style={styles.row}>
+                {cg.exercises.map((e) => {
+                  const isImported = e.tags?.includes("imported") ?? false;
+                  const active = p.exerciseId === e.id;
+                  return (
+                    <Pressable
+                      key={e.id}
+                      onPress={() => { p.onExerciseChange(e.id); setExerciseOpen(false); }}
+                      style={[styles.chip, styles.chipInline, { backgroundColor: active ? colors.accentMuted : colors.bgSurface, borderColor: active ? colors.accent : colors.borderSubtle }]}
+                      disabled={p.disabled}
+                    >
+                      <Text style={[styles.chipText, { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>{e.name}</Text>
+                      {isImported && (
+                        <View style={[styles.importedPill, { backgroundColor: active ? colors.accent : colors.accentMuted }]}>
+                          <Text style={[styles.importedPillText, { color: active ? colors.canvas : colors.accent, fontFamily: Fonts.bodySemibold }]}>Imported</Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ))}
+          {songGroups.length > 0 && (
+            <View style={styles.row}>
+              {songGroups.map((g) => {
+                const expanded = expandedSongs.has(g.songId);
+                const anyChunkActive = g.chunks.some((c) => c.id === p.exerciseId);
                 return (
-                  <Pressable
-                    key={e.id}
-                    onPress={() => { p.onExerciseChange(e.id); setExerciseOpen(false); }}
-                    style={[styles.chip, styles.chipInline, { backgroundColor: active ? colors.accentMuted : colors.bgSurface, borderColor: active ? colors.accent : colors.borderSubtle }]}
-                    disabled={p.disabled}
-                  >
-                    <Text style={[styles.chipText, { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>{e.name}</Text>
-                    {isImported && (
-                      <View style={[styles.importedPill, { backgroundColor: active ? colors.accent : colors.accentMuted }]}>
-                        <Text style={[styles.importedPillText, { color: active ? colors.canvas : colors.accent, fontFamily: Fonts.bodySemibold }]}>Imported</Text>
+                  <View key={g.songId} style={styles.songGroupWrap}>
+                    <View style={styles.songHeaderRow}>
+                      <Pressable
+                        onPress={() => toggleSong(g.songId)}
+                        style={[styles.chip, styles.chipInline, styles.songHeaderChip, { backgroundColor: anyChunkActive ? colors.accentMuted : colors.bgSurface, borderColor: anyChunkActive ? colors.accent : colors.borderSubtle }]}
+                        disabled={p.disabled}
+                        accessibilityLabel={`Song: ${g.songName}. ${expanded ? "Tap to collapse segments." : "Tap to show segments."}`}
+                      >
+                        <Text style={[styles.chipText, { color: anyChunkActive ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>
+                          ♪ {g.songName}
+                        </Text>
+                        <Text style={[styles.chipChevron, { color: anyChunkActive ? colors.accent : colors.textTertiary, fontFamily: Fonts.mono }]}>
+                          {expanded ? "⌃" : "⌄"}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => p.onEditSong(g.songId)}
+                        disabled={p.disabled}
+                        style={[styles.songEditBtn, { borderColor: colors.borderSubtle, backgroundColor: colors.bgSurface }]}
+                        accessibilityLabel={`Edit segments for ${g.songName}`}
+                        // @ts-ignore — web title attribute
+                        title={Platform.OS === "web" ? "Edit segments" : undefined}
+                      >
+                        <Text style={{ color: colors.accent, fontFamily: Fonts.bodySemibold, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight }}>Edit</Text>
+                      </Pressable>
+                    </View>
+                    {expanded && (
+                      <View style={styles.songChunksRow}>
+                        {g.chunks.map((c) => {
+                          const active = p.exerciseId === c.id;
+                          const chunkLabel = c.name.split(" — ")[1] ?? c.name;
+                          return (
+                            <Pressable
+                              key={c.id}
+                              onPress={() => { p.onExerciseChange(c.id); setExerciseOpen(false); }}
+                              style={[styles.chip, styles.chipInline, styles.songChunkChip, { backgroundColor: active ? colors.accentMuted : colors.bgSurface, borderColor: active ? colors.accent : colors.borderSubtle }]}
+                              disabled={p.disabled}
+                            >
+                              <Text style={[styles.chipText, { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>{chunkLabel}</Text>
+                            </Pressable>
+                          );
+                        })}
                       </View>
                     )}
-                  </Pressable>
-                );
-              }
-              // kind === "song"
-              const expanded = expandedSongs.has(g.songId);
-              const anyChunkActive = g.chunks.some((c) => c.id === p.exerciseId);
-              return (
-                <View key={g.songId} style={styles.songGroupWrap}>
-                  <View style={styles.songHeaderRow}>
-                    <Pressable
-                      onPress={() => toggleSong(g.songId)}
-                      style={[styles.chip, styles.chipInline, styles.songHeaderChip, { backgroundColor: anyChunkActive ? colors.accentMuted : colors.bgSurface, borderColor: anyChunkActive ? colors.accent : colors.borderSubtle }]}
-                      disabled={p.disabled}
-                      accessibilityLabel={`Song: ${g.songName}. ${expanded ? "Tap to collapse segments." : "Tap to show segments."}`}
-                    >
-                      <Text style={[styles.chipText, { color: anyChunkActive ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>
-                        ♪ {g.songName}
-                      </Text>
-                      <Text style={[styles.chipChevron, { color: anyChunkActive ? colors.accent : colors.textTertiary, fontFamily: Fonts.mono }]}>
-                        {expanded ? "⌃" : "⌄"}
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => p.onEditSong(g.songId)}
-                      disabled={p.disabled}
-                      style={[styles.songEditBtn, { borderColor: colors.borderSubtle, backgroundColor: colors.bgSurface }]}
-                      accessibilityLabel={`Edit segments for ${g.songName}`}
-                      // @ts-ignore — web title attribute
-                      title={Platform.OS === "web" ? "Edit segments" : undefined}
-                    >
-                      <Text style={{ color: colors.accent, fontFamily: Fonts.bodySemibold, fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight }}>Edit</Text>
-                    </Pressable>
                   </View>
-                  {expanded && (
-                    <View style={styles.songChunksRow}>
-                      {g.chunks.map((c) => {
-                        const active = p.exerciseId === c.id;
-                        const chunkLabel = c.name.split(" — ")[1] ?? c.name;
-                        return (
-                          <Pressable
-                            key={c.id}
-                            onPress={() => { p.onExerciseChange(c.id); setExerciseOpen(false); }}
-                            style={[styles.chip, styles.chipInline, styles.songChunkChip, { backgroundColor: active ? colors.accentMuted : colors.bgSurface, borderColor: active ? colors.accent : colors.borderSubtle }]}
-                            disabled={p.disabled}
-                          >
-                            <Text style={[styles.chipText, { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>{chunkLabel}</Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  )}
-                </View>
-              );
-            })}
+                );
+              })}
+            </View>
+          )}
+          <View style={styles.row}>
             <Pressable
               onPress={p.onImport}
               style={[styles.chip, styles.chipAdd, { backgroundColor: colors.bgSurface, borderColor: colors.accent }]}
@@ -1154,6 +1164,9 @@ function PracticeControls(p: PracticeControlsProps) {
               <Text style={[styles.chipAddText, { color: colors.accent, fontFamily: Fonts.bodySemibold }]}>+ Import</Text>
             </Pressable>
           </View>
+          {capabilityMeta(p.exercise.capability)?.label && (
+            <Text style={[styles.capabilityBadge, { color: colors.accent, fontFamily: Fonts.bodyMedium }]}>{capabilityMeta(p.exercise.capability)!.label}</Text>
+          )}
           <Text style={[styles.subtle, { color: colors.textTertiary, fontFamily: Fonts.body }]}>{p.exercise.pedagogy}</Text>
         </View>
       )}
@@ -2107,6 +2120,25 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm.size,
     lineHeight: Typography.sm.lineHeight,
     marginTop: Spacing.xs,
+  },
+  capabilityGroup: { gap: Spacing["3xs"] },
+  capabilityLabel: {
+    fontSize: Typography.xs.size,
+    lineHeight: Typography.xs.lineHeight,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  capabilityBlurb: {
+    fontSize: Typography.xs.size,
+    lineHeight: Typography.xs.lineHeight,
+    marginBottom: Spacing["2xs"],
+  },
+  capabilityBadge: {
+    fontSize: Typography.xs.size,
+    lineHeight: Typography.xs.lineHeight,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginTop: Spacing["2xs"],
   },
   modeRow: {
     flexDirection: "row",

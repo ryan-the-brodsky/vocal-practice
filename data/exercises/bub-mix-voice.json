@@ -2,8 +2,19 @@
   "id": "bub-mix-voice",
   "name": "Bub Mix Voice",
   "pedagogy": "A descending major arpeggio (8-5-3-1) sung on a relaxed 'bub' to coordinate a connected mix from the top down. Entering on the octave above the tonic places the voice in head-mix, and the lip-and-vowel 'bub' onset keeps the airflow buoyant so the descent through the arpeggio carries head resonance down into chest without weight or pushing. Keys begin at the bottom of the range, climb a half step per iteration up through the passaggio, then descend back down, working the mix in both directions.",
-  "scaleDegrees": [12, 7, 4, 0],
-  "syllables": ["bub", "bub", "bub", "bub"],
+  "capability": "mix",
+  "scaleDegrees": [
+    12,
+    7,
+    4,
+    0
+  ],
+  "syllables": [
+    "bub",
+    "bub",
+    "bub",
+    "bub"
+  ],
   "noteValue": "4n",
   "tempo": 100,
   "voicePartRanges": {
@@ -36,5 +47,11 @@
     "voicing": "close"
   },
   "direction": "both",
-  "tags": ["mix", "arpeggio", "descending", "passaggio", "head-mix"]
+  "tags": [
+    "mix",
+    "arpeggio",
+    "descending",
+    "passaggio",
+    "head-mix"
+  ]
 }

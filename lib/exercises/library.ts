@@ -2,6 +2,7 @@
 // Async API (`getAllExercises`, `getExerciseAsync`) merges built-ins with the AsyncStorage user store
 // AND expands stored songs into one synthetic chunk descriptor per chunk.
 import type { ExerciseDescriptor } from './types';
+import { CAPABILITIES, type Capability } from './capabilities';
 import { listUserExercises, getUserExercise } from './userStore';
 import { listSongs, getSong } from '../songs/store';
 import { chunkToDescriptor } from '../songs/toDescriptor';
@@ -37,6 +38,41 @@ export function getExercise(id: string): ExerciseDescriptor | undefined {
 
 export function exercisesByTag(tag: string): ExerciseDescriptor[] {
   return exerciseLibrary.filter((ex) => ex.tags?.includes(tag) ?? false);
+}
+
+export interface CapabilityGroup {
+  capability: Capability | null; // null = uncategorized (user imports + song chunks)
+  label: string;
+  blurb: string;
+  exercises: ExerciseDescriptor[];
+}
+
+// Group any exercise list by capability in display order, dropping empty groups;
+// uncategorized exercises (imports, song chunks) collect into a trailing group.
+export function groupByCapability(list: ExerciseDescriptor[]): CapabilityGroup[] {
+  const groups: CapabilityGroup[] = CAPABILITIES.map((c) => ({
+    capability: c.id,
+    label: c.label,
+    blurb: c.blurb,
+    exercises: [] as ExerciseDescriptor[],
+  }));
+  const byId = new Map(groups.map((g) => [g.capability, g]));
+  const uncategorized: ExerciseDescriptor[] = [];
+  for (const ex of list) {
+    const g = ex.capability ? byId.get(ex.capability) : undefined;
+    if (g) g.exercises.push(ex);
+    else uncategorized.push(ex);
+  }
+  const result = groups.filter((g) => g.exercises.length > 0);
+  if (uncategorized.length > 0) {
+    result.push({
+      capability: null,
+      label: "Your imports",
+      blurb: "Songs and melodies you've brought in.",
+      exercises: uncategorized,
+    });
+  }
+  return result;
 }
 
 // Built-in exercises as {id,label} for routine pickers (onboarding + Progress

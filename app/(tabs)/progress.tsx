@@ -26,6 +26,7 @@ import NoteResultsStrip from "@/components/practice/NoteResultsStrip";
 import Sparkline from "@/components/progress/Sparkline";
 import type { SparklinePoint } from "@/components/progress/Sparkline";
 import { TodayRoutineCard } from "@/components/practice/TodayRoutineCard";
+import PathwaysCard from "@/components/practice/PathwaysCard";
 import ImportModal from "@/components/import/ImportModal";
 import { useTheme } from "@/hooks/use-theme";
 import { Spacing, Radii, Typography, Fonts } from "@/constants/theme";
@@ -528,6 +529,7 @@ export default function ProgressScreen() {
   const [routine, setRoutine] = useState<RoutineConfig | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
+  const [pathConfirmation, setPathConfirmation] = useState<string | null>(null);
   const [userExercises, setUserExercises] = useState<StoredExtractedExercise[]>([]);
   const [songs, setSongs] = useState<StoredSong[]>([]);
 
@@ -574,6 +576,17 @@ export default function ProgressScreen() {
   async function handleSaveRoutine(config: RoutineConfig) {
     await saveRoutine(config).catch(() => {});
     setRoutine(config);
+  }
+
+  function handlePracticeExercise(exerciseId: string) {
+    router.push({ pathname: "/", params: { exerciseId } });
+  }
+
+  // Make a path the daily routine — the existing streak/completion system tracks it.
+  async function handleUsePath(exerciseIds: string[]) {
+    await saveRoutine({ exerciseIds }).catch(() => {});
+    setRoutine({ exerciseIds });
+    setPathConfirmation("Path set as today's routine.");
   }
 
   function openImportModal() {
@@ -785,6 +798,19 @@ export default function ProgressScreen() {
           routine={activeRoutine}
           status={routineStatus}
           onPressEdit={() => setEditModalVisible(true)}
+        />
+
+        {pathConfirmation !== null && (
+          <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.success }}>
+            {pathConfirmation}
+          </Text>
+        )}
+
+        {/* Growth Paths — curated, never-gated exercise sets */}
+        <PathwaysCard
+          sessions={allSessions}
+          onPracticeExercise={handlePracticeExercise}
+          onUsePath={handleUsePath}
         />
 
         <WeeklySummaryCard

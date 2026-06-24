@@ -2,8 +2,21 @@
   "id": "descending-five-to-one-nay",
   "name": "Descending 5-to-1 on Nay",
   "pedagogy": "Trains head-voice or mix to lead the descent rather than pulling chest registration upward. Starting on scale degree 5 in the upper-mid range and stepping down keeps the larynx stable and reinforces the sensation of 'falling into' the lower note rather than reaching for it.",
-  "scaleDegrees": [7, 5, 4, 2, 0],
-  "syllables": ["nay", "nay", "nay", "nay", "nay"],
+  "capability": "onset",
+  "scaleDegrees": [
+    7,
+    5,
+    4,
+    2,
+    0
+  ],
+  "syllables": [
+    "nay",
+    "nay",
+    "nay",
+    "nay",
+    "nay"
+  ],
   "noteValue": "4n",
   "tempo": 84,
   "voicePartRanges": {
@@ -36,5 +49,10 @@
     "voicing": "open"
   },
   "direction": "descending",
-  "tags": ["head-mix", "passaggio", "chest-mix", "speech-level"]
+  "tags": [
+    "head-mix",
+    "passaggio",
+    "chest-mix",
+    "speech-level"
+  ]
 }

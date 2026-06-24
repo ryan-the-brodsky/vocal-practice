@@ -2,8 +2,25 @@
   "id": "goog-octave-arpeggio",
   "name": "Goog Octave Arpeggio",
   "pedagogy": "A Speech Level Singing cornerstone that coordinates mix registration through the first passaggio. The hard 'G' onset with a narrow 'oo' vowel stabilizes laryngeal height while the octave arc takes the voice through the bridge and back, training the sensation of a consistent tonal 'core' across registers.",
-  "scaleDegrees": [0, 4, 7, 12, 7, 4, 0],
-  "syllables": ["goog", "goog", "goog", "goog", "goog", "goog", "goog"],
+  "capability": "mix",
+  "scaleDegrees": [
+    0,
+    4,
+    7,
+    12,
+    7,
+    4,
+    0
+  ],
+  "syllables": [
+    "goog",
+    "goog",
+    "goog",
+    "goog",
+    "goog",
+    "goog",
+    "goog"
+  ],
   "noteValue": "8n",
   "tempo": 90,
   "voicePartRanges": {
@@ -36,5 +53,10 @@
     "voicing": "close"
   },
   "direction": "both",
-  "tags": ["speech-level", "passaggio", "chest-mix", "head-mix"]
+  "tags": [
+    "speech-level",
+    "passaggio",
+    "chest-mix",
+    "head-mix"
+  ]
 }
