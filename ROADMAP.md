@@ -1,6 +1,21 @@
 # Vocal Training — Roadmap
 
-Personal vocal-warmup app. Goal: pitch detection + accuracy scoring with piano accompaniment, on TestFlight (iOS) with web as a free byproduct.
+Personal vocal-warmup app. Pitch detection + accuracy scoring with piano accompaniment.
+
+> **Scope (2026-06-23):** web-only, single-user, local-first static site — no mobile/native app, no accounts, no externally-maintained resources. The iOS/TestFlight milestone (M1) is **dead scope**; native sections below are retained for history only. Focus is usability, delight, and hardening existing web features.
+
+## Usability & Hardening Sprint — shipped 2026-06-23
+
+HOLD-SCOPE batch from the `/plan-ceo-review` (plan at `USABILITY_HARDENING_PLAN.md`). All green: `tsc` clean, 525 tests, visually verified.
+
+- **A1 — Data durability:** `navigator.storage.persist()` on boot (`lib/storage/persist.ts`) + JSON export/import of all app data (`lib/backup/exportImport.ts`, `BACKUP_KEYS`) + "YOUR DATA" backup/restore footer & a >30-day backup nudge on Progress. 100% local — no cloud.
+- **A2 — Honest scoring:** `NoteScore.octaveBelow` / `octaveAbove` (`lib/scoring/types.ts`) record when octave-folding masked an octave error; PostSessionPanel surfaces a non-judgmental "you sang an octave below" hint that deep-links to the "Down an octave" selector.
+- **A3 — Resilience:** app-wide `components/ErrorBoundary.tsx` (recovery card, not a white screen).
+- **B1 — Mic-failure recovery:** preflight mic acquisition before the piano plays; first-class in-staff "Microphone access blocked" state (`components/practice/MicErrorState.tsx`, `lib/pitch/micError.ts`) with per-browser re-enable steps + Retry; live pre-Start level meter (`MicLevelMeter`, fed by `PitchSample.rmsDb`).
+- **B2 — Desktop fill (above-the-fold-safe):** right-column "LAST TIME" panel + current-streak (`currentStreak` in `stats.ts`) + one-line "what this trains" — fills the former desktop void without pushing Start below the fold.
+- **B3 — Warm states:** Progress empty state, Coaching rotating-tip (no more "No session id provided."), decoded "Piano / Guide / Demo" settings-icon labels.
+- **C1 — Delight:** personal-best badge (`isPersonalBest`), spacebar Start/Stop + → next exercise.
+- **Deferred (flagged, not dropped):** bundle the web piano locally to drop the `tonejs.github.io` CDN (size↔quality call); fix last-key-degradation (needs a repro); **disable pitch detection per-exercise for SOVT/trill exercises** (next sprint — see below).
 
 ---
 
@@ -57,6 +72,15 @@ Personal vocal-warmup app. Goal: pitch detection + accuracy scoring with piano a
 - Guided session: hero card with note name and syllable, match-progress bar, live feedback label, tonic/note/reps/last-cents stat row. On pattern complete, a **per-note results breakdown** appears: one chip per syllable in the pattern showing the best signed-cents value achieved on that note position, color-coded green/amber/red against the user's threshold (`tolCents` / `2×tolCents`).
 - Progress tab (replaced the old `explore.tsx` scaffold): **Today's routine** card at top (configurable 4-default exercise checklist with edit modal), weekly summary card, per-exercise list with last-practiced date, best key, **best-ever session accuracy**, and tap-to-expand **sparkline trend** (vanilla View-based, no chart library), recent sessions list (up to 20) where each row taps to expand into per-key + per-note breakdown chips with a **Coach this** button that loads that historical session into the coaching screen. Empty state when no sessions exist.
 - No dark-mode theming applied to practice/coaching/progress screens (uses hardcoded colors); scaffold components have `useColorScheme` but it's unused in the app's core screens.
+
+### First-Run Onboarding (shipped 2026-06-20)
+- One-time onboarding at `/onboarding` (route `app/onboarding.tsx`), gated on `vocal-training:onboarding:v1` (`lib/settings/onboarding.ts`). The root layout (`app/_layout.tsx`) holds the splash until both fonts and the flag resolve, then `router.replace("/onboarding")` for first-run users; a latch + canvas cover layer prevent any Practice flash, and finishing/skipping never re-triggers the gate.
+- **Always-visible "Skip to singing"** on every step → marks the flag done and lands on Practice (skip = done forever; both prefs have safe defaults).
+- Six steps: Welcome → **Voice** (writes `saveVoicePart`) → **Routine** (writes `saveRoutine`, seeded from `DEFAULT_ROUTINE`, list via the shared `routineBuiltinItems()` helper so it can't drift from the Progress editor) → three feature intros: a **live Standard-vs-Guided demo** (reuses the real `MelodyDisplay`, no mic/audio, driven by `components/onboarding/DemoPlayer.tsx`), an **Import** intro, and a **Song-segment** intro. Preferences persist on change, so a mid-flow skip keeps choices. Position is communicated solely by the progress dots — step eyebrows are descriptive ("YOUR VOICE", "BRING YOUR OWN"), not numbered, so nothing competes with the dot counter.
+- Motion honors `prefers-reduced-motion` (`hooks/use-reduced-motion.ts`); step entrance per DESIGN.md (opacity + translateY, 200ms). On wide screens the scaffold's header + footer are constrained to the same centered content column as the body, so the chrome frames the content instead of pinning to the screen corners. Dev reset button in Trill Lab.
+- The last step shows a one-line headphones/mic primer above "Start singing" ("…we'll ask for mic access the first time you start"), so the Practice headphones modal + browser mic prompt aren't a cold surprise. A fully-deselected routine is never persisted, so the user can't land on Practice with an empty routine.
+- Note: both feature-intro illustrations are in-app **token-built** (zero-staleness, no captured screenshots): Import is a "voice → notes on the staff" waveform→noteheads diagram, Song-segment is a row of labeled segment cards. Swap to annotated PNGs later if desired.
+- Tests: `lib/settings/__tests__/onboarding.test.ts`, `lib/exercises/__tests__/library.test.ts`, `app/__tests__/onboarding.test.tsx`.
 
 ### Persistence
 - `SessionRecord` stored via `AsyncStorage` at `vocal-training:sessions:v1`. Includes `parentSessionId` and `coachingFocus` for coaching child sessions.

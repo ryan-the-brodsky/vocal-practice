@@ -5,6 +5,8 @@ import {
   bestKeyPerExercise,
   bestSessionAccuracy,
   rollingAccuracy,
+  currentStreak,
+  isPersonalBest,
 } from "../stats";
 import { seedSessionRecord, inTuneFiveNoteSession } from "@/test/fixtures/sessions";
 
@@ -257,5 +259,138 @@ describe("rollingAccuracy", () => {
     expect(out.length).toBe(2);
     expect(out[0]!.date).toBe("2026-05-02");
     expect(out[1]!.date).toBe("2026-05-03");
+  });
+});
+
+// Tests use a fixed "now" anchored to noon UTC 2026-05-10 so local-date
+// bucketing (which uses the test runner's timezone) behaves predictably.
+// We express session timestamps as offsets from noon UTC on the same day,
+// keeping them well within the same local calendar day regardless of tz.
+describe("currentStreak", () => {
+  // noon UTC on each target date — safely within the same local calendar day
+  // for any timezone from UTC-11 to UTC+11.
+  const noon = (yyyy: number, mo: number, dd: number) =>
+    Date.UTC(yyyy, mo - 1, dd, 12, 0, 0);
+
+  const NOW = noon(2026, 5, 10); // "today" = 2026-05-10
+
+  it("returns 0 when there are no sessions", () => {
+    expect(currentStreak([], NOW)).toBe(0);
+  });
+
+  it("counts a 3-day consecutive streak ending today", () => {
+    const sessions = [noon(2026, 5, 8), noon(2026, 5, 9), noon(2026, 5, 10)].map(
+      (startedAt) =>
+        seedSessionRecord({
+          exerciseId: "ex",
+          startedAt,
+          attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 80 }] }],
+        }),
+    );
+    expect(currentStreak(sessions, NOW)).toBe(3);
+  });
+
+  it("resets streak on a gap day", () => {
+    // Sessions on days 6, 8, 9, 10 — gap on day 7 breaks the run before day 6.
+    const sessions = [noon(2026, 5, 6), noon(2026, 5, 8), noon(2026, 5, 9), noon(2026, 5, 10)].map(
+      (startedAt) =>
+        seedSessionRecord({
+          exerciseId: "ex",
+          startedAt,
+          attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 80 }] }],
+        }),
+    );
+    // Streak from today back: 10, 9, 8 — stops at gap before 6.
+    expect(currentStreak(sessions, NOW)).toBe(3);
+  });
+
+  it("streak stays alive when today has no session but yesterday does", () => {
+    const sessions = [noon(2026, 5, 7), noon(2026, 5, 8), noon(2026, 5, 9)].map(
+      (startedAt) =>
+        seedSessionRecord({
+          exerciseId: "ex",
+          startedAt,
+          attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 80 }] }],
+        }),
+    );
+    // today (10) has no session, but yesterday (9) does → streak = 3 (9, 8, 7)
+    expect(currentStreak(sessions, NOW)).toBe(3);
+  });
+
+  it("returns 0 when the most recent session is before yesterday", () => {
+    const sessions = [noon(2026, 5, 7), noon(2026, 5, 8)].map((startedAt) =>
+      seedSessionRecord({
+        exerciseId: "ex",
+        startedAt,
+        attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 80 }] }],
+      }),
+    );
+    // most recent = day 8; today = 10; gap on day 9 → no live streak
+    expect(currentStreak(sessions, NOW)).toBe(0);
+  });
+});
+
+describe("isPersonalBest", () => {
+  it("returns previousBest=null and isBest=true on first-ever session for an exercise", () => {
+    const session = seedSessionRecord({
+      exerciseId: "ex",
+      startedAt: FIXED_NOW,
+      attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 80 }] }],
+    });
+    expect(isPersonalBest([], session)).toEqual({ isBest: true, previousBest: null });
+    // also true when the only stored session IS the candidate (same id)
+    expect(isPersonalBest([session], session)).toEqual({ isBest: true, previousBest: null });
+  });
+
+  it("returns isBest=true and correct previousBest when candidate beats prior record", () => {
+    const prior = seedSessionRecord({
+      exerciseId: "ex",
+      startedAt: FIXED_NOW - DAY_MS,
+      attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 70 }] }],
+    });
+    const candidate = seedSessionRecord({
+      exerciseId: "ex",
+      startedAt: FIXED_NOW,
+      attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 90 }] }],
+    });
+    expect(isPersonalBest([prior, candidate], candidate)).toEqual({
+      isBest: true,
+      previousBest: 70,
+    });
+  });
+
+  it("returns isBest=false when candidate does not exceed prior record", () => {
+    const prior = seedSessionRecord({
+      exerciseId: "ex",
+      startedAt: FIXED_NOW - DAY_MS,
+      attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 95 }] }],
+    });
+    const candidate = seedSessionRecord({
+      exerciseId: "ex",
+      startedAt: FIXED_NOW,
+      attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 80 }] }],
+    });
+    expect(isPersonalBest([prior, candidate], candidate)).toEqual({
+      isBest: false,
+      previousBest: 95,
+    });
+  });
+
+  it("ignores sessions for a different exercise", () => {
+    const otherEx = seedSessionRecord({
+      exerciseId: "other-ex",
+      startedAt: FIXED_NOW - DAY_MS,
+      attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 99 }] }],
+    });
+    const candidate = seedSessionRecord({
+      exerciseId: "ex",
+      startedAt: FIXED_NOW,
+      attempts: [{ tonic: "C3", notes: [{ targetMidi: 60, accuracyPct: 50 }] }],
+    });
+    // other-ex session doesn't count → candidate is first-ever for "ex"
+    expect(isPersonalBest([otherEx, candidate], candidate)).toEqual({
+      isBest: true,
+      previousBest: null,
+    });
   });
 });

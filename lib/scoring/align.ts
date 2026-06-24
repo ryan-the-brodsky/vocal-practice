@@ -358,6 +358,13 @@ export function alignAndScore(
       };
     }
 
+    // Detect octave correction direction from the segment median vs target.
+    // snapOctave returns the raw value when no octave fold applies (wrong note).
+    const snappedMedian = snapOctave(seg.medianPitchMidi, targetMidi);
+    const medianDelta = snappedMedian - seg.medianPitchMidi; // positive = raised singer up
+    const octaveBelow = medianDelta > 0.5;   // singer was below; correction added semitones
+    const octaveAbove = medianDelta < -0.5;  // singer was above; correction subtracted semitones
+
     let weightedCentsSum = 0;
     let totalWeight = 0;
     let accurateFrames = 0;
@@ -396,6 +403,8 @@ export function alignAndScore(
       framesAboveClarity,
       samplesInWindow: framesAboveClarity,
       trace,
+      ...(octaveBelow && { octaveBelow: true }),
+      ...(octaveAbove && { octaveAbove: true }),
     };
   });
 }

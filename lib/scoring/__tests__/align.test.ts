@@ -390,3 +390,47 @@ describe("alignAndScore() — end-to-end", () => {
     expect(scores[0]!.framesAboveClarity).toBeGreaterThan(200);
   });
 });
+
+// ---------------------------------------------------------------------------
+// alignAndScore() — octave correction flags (NoteScore.octaveBelow / octaveAbove)
+// ---------------------------------------------------------------------------
+
+describe("alignAndScore() — octaveBelow / octaveAbove flags", () => {
+  it("in-tune performance: all notes have octaveBelow and octaveAbove falsy", () => {
+    const targets = [60, 64, 67, 72, 76];
+    const samples = inTune(targets, { perNoteMs: 600 });
+    const scores = alignAndScore(samples, targets, 0, []);
+    for (const n of scores) {
+      expect(n.octaveBelow).toBeFalsy();
+      expect(n.octaveAbove).toBeFalsy();
+    }
+  });
+
+  it("octave-low on note index 2: that note gets octaveBelow===true; accuracy still >50%", () => {
+    const targets = [60, 64, 67, 72, 76];
+    // octaveOff fixture sings target[2] an octave down (67 - 12 = 55)
+    const samples = octaveOff(targets, 2, { perNoteMs: 600 });
+    const scores = alignAndScore(samples, targets, 0, []);
+    expect(scores.length).toBe(5);
+    // Only note 2 should be flagged
+    expect(scores[2]!.octaveBelow).toBe(true);
+    expect(scores[0]!.octaveBelow).toBeFalsy();
+    expect(scores[1]!.octaveBelow).toBeFalsy();
+    expect(scores[3]!.octaveBelow).toBeFalsy();
+    expect(scores[4]!.octaveBelow).toBeFalsy();
+    // Octave fold still applied — accuracy is good
+    expect(scores[2]!.accuracyPct).toBeGreaterThan(50);
+    expect(Math.abs(scores[2]!.meanCentsDeviation)).toBeLessThan(50);
+  });
+
+  it("genuinely wrong note (+3 semitones, not an octave): not folded, octaveBelow falsy", () => {
+    // Sing note 1 at 64+3=67 (a wrong note, not an octave error)
+    const targets = [60, 64, 67];
+    const samples = inTune([60, 67, 67], { perNoteMs: 600 });
+    const scores = alignAndScore(samples, targets, 0, []);
+    expect(scores.length).toBe(3);
+    // Note 1 matched to target 64; it is +3 semitones off — wrong note, no fold
+    expect(scores[1]!.octaveBelow).toBeFalsy();
+    expect(scores[1]!.octaveAbove).toBeFalsy();
+  });
+});

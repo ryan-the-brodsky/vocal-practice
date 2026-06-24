@@ -5,12 +5,14 @@
 // pattern completes (mirrors the production capture-then-score model).
 // Web-only.
 
+import { useRouter } from "expo-router";
 import { PitchDetector as PitchyDetector } from "pitchy";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { resetOnboarding } from "@/lib/settings/onboarding";
 
 import { createAudioPlayer, type AudioPlayer, type SequenceHandle } from "@/lib/audio";
 import type { NoteEvent } from "@/lib/exercises/types";
@@ -299,6 +301,7 @@ function scoreRow(row: RowState, schedule: TargetWindow[]): PerNoteResult[] {
 
 export default function TrialLabScreen() {
   const { colors } = useTheme();
+  const router = useRouter();
   const [tonicNote, setTonicNote] = useState<string>("D3");
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -499,6 +502,21 @@ export default function TrialLabScreen() {
         capture-then-score model as production. Compare which estimator best tracks the
         target across the full pattern.
       </Text>
+
+      {__DEV__ && (
+        <Pressable
+          onPress={async () => {
+            await resetOnboarding();
+            router.replace("/onboarding");
+          }}
+          style={[s.chip, { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong, alignSelf: "flex-start", marginBottom: Spacing.sm }]}
+          accessibilityLabel="Reset onboarding flag and replay the intro"
+        >
+          <Text style={[s.chipText, { color: colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>
+            Reset onboarding ↺
+          </Text>
+        </Pressable>
+      )}
 
       <View style={s.controlRow}>
         <Text style={[s.label, { color: colors.textTertiary, fontFamily: Fonts.body }]}>Tonic:</Text>

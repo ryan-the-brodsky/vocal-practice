@@ -249,6 +249,63 @@ export function bestSessionAccuracy(
   return Math.max(...relevant.map(_sessionMeanAccuracy));
 }
 
+// Local-calendar date string "YYYY-MM-DD" from an epoch ms (in the runner's timezone).
+function _localDateStr(ms: number): string {
+  const d = new Date(ms);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Number of consecutive calendar days (local time) with ≥1 session, ending
+ * today or yesterday.  Pass `nowMs` so the function stays pure/testable.
+ */
+export function currentStreak(sessions: SessionRecord[], nowMs: number): number {
+  if (sessions.length === 0) return 0;
+
+  const DAY = 24 * 60 * 60 * 1000;
+  const today = _localDateStr(nowMs);
+  const yesterday = _localDateStr(nowMs - DAY);
+
+  const activeDays = new Set(sessions.map((s) => _localDateStr(s.startedAt)));
+
+  // Streak must reach at least today or yesterday to be "alive".
+  const startMs = activeDays.has(today) ? nowMs : activeDays.has(yesterday) ? nowMs - DAY : null;
+  if (startMs === null) return 0;
+
+  // Walk backwards day by day from the anchor, counting consecutive active days.
+  let count = 0;
+  let cursorMs = startMs;
+  while (true) {
+    if (!activeDays.has(_localDateStr(cursorMs))) break;
+    count += 1;
+    cursorMs -= DAY;
+  }
+  return count;
+}
+
+/**
+ * Whether `candidate` sets a new personal best for its exerciseId.
+ * Compares against all OTHER sessions; returns previousBest=null on first-ever.
+ */
+export function isPersonalBest(
+  sessions: SessionRecord[],
+  candidate: SessionRecord,
+): { isBest: boolean; previousBest: number | null } {
+  const others = sessions.filter(
+    (s) => s.exerciseId === candidate.exerciseId && s.id !== candidate.id,
+  );
+  if (others.length === 0) return { isBest: true, previousBest: null };
+
+  const previousBest = Math.max(...others.map(_sessionMeanAccuracy));
+  return {
+    isBest: _sessionMeanAccuracy(candidate) > previousBest,
+    previousBest,
+  };
+}
+
 /**
  * Rolling per-day accuracy across all exercises, ordered chronologically.
  * @param windowSize - max number of most-recent days to return (default 30)

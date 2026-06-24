@@ -39,6 +39,12 @@ export function exercisesByTag(tag: string): ExerciseDescriptor[] {
   return exerciseLibrary.filter((ex) => ex.tags?.includes(tag) ?? false);
 }
 
+// Built-in exercises as {id,label} for routine pickers (onboarding + Progress
+// editor) — one source of truth so the two selectable lists can't drift.
+export function routineBuiltinItems(): { id: string; label: string }[] {
+  return exerciseLibrary.map((ex) => ({ id: ex.id, label: ex.name }));
+}
+
 // Built-ins first, then user exercises, then song chunks (grouped by song, in chunk order).
 export async function getAllExercises(): Promise<ExerciseDescriptor[]> {
   const [userItems, songs] = await Promise.all([

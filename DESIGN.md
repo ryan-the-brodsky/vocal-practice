@@ -256,6 +256,15 @@ Padding: `space-sm` × `space-md` (10/12 × 18/20). Radius: `radius-md`. Font: G
 - Padding: `space-2xs` × `space-sm`
 - Radius: `radius-pill`
 
+### Step progress dots (onboarding / multi-step flows)
+
+A horizontal row of small pills marking position in a short linear flow.
+- Each dot: `space-xs` square, `radius-pill`. Gap `space-2xs`.
+- Current step: background `--accent`, widened to `space-lg` (reads as the "you are here" bar).
+- Completed steps: background `--accent-muted`.
+- Upcoming steps: background `--border-strong`.
+- The row carries `accessibilityRole="progressbar"` + a "Step N of M" label; never rely on the dots alone.
+
 ---
 
 ## Accessibility
@@ -297,6 +306,7 @@ If any review surfaces one of these, fix it before shipping.
 | 2026-05-09 | Fraunces / General Sans / JetBrains Mono | Differentiation from generic SaaS. Avoids overused defaults (Inter, Roboto, Helvetica). All free. Roles: display / UI body / data. |
 | 2026-05-09 | Burnt amber accent (`#a86a24` light / `#e09238` dark), not indigo | Prior default was indigo `#4338ca` — overused, generic SaaS. Amber is uncommon in music apps and reads warm + performer's-stage. |
 | 2026-05-09 | Light is the only active theme; dark deferred to opt-in toggle | After the migration shipped, the app inherited OS dark mode via `useColorScheme()` and rendered the dark `bgCanvas` (warm-dark) — the user immediately rejected this as the same brown-canvas mistake the cream-inversion fixed. Decision: hardcode light in `useTheme()`, `useThemeColor()`, `app/_layout.tsx`, `app/(tabs)/_layout.tsx`, `components/parallax-scroll-view.tsx`. Dark tokens stay defined in the palette for a future Theme preference (System / Light / Dark) — not auto-routed via OS. |
+| 2026-06-20 | Added "Step progress dots" to Component Vocabulary | First-run onboarding needed a multi-step position indicator, which wasn't in the vocabulary. Built from existing tokens only (amber `--accent` current, `--accent-muted` done, `--border-strong` upcoming; `radius-pill`); no new color or size. Used by `components/onboarding/OnboardingScaffold.tsx`. |
 
 ---
 

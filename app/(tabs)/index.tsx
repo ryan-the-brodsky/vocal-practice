@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, type StyleProp, Switch, Text, useWindowDimensions, View, type ViewStyle } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
@@ -17,6 +18,8 @@ import {
   summarizeKey,
 } from "@/components/practice";
 import { MicStatus, type MicStatusState } from "@/components/practice/MicStatus";
+import { MicErrorState } from "@/components/practice/MicErrorState";
+import { MicLevelMeter } from "@/components/practice/MicLevelMeter";
 import VexFlowMelodyDisplay from "@/components/practice/VexFlowMelodyDisplay";
 import { PostSessionPanel } from "@/components/practice/PostSessionPanel";
 import { createAudioPlayer, type AudioPlayer, type SequenceHandle } from "@/lib/audio";
@@ -44,11 +47,13 @@ import {
   type PitchDetector,
   type PitchSample,
 } from "@/lib/pitch";
+import { classifyMicError, type MicErrorReason } from "@/lib/pitch/micError";
 import { sniffMicrophone } from "@/lib/pitch/sniff";
 import type { CaptureSidecar } from "@/lib/capture/types";
 import { encodeWav } from "@/lib/capture/wav";
 import { captureTimestamp, downloadBlob } from "@/lib/capture/download";
 import { createAsyncStorageStore, type SessionRecord } from "@/lib/progress";
+import { currentStreak } from "@/lib/progress/stats";
 import { loadRoutine, todayStatus, type RoutineConfig, type RoutineStatus } from "@/lib/progress/routine";
 import { SessionTracker, type SessionTrackerSnapshot } from "@/lib/session/tracker";
 import { loadVoicePart, saveVoicePart } from "@/lib/settings/voicePart";
@@ -77,6 +82,9 @@ function octaveShiftLabel(shift: number): string {
 export default function PracticeScreen() {
   const router = useRouter();
   const navParams = useLocalSearchParams<{ exerciseId?: string; voicePart?: string }>();
+  // Practice stays mounted under the onboarding route (it's the stack anchor); its
+  // headphones <Modal> portals above everything, so only show it when focused.
+  const isFocused = useIsFocused();
   const { width } = useWindowDimensions();
   // Desktop: staff on the left, a compact command console on the right.
   const isDesktop = width >= 1024;
@@ -204,6 +212,8 @@ export default function PracticeScreen() {
 
   const [status, setStatus] = useState<"idle" | "loading" | "demo" | "playing" | "stopping">("idle");
   const [error, setError] = useState<string | null>(null);
+  // Set when mic acquisition fails — drives the staff-card MicErrorState recovery panel.
+  const [micErrorReason, setMicErrorReason] = useState<MicErrorReason | null>(null);
   const [latestSample, setLatestSample] = useState<PitchSample | null>(null);
   const [currentTarget, setCurrentTarget] = useState<NoteEvent | null>(null);
   const [noteProgress, setNoteProgress] = useState(0);
@@ -331,6 +341,17 @@ export default function PracticeScreen() {
     switchExerciseTo(newId);
   }, [switchExerciseTo]);
 
+  /** Advance to the routine item after the current exercise (wraps); falls back
+   *  to the first routine item. Used by the ArrowRight keyboard shortcut. */
+  const goToNextRoutineExercise = useCallback(() => {
+    if (!routine) return;
+    const ids = routine.exerciseIds.filter((id) => availableExercises.some((e) => e.id === id));
+    if (ids.length === 0) return;
+    const cur = ids.indexOf(exerciseId);
+    const nextId = cur === -1 ? ids[0] : ids[(cur + 1) % ids.length];
+    if (nextId && nextId !== exerciseId) handleExerciseChange(nextId);
+  }, [routine, availableExercises, exerciseId, handleExerciseChange]);
+
   /** Default the active exercise to the routine's next not-yet-done item —
    *  continues a routine across app opens and after each logged session.
    *  Backs off once the user explicitly picks an exercise (chip / routine row /
@@ -391,6 +412,7 @@ export default function PracticeScreen() {
       return;
     }
     setError(null);
+    setMicErrorReason(null);
     setSavedMessage(null);
     setCoachingCta(null);
     setPendingSession(null);
@@ -403,10 +425,6 @@ export default function PracticeScreen() {
 
       await playerRef.current.init();
 
-      // Demo: play first-tonic pattern once (no mic, no scoring) so user hears it.
-      // Always use guidance:'full' so the demo shows the complete accompaniment
-      // regardless of the user's performance guidance setting (tonic-only, etc.).
-      demoAbortedRef.current = false;
       // Capture startTonicMidi here so both demo and session use the same snapshot.
       const sessionStartTonic = startTonicMidi;
       const startTonicNote = sessionStartTonic !== null ? midiToNote(sessionStartTonic) : undefined;
@@ -423,6 +441,35 @@ export default function PracticeScreen() {
         startTonicOverride: startTonicNote,
         octaveShift,
       });
+
+      // Acquire + validate the mic before any piano plays — a dead mic should
+      // surface the recovery panel, not a half-played demo. Apply detector
+      // tuning + raw capture first (both must precede start()).
+      const hints = exercise.scoringHints;
+      const noteSec = (() => {
+        try { return noteValueToSeconds(exercise.noteValue, exercise.tempo); }
+        catch { return 0.5; }
+      })();
+      const tuning = resolveDetectorTuning({ noteSec, hints });
+      detectorRef.current.setClarityThreshold(tuning.clarityThreshold);
+      detectorRef.current.setOctaveJumpFrames(tuning.octaveJumpFrames);
+      if (__DEV__ && rawCaptureEnabled) {
+        detectorRef.current.enableRawCapture?.();
+      }
+      try {
+        await detectorRef.current.start();
+      } catch (micErr: unknown) {
+        setMicErrorReason(classifyMicError(micErr));
+        await detectorRef.current.stop().catch(() => {});
+        setStatus("idle");
+        return;
+      }
+      detectorStartMsRef.current = performance.now();
+
+      // Demo: play first-tonic pattern once (no scoring) so user hears it.
+      // Always use guidance:'full' so the demo shows the complete accompaniment
+      // regardless of the user's performance guidance setting (tonic-only, etc.).
+      demoAbortedRef.current = false;
 
       if (demoEnabled) {
         const demoTonic = iterations[0]!.tonic;
@@ -459,35 +506,14 @@ export default function PracticeScreen() {
           };
         });
 
-        // If Stop was pressed during demo, bail out (handleStop already set state).
-        if (demoAbortedRef.current) return;
+        // If Stop was pressed during demo, bail out — the mic is already
+        // running, so stop it here (handleStop set state but can't reach it).
+        if (demoAbortedRef.current) {
+          await detectorRef.current.stop().catch(() => {});
+          return;
+        }
         setStatus("loading");
       }
-
-      // Apply per-exercise pitch-detector tuning before starting capture.
-      // resolveDetectorTuning derives a transient-friendly profile from
-      // per-note seconds (fast exercises like goog-octave-arpeggio get
-      // looser gates) and respects any explicit scoringHints overrides.
-      // Note: smoothingFrames is constructor-set on the postprocessor today,
-      // so live can only swap clarity + octave-jump at runtime. The default
-      // postprocessor median is 5, which matches the resolver's choice on
-      // both branches — so this is exact for non-hint exercises.
-      const hints = exercise.scoringHints;
-      const noteSec = (() => {
-        try { return noteValueToSeconds(exercise.noteValue, exercise.tempo); }
-        catch { return 0.5; }
-      })();
-      const tuning = resolveDetectorTuning({ noteSec, hints });
-      detectorRef.current.setClarityThreshold(tuning.clarityThreshold);
-      detectorRef.current.setOctaveJumpFrames(tuning.octaveJumpFrames);
-
-      // Dev raw capture — must be enabled before start() so it covers the lead-in.
-      if (__DEV__ && rawCaptureEnabled) {
-        detectorRef.current.enableRawCapture?.();
-      }
-
-      await detectorRef.current.start();
-      detectorStartMsRef.current = performance.now();
 
       iterationsRef.current = iterations;
       const flat = flattenIterations(iterations, 1.0);
@@ -561,9 +587,57 @@ export default function PracticeScreen() {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
+      // The mic may already be live (started before the demo) — don't leak it.
+      await detectorRef.current?.stop().catch(() => {});
       setStatus("idle");
     }
   }
+
+  const handleMicRetry = useCallback(() => {
+    setMicErrorReason(null);
+    void handleStart();
+    // handleStart is stable across renders (closure over state setters + refs).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keyboard shortcuts (web): Space toggles Start/Stop, ArrowRight advances the
+  // routine. A ref carries the latest handlers so the listener stays subscribed
+  // once. Ignored over inputs / when a blocking modal is open.
+  const keyHandlersRef = useRef({ status, handleStart, handleStop, goToNextRoutineExercise, modalOpen: false });
+  keyHandlersRef.current = {
+    status,
+    handleStart,
+    handleStop,
+    goToNextRoutineExercise,
+    modalOpen: importModalVisible || headphonesConfirmed === null,
+  };
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      const h = keyHandlersRef.current;
+      if (h.modalOpen) return;
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || t?.isContentEditable) return;
+      if (e.code === "Space" || e.key === " ") {
+        if (h.status === "idle") {
+          e.preventDefault();
+          void h.handleStart();
+        } else if (h.status === "playing") {
+          e.preventDefault();
+          void h.handleStop();
+        }
+        // loading / demo / stopping: do nothing.
+      } else if (e.key === "ArrowRight") {
+        if (h.status === "idle") {
+          e.preventDefault();
+          h.goToNextRoutineExercise();
+        }
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   async function handleStop() {
     // Handle Stop during demo phase: signal abort and let handleStart clean up.
@@ -778,8 +852,9 @@ export default function PracticeScreen() {
         ))}
       </View>
 
-      {/* Modal shown once per session — gates Start until answered */}
-      <HeadphonesBanner onConfirm={setHeadphonesConfirmed} />
+      {/* Modal shown once per session — gates Start until answered. Suppressed
+          while unfocused so its portal can't bleed over the onboarding route. */}
+      {isFocused && <HeadphonesBanner onConfirm={setHeadphonesConfirmed} />}
 
       <ImportModal
         visible={importModalVisible}
@@ -825,6 +900,8 @@ export default function PracticeScreen() {
               router.push({ pathname: "/coaching", params: { sessionId } })
             }
             isIdle={true}
+            allSessions={loggedSessions}
+            onUseDownAnOctave={() => setOctaveShift(-1)}
           />
         </>
       ) : (
@@ -842,7 +919,13 @@ export default function PracticeScreen() {
           iterationsRef={iterationsRef}
           leadInCountdown={leadInCountdown}
           loggedMessage={loggedMessage}
+          loggedSessions={loggedSessions}
+          micErrorReason={micErrorReason}
+          onMicRetry={handleMicRetry}
+          micState={micState}
+          latestSample={latestSample}
           noteProgress={noteProgress}
+          onUseDownAnOctave={() => setOctaveShift(-1)}
           pendingSession={pendingSession}
           progress={progress}
           router={router}
@@ -1171,6 +1254,7 @@ function SettingsCluster({
       <View style={styles.iconRow}>
         <SettingIconButton
           icon="pianokeys"
+          label="Piano"
           tooltip="Accompaniment preset — changes the piano pattern style"
           badge={acBadge}
           active={open === "accompaniment"}
@@ -1179,6 +1263,7 @@ function SettingsCluster({
         />
         <SettingIconButton
           icon="ear"
+          label="Guide"
           tooltip="Guidance — Full plays the melody; Tonic only is silent during the pattern"
           badge={guidBadge}
           active={open === "guidance"}
@@ -1187,6 +1272,7 @@ function SettingsCluster({
         />
         <SettingIconButton
           icon="play.circle"
+          label="Demo"
           tooltip="Demo — plays the first key once before your session begins"
           badge={demoEnabled ? "On" : "Off"}
           active={open === "demo"}
@@ -1328,6 +1414,7 @@ function SettingsCluster({
 /** A single icon button in the settings row with a badge and tooltip. */
 function SettingIconButton({
   icon,
+  label,
   tooltip,
   badge,
   active,
@@ -1335,6 +1422,7 @@ function SettingIconButton({
   onPress,
 }: {
   icon: "slider.horizontal.3" | "pianokeys" | "ear" | "play.circle" | "metronome";
+  label: string;
   tooltip: string;
   badge: string;
   active: boolean;
@@ -1387,6 +1475,10 @@ function SettingIconButton({
           </Text>
         </View>
       </Pressable>
+      {/* Self-explanatory label under the icon — no hover needed. */}
+      <Text style={[styles.iconCaption, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
+        {label}
+      </Text>
       {/* Native long-press tooltip */}
       {showTooltip && (
         <View style={[styles.tooltip, { backgroundColor: colors.bgEmphasis }]}>
@@ -1446,7 +1538,13 @@ interface StandardBodyProps {
   iterationsRef: React.MutableRefObject<KeyIteration[]>;
   leadInCountdown: number | null;
   loggedMessage: string | null;
+  loggedSessions: SessionRecord[];
+  micErrorReason: MicErrorReason | null;
+  onMicRetry: () => void;
+  micState: MicStatusState;
+  latestSample: PitchSample | null;
   noteProgress: number;
+  onUseDownAnOctave: () => void;
   pendingSession: SessionRecord | null;
   progress: number;
   router: ReturnType<typeof useRouter>;
@@ -1476,7 +1574,13 @@ function StandardModeBody({
   iterationsRef,
   leadInCountdown,
   loggedMessage,
+  loggedSessions,
+  micErrorReason,
+  onMicRetry,
+  micState,
+  latestSample,
   noteProgress,
+  onUseDownAnOctave,
   pendingSession,
   progress,
   router,
@@ -1494,7 +1598,9 @@ function StandardModeBody({
   const isWide = width >= 640;
 
   const heroContent =
-    leadInCountdown != null ? (
+    micErrorReason != null ? (
+      <MicErrorState reason={micErrorReason} onRetry={onMicRetry} />
+    ) : leadInCountdown != null ? (
       <View style={styles.countdownOverlay}>
         <Text style={[styles.countdownNumber, { color: colors.accent, fontFamily: Fonts.display }]}>
           {leadInCountdown}
@@ -1561,6 +1667,19 @@ function StandardModeBody({
       </Pressable>
     );
   };
+
+  // Mic input level near Start — clamp(-60dB→0, -15dB→1). Lit while singing or mid-check.
+  const micLevel = (() => {
+    const db = latestSample?.rmsDb;
+    if (typeof db !== "number") return 0;
+    return Math.min(1, Math.max(0, (db + 60) / 45));
+  })();
+  const micListening = status === "playing" || micState === "checking";
+  const micMeter = (
+    <View style={styles.micMeterRow}>
+      <MicLevelMeter level={micLevel} listening={micListening} />
+    </View>
+  );
 
   // No live pitch readout: real-time detection octave-errors enough to look
   // wildly off when it isn't, and scoring is post-pattern anyway. Just show
@@ -1632,6 +1751,8 @@ function StandardModeBody({
           router.push({ pathname: "/coaching", params: { sessionId } })
         }
         isIdle={status === "idle"}
+        allSessions={loggedSessions}
+        onUseDownAnOctave={onUseDownAnOctave}
       />
     </>
   );
@@ -1647,6 +1768,7 @@ function StandardModeBody({
         <View style={styles.practiceRow}>
           <View style={[styles.console, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
             {primaryButton(true)}
+            {micMeter}
             {status === "idle" ? (
               <>
                 {startInfoLine(false)}
@@ -1657,8 +1779,14 @@ function StandardModeBody({
               liveReadouts
             )}
           </View>
-          <View style={[styles.hero, styles.practiceStage, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
-            {heroContent}
+          <View style={styles.practiceStage}>
+            <View style={[styles.hero, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
+              {heroContent}
+            </View>
+            <DesktopGlancePanel
+              exercise={exercise}
+              loggedSessions={loggedSessions}
+            />
           </View>
         </View>
         {afterStage}
@@ -1681,10 +1809,78 @@ function StandardModeBody({
       ) : (
         <View style={styles.actions}>{primaryButton(false)}</View>
       )}
+      {micMeter}
       {status !== "idle" && liveReadouts}
       {afterStage}
       {controls}
     </>
+  );
+}
+
+/** Relative-date label mirroring Progress's fmt: today / 1 day ago / N days ago. */
+function relativeDay(ms: number, nowMs: number): string {
+  const days = Math.floor((nowMs - ms) / (24 * 60 * 60 * 1000));
+  if (days <= 0) return "today";
+  if (days === 1) return "1 day ago";
+  return `${days} days ago`;
+}
+
+/** Desktop-only glance panel under the staff: last session for the current
+ *  exercise, current streak, and a one-line "what this trains". Fills the void
+ *  in the right column without touching the left console / Start. */
+function DesktopGlancePanel({
+  exercise,
+  loggedSessions,
+}: {
+  exercise: ExerciseDescriptor;
+  loggedSessions: SessionRecord[];
+}) {
+  const { colors } = useTheme();
+  const now = Date.now();
+
+  const last = useMemo(() => {
+    const forExercise = loggedSessions
+      .filter((s) => s.exerciseId === exercise.id)
+      .sort((a, b) => b.startedAt - a.startedAt);
+    const s = forExercise[0];
+    if (!s || s.keyAttempts.length === 0) return null;
+    const pct = Math.round(
+      s.keyAttempts.reduce((a, k) => a + k.meanAccuracyPct, 0) / s.keyAttempts.length,
+    );
+    const startKey = s.keyAttempts[0].tonic;
+    const endKey = s.keyAttempts[s.keyAttempts.length - 1].tonic;
+    const span = startKey === endKey ? startKey : `${startKey}–${endKey}`;
+    return { pct, span, when: relativeDay(s.startedAt, now) };
+  }, [loggedSessions, exercise.id, now]);
+
+  const streak = useMemo(() => currentStreak(loggedSessions, now), [loggedSessions, now]);
+
+  return (
+    <View style={[styles.glancePanel, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
+      <View style={styles.glanceRow}>
+        <Text style={[styles.glanceEyebrow, { color: colors.textTertiary, fontFamily: Fonts.bodySemibold }]}>
+          Last time
+        </Text>
+        {streak >= 1 && (
+          <View style={[styles.streakPill, { backgroundColor: colors.accentMuted, borderColor: colors.accent }]}>
+            <Text style={[styles.streakNumber, { color: colors.accent, fontFamily: Fonts.monoMedium }]}>
+              {streak}
+            </Text>
+            <Text style={[styles.streakLabel, { color: colors.accent, fontFamily: Fonts.bodyMedium }]}>
+              day streak
+            </Text>
+          </View>
+        )}
+      </View>
+      <Text style={[styles.glanceValue, { color: colors.textPrimary, fontFamily: Fonts.bodyMedium }]}>
+        {last
+          ? `${last.pct}% · ${last.span} · ${last.when}`
+          : "No sessions yet — your first one shows here."}
+      </Text>
+      <Text numberOfLines={1} style={[styles.glanceTrains, { color: colors.textSecondary, fontFamily: Fonts.body }]}>
+        {exercise.pedagogy}
+      </Text>
+    </View>
   );
 }
 
@@ -1886,7 +2082,7 @@ const styles = StyleSheet.create({
   // alignItems: flex-start so each column takes its natural height — the
   // staff doesn't stretch when the command console is taller (lots of chips).
   practiceRow: { flexDirection: "row", gap: Spacing.md, alignItems: "flex-start" },
-  practiceStage: { flex: 1, minWidth: 0, overflow: "hidden" },
+  practiceStage: { flex: 1, minWidth: 0, overflow: "hidden", gap: Spacing.md },
   console: {
     width: 340,
     gap: Spacing.sm,
@@ -1957,7 +2153,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: Spacing.xs,
   },
-  iconBtnWrapper: { position: "relative" },
+  iconBtnWrapper: { position: "relative", alignItems: "center", gap: Spacing["3xs"] },
+  iconCaption: {
+    fontSize: Typography.xs.size,
+    lineHeight: Typography.xs.lineHeight,
+  },
   iconBtn: {
     width: 52,
     height: 52,
@@ -2069,4 +2269,51 @@ const styles = StyleSheet.create({
     lineHeight: Typography.xs.lineHeight,
   },
 
+  // Mic level meter — sits just under the Start button.
+  micMeterRow: { alignItems: "center", paddingVertical: Spacing["2xs"] },
+
+  // Desktop glance panel (right column, under the staff)
+  glancePanel: {
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    padding: Spacing.md,
+    gap: Spacing["2xs"],
+  },
+  glanceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.sm,
+  },
+  glanceEyebrow: {
+    fontSize: Typography.xs.size,
+    lineHeight: Typography.xs.lineHeight,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  glanceValue: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+  },
+  glanceTrains: {
+    fontSize: Typography.xs.size,
+    lineHeight: Typography.xs.lineHeight,
+  },
+  streakPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing["3xs"],
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing["3xs"],
+  },
+  streakNumber: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+  },
+  streakLabel: {
+    fontSize: Typography.xs.size,
+    lineHeight: Typography.xs.lineHeight,
+  },
 });

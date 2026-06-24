@@ -14,6 +14,8 @@ export interface NoteScore {
   framesAboveClarity: number;   // samples whose clarity passed the postprocessor
   samplesInWindow?: number;     // total samples examined; stripped at save time, present only during live scoring
   trace?: NotePitchTrace[];     // per-frame capture for replay/coaching; stripped at save time
+  octaveBelow?: boolean;        // true when the matched segment was an octave (or more) below target and was corrected up
+  octaveAbove?: boolean;        // true when the matched segment was an octave (or more) above target and was corrected down (rare sub-harmonic inversion)
 }
 
 export interface KeyAttemptResult {

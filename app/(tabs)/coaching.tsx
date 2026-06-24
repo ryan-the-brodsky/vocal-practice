@@ -130,6 +130,9 @@ export default function CoachingScreen() {
   // playback's focus-note builder needs medianHz, so we side-channel it from analysis).
   const [importedMedianHzByPos, setImportedMedianHzByPos] = useState<Map<number, number> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // True when the screen is opened with no sessionId and no exerciseId — show
+  // an inviting tip state instead of an error string.
+  const [noSession, setNoSession] = useState(false);
   const [tip, setTip] = useState<AdviceCard | null>(null);
   const [savedTipId, setSavedTipId] = useState<string | null>(null);
   const [savedDiagnosisId, setSavedDiagnosisId] = useState<string | null>(null);
@@ -205,14 +208,14 @@ export default function CoachingScreen() {
         return;
       }
       if (!sessionId) {
-        setError("No session id provided.");
+        setNoSession(true);
         return;
       }
       try {
         const rec = await sessionStore.get(sessionId);
         if (cancelled) return;
         if (!rec) {
-          setError("Couldn't find that session.");
+          setError("We couldn't load that session.");
           return;
         }
         // getExerciseAsync resolves built-ins, user exercises, and song chunks.
@@ -303,7 +306,7 @@ export default function CoachingScreen() {
   const showEmptyState = model !== null && (insufficientData || model.diagnoses.length === 0);
 
   useEffect(() => {
-    if (!showEmptyState) {
+    if (!showEmptyState && !noSession) {
       setTip(null);
       return;
     }
@@ -316,7 +319,7 @@ export default function CoachingScreen() {
     return () => {
       cancelled = true;
     };
-  }, [showEmptyState]);
+  }, [showEmptyState, noSession]);
 
   const exerciseLabel = importedDescriptor
     ? importedDescriptor.name
@@ -456,6 +459,45 @@ export default function CoachingScreen() {
           </Text>
         </Pressable>
       </View>
+    );
+  }
+
+  if (noSession) {
+    return (
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.canvas }}
+        contentContainerStyle={{ padding: Spacing.lg, paddingBottom: Spacing["3xl"], gap: Spacing.md }}
+      >
+        {renderHeader()}
+        <Text
+          style={{
+            fontSize: Typography["2xl"].size,
+            lineHeight: Typography["2xl"].lineHeight,
+            fontFamily: Fonts.display,
+            color: colors.textPrimary,
+          }}
+        >
+          Coaching
+        </Text>
+        <Text
+          style={{
+            fontSize: Typography.base.size,
+            lineHeight: Typography.base.lineHeight,
+            fontFamily: Fonts.body,
+            color: colors.textSecondary,
+          }}
+        >
+          Finish a warmup and tap "Coach this" to get a personalized read.
+        </Text>
+        {tip && (
+          <EmptyStateTip
+            tip={tip}
+            saved={savedTipId !== null}
+            onSave={handleSaveTip}
+            onUnsave={handleUnsaveTip}
+          />
+        )}
+      </ScrollView>
     );
   }
 

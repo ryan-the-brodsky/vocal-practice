@@ -8,6 +8,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
 import type { SessionRecord } from "@/lib/progress";
+import { isPersonalBest } from "@/lib/progress/stats";
 import { useTheme } from "@/hooks/use-theme";
 
 interface CoachingCta {
@@ -28,6 +29,10 @@ interface Props {
   /** True when the surrounding mode body is in its quiescent state — gates the
    *  Log/Discard panel so it doesn't render mid-session. */
   isIdle: boolean;
+  /** All previously logged sessions for this exercise — used for personal-best detection. */
+  allSessions?: SessionRecord[];
+  /** Called when the user taps "Switch" in the octave-below hint. */
+  onUseDownAnOctave?: () => void;
 }
 
 export function PostSessionPanel({
@@ -38,9 +43,23 @@ export function PostSessionPanel({
   coachingCta,
   onTapCoaching,
   isIdle,
+  allSessions,
+  onUseDownAnOctave,
 }: Props) {
   const { colors } = useTheme();
   const [sessionNote, setSessionNote] = useState("");
+
+  // Personal-best detection — only when we have comparison data and the session is pending.
+  const personalBest =
+    pendingSession && allSessions
+      ? isPersonalBest(allSessions, pendingSession)
+      : null;
+
+  // Octave-below hint — true if any note in any key attempt was matched an octave low.
+  const hasOctaveBelow =
+    pendingSession?.keyAttempts.some((ka) =>
+      ka.notes.some((n) => (n as { octaveBelow?: boolean }).octaveBelow === true)
+    ) ?? false;
 
   return (
     <>
@@ -51,6 +70,45 @@ export function PostSessionPanel({
           <Text style={[styles.logHint, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
             This won't count toward your history unless you log it.
           </Text>
+
+          {/* Personal-best badge — shown whenever we have session comparison data. */}
+          {personalBest?.isBest && (
+            <View style={[styles.bestBadge, { backgroundColor: colors.accentMuted, borderColor: colors.accent }]}>
+              <Text style={[styles.bestBadgeText, { color: colors.accent, fontFamily: Fonts.bodySemibold }]}>
+                {personalBest.previousBest === null
+                  ? `★ First time through — ${Math.round(
+                      (pendingSession!.keyAttempts.reduce((a, k) => a + k.meanAccuracyPct, 0) /
+                        Math.max(1, pendingSession!.keyAttempts.length))
+                    )}%`
+                  : `★ Personal best on this exercise — ${Math.round(
+                      pendingSession!.keyAttempts.reduce((a, k) => a + k.meanAccuracyPct, 0) /
+                        Math.max(1, pendingSession!.keyAttempts.length)
+                    )}% (was ${Math.round(personalBest.previousBest)}%)`}
+              </Text>
+            </View>
+          )}
+
+          {/* Octave-below hint — calm, non-alarming; surfaces the register mismatch. */}
+          {hasOctaveBelow && (
+            <View style={[styles.octaveBanner, { backgroundColor: colors.bgSurface, borderColor: colors.warning }]}>
+              <Text style={[styles.octaveBannerText, { color: colors.textSecondary, fontFamily: Fonts.body }]}>
+                {`You sang this an octave below the notation — your score is still accurate. To practice in your own register, switch Octave to “Down an octave”.`}
+                {onUseDownAnOctave ? " " : ""}
+              </Text>
+              {onUseDownAnOctave && (
+                <Pressable
+                  onPress={onUseDownAnOctave}
+                  accessibilityRole="button"
+                  accessibilityLabel="Switch octave to Down an octave"
+                >
+                  <Text style={[styles.octaveBannerSwitch, { color: colors.accent, fontFamily: Fonts.bodySemibold }]}>
+                    Switch
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+
           <TextInput
             style={[
               styles.logNoteInput,
@@ -173,6 +231,32 @@ const styles = StyleSheet.create({
     lineHeight: Typography.md.lineHeight,
   },
   reviewCtaSubtle: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+  },
+  bestBadge: {
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+  },
+  bestBadgeText: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+  },
+  octaveBanner: {
+    borderRadius: Radii.md,
+    borderLeftWidth: 3,
+    borderWidth: 1,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    gap: Spacing["2xs"],
+  },
+  octaveBannerText: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+  },
+  octaveBannerSwitch: {
     fontSize: Typography.sm.size,
     lineHeight: Typography.sm.lineHeight,
   },

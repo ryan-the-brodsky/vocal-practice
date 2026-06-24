@@ -95,9 +95,9 @@ describe("<ProgressScreen />", () => {
     );
     render(<ProgressScreen />);
     await waitFor(() => {
-      expect(screen.getByText("No sessions yet")).toBeTruthy();
+      expect(screen.getByText("Sing your first warmup to start tracking.")).toBeTruthy();
     });
-    expect(screen.getByText("Head to Practice and sing something first.")).toBeTruthy();
+    expect(screen.getByText("Nothing logged yet")).toBeTruthy();
   });
 
   it("'Coach this' on a recent session row navigates to /coaching with the session id", async () => {

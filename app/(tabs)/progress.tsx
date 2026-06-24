@@ -3,16 +3,17 @@
 // yet"), exercise display names, and the "Recent sessions" / "Coach this"
 // labels + the router.push payload `{ pathname: "/coaching", params: { sessionId } }`.
 // Edits to those surfaces here MUST be mirrored in the test file or it will go red.
-import { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { createAsyncStorageStore, thisWeekSummary, bestKeyPerExercise, progressForExercise, bestSessionAccuracy } from "@/lib/progress";
+import { downloadBackup, importAll, lastExportInfo } from "@/lib/backup/exportImport";
 import { loadRoutine, saveRoutine, todayStatus } from "@/lib/progress/routine";
 import type { RoutineConfig } from "@/lib/progress/routine";
 import type { SessionRecord, ExerciseProgress } from "@/lib/progress";
 import { exerciseName, EXERCISE_NAMES } from "@/lib/exercises/names";
-import { exerciseLibrary, getExercise } from "@/lib/exercises/library";
+import { getExercise, routineBuiltinItems } from "@/lib/exercises/library";
 import { listUserExercises, deleteUserExercise } from "@/lib/exercises/userStore";
 import type { StoredExtractedExercise } from "@/lib/exercises/userStore";
 import { listSongs, deleteSong } from "@/lib/songs/store";
@@ -530,23 +531,33 @@ export default function ProgressScreen() {
   const [userExercises, setUserExercises] = useState<StoredExtractedExercise[]>([]);
   const [songs, setSongs] = useState<StoredSong[]>([]);
 
+  // Backup/restore state
+  const [lastExportDays, setLastExportDays] = useState<number | null | undefined>(undefined); // undefined = not loaded yet
+  const [restoreStatus, setRestoreStatus] = useState<{ kind: "ok"; count: number } | { kind: "error"; message: string } | null>(null);
+  const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  // Hidden file input ref for web restore
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   useEffect(() => {
     Promise.all([
       sessionStore.list().catch(() => [] as SessionRecord[]),
       loadRoutine(),
       listUserExercises().catch(() => [] as StoredExtractedExercise[]),
       listSongs().catch(() => [] as StoredSong[]),
-    ]).then(([list, routineConfig, imported, songList]) => {
+      lastExportInfo(Date.now()).catch(() => ({ at: null, ageDays: null })),
+    ]).then(([list, routineConfig, imported, songList, exportInfo]) => {
       setSessions(list);
       setRoutine(routineConfig);
       setUserExercises(imported);
       setSongs(songList);
+      setLastExportDays(exportInfo.ageDays);
       setLoading(false);
     }).catch(() => {
       setSessions([]);
       setRoutine(null);
       setUserExercises([]);
       setSongs([]);
+      setLastExportDays(null);
       setLoading(false);
     });
   }, []);
@@ -606,9 +617,48 @@ export default function ProgressScreen() {
     }
   }
 
+  async function handleBackup() {
+    try {
+      await downloadBackup();
+      // Refresh age display after a successful export
+      const info = await lastExportInfo(Date.now()).catch(() => ({ at: null, ageDays: null }));
+      setLastExportDays(info.ageDays);
+      setNudgeDismissed(true);
+    } catch {
+      /* download errors are visible to the user via the browser */
+    }
+  }
+
+  function handleRestoreClick() {
+    if (Platform.OS !== "web") return;
+    // Create a hidden file input on first use, attach to document body
+    if (!fileInputRef.current) {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "application/json";
+      input.style.display = "none";
+      input.addEventListener("change", async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        const text = await file.text();
+        const result = await importAll(text);
+        if (result.ok) {
+          setRestoreStatus({ kind: "ok", count: result.restoredKeys.length });
+        } else {
+          setRestoreStatus({ kind: "error", message: result.error });
+        }
+        // Reset so the same file can be re-picked if needed
+        input.value = "";
+      });
+      document.body.appendChild(input);
+      fileInputRef.current = input;
+    }
+    fileInputRef.current.click();
+  }
+
   // Items for RoutineEditModal — built-ins + user-imported + song chunks.
   const routineItems: RoutineItem[] = [
-    ...exerciseLibrary.map((e) => ({ id: e.id, label: e.name, section: "builtin" as const })),
+    ...routineBuiltinItems().map((it) => ({ ...it, section: "builtin" as const })),
     ...userExercises.map((it) => ({ id: it.descriptor.id, label: it.descriptor.name, section: "user" as const })),
     ...songs.flatMap((s) =>
       s.chunks.map((c) => {
@@ -638,19 +688,6 @@ export default function ProgressScreen() {
   const hasSessions = allSessions.length > 0;
   const hasRoutine = activeRoutine.exerciseIds.length > 0;
   const hasImports = userExercises.length > 0;
-
-  if (!hasSessions && !hasRoutine && !hasImports) {
-    return (
-      <View style={[styles.centered, { backgroundColor: colors.canvas }]}>
-        <Text style={{ fontSize: Typography.xl.size, lineHeight: Typography.xl.lineHeight, fontFamily: Fonts.display, color: colors.textPrimary, marginBottom: Spacing.xs }}>
-          No sessions yet
-        </Text>
-        <Text style={{ color: colors.textSecondary, fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, fontFamily: Fonts.body, textAlign: "center" }}>
-          Head to Practice and sing something first.
-        </Text>
-      </View>
-    );
-  }
 
   // Weekly summary
   const weeklySummary = thisWeekSummary(allSessions);
@@ -691,12 +728,57 @@ export default function ProgressScreen() {
     (id) => !userExerciseIds.has(id) && !chunkExerciseIds.has(id),
   );
 
+  // Show the nudge when: sessions exist, export info loaded, and backup is stale (>30d) or never done
+  const showNudge =
+    !nudgeDismissed &&
+    hasSessions &&
+    lastExportDays !== undefined &&
+    (lastExportDays === null || lastExportDays > 30);
+
+  function fmtLastExport(): string {
+    if (lastExportDays === undefined) return "";
+    if (lastExportDays === null) return "never";
+    const days = Math.floor(lastExportDays);
+    if (days === 0) return "today";
+    if (days === 1) return "1 day ago";
+    return `${days} days ago`;
+  }
+
   return (
     <>
       <ScrollView style={[styles.container, { backgroundColor: colors.canvas }]} contentContainerStyle={[styles.content, { padding: Spacing.lg, paddingBottom: Spacing['3xl'], gap: Spacing.md }]}>
         <Text style={{ fontSize: Typography['2xl'].size, lineHeight: Typography['2xl'].lineHeight, fontFamily: Fonts.display, color: colors.textPrimary }}>
           Progress
         </Text>
+
+        {/* Backup nudge banner — shown when history exists and backup is stale */}
+        {showNudge && (
+          <View style={[styles.nudgeBanner, { backgroundColor: colors.bgSurface, borderLeftColor: colors.accent, borderRadius: Radii.md }]}>
+            <Text style={{ flex: 1, fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body, color: colors.textPrimary }}>
+              Your history only lives in this browser — back it up so you don't lose it.
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.xs, marginTop: Spacing.xs }}>
+              <Pressable
+                onPress={() => { void handleBackup(); }}
+                style={[styles.nudgeAction, { backgroundColor: colors.accent, borderRadius: Radii.sm }]}
+                accessibilityLabel="Back up your data now"
+              >
+                <Text style={{ color: colors.bgCanvas, fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.bodyMedium }}>
+                  Back up now
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setNudgeDismissed(true)}
+                style={[styles.nudgeDismiss]}
+                accessibilityLabel="Dismiss backup reminder"
+              >
+                <Text style={{ color: colors.textTertiary, fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body }}>
+                  Dismiss
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
 
         {/* Today's Routine — always rendered above WeeklySummaryCard */}
         <TodayRoutineCard
@@ -710,6 +792,21 @@ export default function ProgressScreen() {
           meanAccuracy={weeklySummary.meanAccuracyPct}
           exerciseCount={weeklySummary.exercisesPracticed.length}
         />
+
+        {/* Warm empty state — shown only when no sessions have been logged */}
+        {!hasSessions && (
+          <View style={[styles.emptyCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle, borderRadius: Radii.md }]}>
+            <Text style={{ fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: Spacing.xs }}>
+              Nothing logged yet
+            </Text>
+            <Text style={{ fontSize: Typography.lg.size, lineHeight: Typography.lg.lineHeight, fontFamily: Fonts.display, color: colors.textPrimary, marginBottom: Spacing.xs }}>
+              Sing your first warmup to start tracking.
+            </Text>
+            <Text style={{ fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, fontFamily: Fonts.body, color: colors.textSecondary }}>
+              After each practice you'll see your accuracy trend, best key, and weekly streak here.
+            </Text>
+          </View>
+        )}
 
         {(exerciseIds.length > 0 || userExercises.length > 0 || songs.length > 0) && (
           <>
@@ -802,6 +899,53 @@ export default function ProgressScreen() {
             })}
           </>
         )}
+
+        {/* Backup / restore footer */}
+        {Platform.OS === "web" && (
+          <View style={[styles.backupSection, { borderTopColor: colors.borderSubtle, marginTop: Spacing.lg, paddingTop: Spacing.lg, gap: Spacing.sm }]}>
+            <Text style={{ fontSize: Typography.xs.size, lineHeight: Typography.xs.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textTertiary, textTransform: "uppercase", letterSpacing: 0.8 }}>
+              Your data
+            </Text>
+            <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body, color: colors.textSecondary }}>
+              Stays on this device.
+            </Text>
+
+            <View style={[styles.backupButtons, { gap: Spacing.xs }]}>
+              <Pressable
+                onPress={() => { void handleBackup(); }}
+                style={[styles.backupBtn, { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong, borderRadius: Radii.md }]}
+                accessibilityLabel="Back up your data to a file"
+              >
+                <Text style={{ fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textPrimary }}>
+                  Back up to file
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={handleRestoreClick}
+                style={[styles.backupBtn, { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong, borderRadius: Radii.md }]}
+                accessibilityLabel="Restore data from a backup file"
+              >
+                <Text style={{ fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textPrimary }}>
+                  Restore
+                </Text>
+              </Pressable>
+            </View>
+
+            {restoreStatus !== null && (
+              <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body, color: restoreStatus.kind === "ok" ? colors.success : colors.error }}>
+                {restoreStatus.kind === "ok"
+                  ? `Restored ${restoreStatus.count} item${restoreStatus.count === 1 ? "" : "s"} — reload to see them`
+                  : restoreStatus.message}
+              </Text>
+            )}
+
+            {lastExportDays !== undefined && (
+              <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body, color: colors.textTertiary }}>
+                Last backup: {fmtLastExport()}
+              </Text>
+            )}
+          </View>
+        )}
       </ScrollView>
 
       {/* Edit Routine Modal */}
@@ -874,6 +1018,19 @@ const styles = StyleSheet.create({
   sessionDetail: { borderTopWidth: 1 },
   keyRow: {},
   coachBtn: {},
+
+  // Warm empty state card
+  emptyCard: { borderWidth: 1, padding: Spacing.lg, gap: Spacing.xs },
+
+  // Backup nudge banner
+  nudgeBanner: { borderLeftWidth: 3, padding: Spacing.sm },
+  nudgeAction: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs, minHeight: 36 },
+  nudgeDismiss: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.xs, minHeight: 36 },
+
+  // Backup footer
+  backupSection: { borderTopWidth: 1 },
+  backupButtons: { flexDirection: "row" },
+  backupBtn: { borderWidth: 1, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, minHeight: 44 },
 });
 
 // ---------------------------------------------------------------------------

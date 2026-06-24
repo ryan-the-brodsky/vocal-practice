@@ -93,15 +93,15 @@ describe("<CoachingScreen />", () => {
     setMockRouterParams({ sessionId: "no-such-id" });
     render(<CoachingScreen />);
     await waitFor(() => {
-      expect(screen.getByText("Couldn't find that session.")).toBeTruthy();
+      expect(screen.getByText("We couldn't load that session.")).toBeTruthy();
     });
   });
 
-  it("renders an error state when no sessionId is provided", async () => {
+  it("renders the inviting empty state when no sessionId is provided", async () => {
     setMockRouterParams({});
     render(<CoachingScreen />);
     await waitFor(() => {
-      expect(screen.getByText("No session id provided.")).toBeTruthy();
+      expect(screen.getByText(/Finish a warmup and tap/)).toBeTruthy();
     });
   });
 
