@@ -26,18 +26,49 @@ function Eyebrow({ children }: { children: string }) {
   );
 }
 
-function ExerciseChip({ exercise, onPress }: { exercise: ExerciseDescriptor; onPress: () => void }) {
+function ExerciseRow({
+  exercise,
+  inRoutine,
+  onToggleRoutine,
+  onPractice,
+}: {
+  exercise: ExerciseDescriptor;
+  inRoutine: boolean;
+  onToggleRoutine: () => void;
+  onPractice: () => void;
+}) {
   const { colors } = useTheme();
   return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.chip, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle, borderRadius: Radii.pill, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs }]}
-      accessibilityLabel={`Practice ${exercise.name}`}
-    >
-      <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textPrimary }}>
+    <View style={[styles.exRow, { gap: Spacing.xs }]}>
+      <Text style={[styles.exName, { color: colors.textPrimary, fontFamily: Fonts.bodyMedium }]} numberOfLines={2}>
         {exercise.name}
       </Text>
-    </Pressable>
+      <View style={[styles.exActions, { gap: Spacing.xs }]}>
+        <Pressable
+          onPress={onToggleRoutine}
+          accessibilityRole="button"
+          accessibilityLabel={inRoutine ? `Remove ${exercise.name} from your routine` : `Add ${exercise.name} to your routine`}
+          style={[
+            styles.actionBtn,
+            inRoutine
+              ? { backgroundColor: colors.accentMuted, borderColor: colors.accent }
+              : { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong },
+          ]}
+        >
+          <Text style={[styles.actionText, { color: inRoutine ? colors.accent : colors.textPrimary, fontFamily: Fonts.bodyMedium }]}>
+            {inRoutine ? "✓ In routine" : "+ Add"}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={onPractice}
+          accessibilityRole="button"
+          accessibilityLabel={`Practice ${exercise.name} now`}
+          style={[styles.actionBtn, { backgroundColor: colors.bgSurface, borderColor: colors.borderStrong }]}
+        >
+          <Text style={[styles.actionText, { color: colors.accent, fontFamily: Fonts.bodyMedium }]}>Practice ▶</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -77,12 +108,19 @@ export default function PlanScreen() {
     setRoutine(config);
   }
 
+  function handleToggleRoutine(id: string) {
+    const ids = (routine ?? { exerciseIds: [] }).exerciseIds;
+    const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
+    void handleSaveRoutine({ exerciseIds: next });
+  }
+
   // Map each capability to its exercises; the null group collects imports + song chunks.
   const grouped = groupByCapability(exercises);
   const byCapability = new Map(grouped.map((g) => [g.capability, g]));
   const uncategorized = byCapability.get(null);
 
   const activeRoutine: RoutineConfig = routine ?? { exerciseIds: [] };
+  const routineSet = new Set(activeRoutine.exerciseIds);
   const routineItems = buildRoutineItems(userExercises, songs);
 
   return (
@@ -107,9 +145,15 @@ export default function PlanScreen() {
                   {cap.blurb}
                 </Text>
                 {group && group.exercises.length > 0 ? (
-                  <View style={[styles.chipRow, { gap: Spacing.xs, marginTop: Spacing['2xs'] }]}>
+                  <View style={[styles.exList, { marginTop: Spacing['2xs'] }]}>
                     {group.exercises.map((ex) => (
-                      <ExerciseChip key={ex.id} exercise={ex} onPress={() => handlePracticeExercise(ex.id)} />
+                      <ExerciseRow
+                        key={ex.id}
+                        exercise={ex}
+                        inRoutine={routineSet.has(ex.id)}
+                        onToggleRoutine={() => handleToggleRoutine(ex.id)}
+                        onPractice={() => handlePracticeExercise(ex.id)}
+                      />
                     ))}
                   </View>
                 ) : (
@@ -130,9 +174,15 @@ export default function PlanScreen() {
               <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body, color: colors.textSecondary }}>
                 {uncategorized.blurb}
               </Text>
-              <View style={[styles.chipRow, { gap: Spacing.xs, marginTop: Spacing['2xs'] }]}>
+              <View style={[styles.exList, { marginTop: Spacing['2xs'] }]}>
                 {uncategorized.exercises.map((ex) => (
-                  <ExerciseChip key={ex.id} exercise={ex} onPress={() => handlePracticeExercise(ex.id)} />
+                  <ExerciseRow
+                    key={ex.id}
+                    exercise={ex}
+                    inRoutine={routineSet.has(ex.id)}
+                    onToggleRoutine={() => handleToggleRoutine(ex.id)}
+                    onPractice={() => handlePracticeExercise(ex.id)}
+                  />
                 ))}
               </View>
             </View>
@@ -214,7 +264,11 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: {},
   capCard: { borderWidth: 1 },
-  chipRow: { flexDirection: "row", flexWrap: "wrap" },
-  chip: { borderWidth: 1 },
+  exList: { gap: Spacing.sm },
+  exRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" },
+  exName: { flexShrink: 1, minWidth: 120, fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight },
+  exActions: { flexDirection: "row", alignItems: "center" },
+  actionBtn: { borderWidth: 1, borderRadius: Radii.pill, paddingHorizontal: Spacing.sm, paddingVertical: Spacing["2xs"], minHeight: 36, alignItems: "center", justifyContent: "center" },
+  actionText: { fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight },
   editBtn: { alignSelf: "flex-start", minHeight: 44, alignItems: "center", justifyContent: "center" },
 });
