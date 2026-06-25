@@ -50,11 +50,11 @@ export default function LearnIndexPage() {
       <Head>
         <title>{TITLE}</title>
         <meta name="description" content={DESCRIPTION} />
-        <link rel="canonical" href={`${SITE}/learn`} />
+        <link rel="canonical" href={`${SITE}/learn/`} />
         <meta property="og:title" content={TITLE} />
         <meta property="og:description" content={DESCRIPTION} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${SITE}/learn`} />
+        <meta property="og:url" content={`${SITE}/learn/`} />
       </Head>
 
       <ScrollView style={styles.page} contentContainerStyle={styles.content}>
