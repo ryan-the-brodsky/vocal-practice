@@ -239,6 +239,25 @@ export default function PlanScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* d. Find your range */}
+        <View style={{ gap: Spacing.xs }}>
+          <Eyebrow>Find your range</Eyebrow>
+          <View style={[styles.capCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle, borderRadius: Radii.md, padding: Spacing.md, gap: Spacing.xs }]}>
+            <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body, color: colors.textSecondary }}>
+              Not sure which voice part to pick? Take the free vocal range test — sing your lowest and highest notes to find your range and voice type.
+            </Text>
+            <Pressable
+              onPress={() => router.push("/vocal-range-test")}
+              style={[styles.editBtn, { backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, marginTop: Spacing['2xs'] }]}
+              accessibilityLabel="Take the vocal range test"
+            >
+              <Text style={{ fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textPrimary }}>
+                Take the vocal range test →
+              </Text>
+            </Pressable>
+          </View>
+        </View>
       </ScrollView>
 
       {routine !== null && (
