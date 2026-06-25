@@ -1,0 +1,100 @@
+cluster,keyword,us_volume,kd,cpc_usd,intent
+app,singing app,1000,50,0.8,commercial
+app,voice training app,450,13,1.3,commercial
+app,learn to sing app,300,11,1.2,commercial
+app,vocal training app,250,9,1.4,commercial
+app,free singing app,150,29,0.7,informational
+app,singing practice app,100,7,0.9,commercial
+app,best app to learn to sing,100,4,2.0,commercial
+app,learn how to sing app,80,11,1.2,commercial
+app,best singing practice apps,80,,,commercial
+app,free singing practice app,80,,,commercial
+app,best apps to learn to sing,70,2,1.7,commercial
+app,best learn to sing app,50,11,1.9,commercial
+app,practice singing app,30,10,0.7,commercial
+app,apps to practice singing,30,4,0.9,informational
+exercises,vocal exercises,1800,16,0.2,informational
+exercises,vocal exercises for singers,1200,31,0.4,informational
+exercises,singing exercises,500,39,0.3,informational
+exercises,vocal exercises for beginners,300,23,0.35,informational
+exercises,vocal training exercises,150,38,0.7,informational
+exercises,vocal exercises for singing,150,31,0.3,informational
+exercises,singing exercises for beginners,150,37,0.7,informational
+exercises,best vocal exercises,70,19,0.35,informational
+exercises,warm up vocal exercises,70,19,0.0,informational
+exercises,vocal exercises to increase range,70,0,0.15,informational
+exercises,daily vocal exercises,60,8,0.25,informational
+exercises,good vocal exercises,60,21,0.45,informational
+exercises,vocal exercises to sing higher,50,2,0.1,informational
+exercises,vocal exercises to sing better,40,16,0.6,informational
+learn-to-sing,how to sing,100000,11,0.45,informational
+learn-to-sing,can anyone learn to sing,1600,0,0.45,informational
+learn-to-sing,learn to sing,1300,5,0.9,commercial
+learn-to-sing,how to learn to sing,900,0,0.45,informational
+learn-to-sing,learn how to sing,700,12,0.45,informational
+learn-to-sing,how to learn how to sing,600,9,0.6,informational
+learn-to-sing,can you learn to sing,500,0,0.6,informational
+learn-to-sing,how to improve singing voice,500,3,0.15,informational
+learn-to-sing,free singing lessons,400,2,1.1,informational
+learn-to-sing,can you learn to sing as an adult,150,0,1.3,informational
+learn-to-sing,learn to sing online,100,1,1.4,commercial
+learn-to-sing,learn to sing for free,100,8,0.9,informational
+learn-to-sing,can tone deaf people learn to sing,70,0,,informational
+learn-to-sing,learn to sing free,30,8,0.9,informational
+pitch,how to sing in tune,300,0,0.4,informational
+pitch,pitch training,150,17,0.45,commercial
+pitch,how to learn to sing in tune,70,0,1.1,informational
+practice,how to practice singing,350,6,0.35,informational
+practice,singing practice,300,36,0.25,informational
+practice,practice singing,150,23,0.2,informational
+practice,songs to practice singing,150,0,0.15,informational
+practice,how to practice singing at home,100,0,0.9,informational
+practice,singing practice routine,20,4,0.6,informational
+practice,singing practice online,20,39,1.9,informational
+range-test,vocal range test,8400,6,0.4,informational
+technique,semi occluded vocal tract exercises,150,2,0.2,informational
+technique,vocal resonance exercises,90,0,0.4,informational
+technique,vibrato exercises,80,0,0.15,informational
+technique,vocal breathing exercises,80,6,0.2,informational
+technique,head voice exercises,70,0,,informational
+technique,vocal agility exercises,70,0,,informational
+technique,semi-occluded vocal tract exercises,60,2,,informational
+technique,vocal range exercises,60,3,0.3,informational
+technique,vocal belting exercises,60,,0.35,informational
+technique,chest voice exercises,40,0,0.25,informational
+technique,mix voice exercises,30,0,,informational
+warmups,vocal warm ups,5300,3,0.15,informational
+warmups,vocal warm up,1500,33,0.2,informational
+warmups,vocal warm up exercises,1300,26,0.25,informational
+warmups,vocal warmup,1000,21,0.2,informational
+warmups,singing warm ups,700,6,0.25,informational
+warmups,best vocal warm ups,200,19,0.3,informational
+warmups,5 minute vocal warm up,200,0,0.15,informational
+warmups,vocal warm-up exercises,200,1,,informational
+warmups,vocal warm-up,150,15,,informational
+warmups,vocal warm up tongue twisters,100,1,,informational
+warmups,vocal warm up for actors,100,2,1.1,informational
+warmups,vocal scales warm up,90,0,0.35,informational
+warmups,vocal warmup exercises,90,15,0.0,informational
+warmups,soprano vocal warm up,80,0,,informational
+warmups,10 minute vocal warm up,70,0,0.25,informational
+warmups,humming vocal warm up,70,1,,informational
+warmups,vocal warm up songs,60,0,0.07,informational
+warmups,beginner vocal warm up exercises,60,19,,informational
+warmups,baritone vocal warm up,60,,,informational
+warmups,how to warm up vocal cords,60,16,0.2,informational
+warmups,vocal warm up exercises for choir,60,,,informational
+warmups,vocal warm up for singers,50,24,,informational
+warmups,morning vocal warm up,50,,,informational
+warmups,vocal warm up exercises for beginners,50,33,,informational
+warmups,male vocal warm up,40,0,0.2,informational
+warmups,vocal warm up app,40,2,0.8,commercial
+warmups,vocal warm up for kids,40,0,,informational
+warmups,vocal warm up scales,40,0,0.35,informational
+warmups,lip trill vocal warm up,40,,,informational
+warmups,vocal warm up phrases,40,0,,informational
+warmups,vocal warm up sheet music,40,0,,informational
+warmups,best vocal warm up,30,19,0.0,informational
+warmups,quick vocal warm up,30,23,,informational
+warmups,warm up exercises for singing,30,28,0.45,informational
+warmups,daily vocal warm up,0,0,,informational

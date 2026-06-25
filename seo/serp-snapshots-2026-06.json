@@ -1,0 +1,50 @@
+{
+  "_meta": {
+    "captured": "2026-06-24",
+    "source": "Ahrefs API v3 (serp-overview), country=us, top 10 organic positions",
+    "note": "domain_rating (DR) and url_rating (UR) are 0-100. refdomains = unique linking domains to that URL. traffic = est. monthly organic visits to that URL from all keywords. Rows with null DR/URL are SERP features (videos, People-Also-Ask, AI overview, image packs) without a single rankable organic URL."
+  },
+  "vocal warm ups": {
+    "volume_us": 5300,
+    "kd": 3,
+    "top_organic": [
+      {"position": 1, "url": "https://www.schoolofrock.com/resources/vocals/9-best-vocal-warm-ups-for-singers", "note": "featured snippet"},
+      {"position": 2, "dr": 91, "ur": 0, "refdomains": 0, "traffic": 2216, "url": "https://how2improvesinging.mykajabi.com/blog/vocal-warm-up-for-a-strained-voice"},
+      {"position": 3, "dr": 99, "ur": 4, "traffic": 444, "url": "https://www.youtube.com/watch?v=S_EYg28vDWM"},
+      {"position": 4, "dr": 95, "ur": 0, "traffic": 208, "url": "https://www.reddit.com/r/singing/comments/2owzfn/warmups_101_what_vocal_warmups_do_you_swear_by/"},
+      {"position": 5, "dr": 79, "ur": 4, "refdomains": 0, "traffic": 7, "url": "https://www.voices.com/blog/vocal-warm-ups-building-a-warm-up-routine/"},
+      {"position": 6, "dr": 99, "ur": 4, "refdomains": 25, "traffic": 348, "url": "https://www.youtube.com/watch?v=1XHXezdnL0A"},
+      {"position": 8, "dr": 73, "ur": 8, "refdomains": 183, "traffic": 2156, "url": "https://www.schoolofrock.com/resources/vocals/9-best-vocal-warm-ups-for-singers"},
+      {"position": 9, "dr": 44, "ur": 6, "refdomains": 117, "traffic": 660, "url": "https://www.tonegym.co/tool/item?id=vocal-warmup"},
+      {"position": 10, "dr": 0, "ur": 4, "refdomains": 1, "traffic": 420, "url": "https://staceymenton.com/blog/a-9-minute-vocal-warm-up"}
+    ]
+  },
+  "vocal range test": {
+    "volume_us": 8400,
+    "kd": 6,
+    "traffic_potential": 23000,
+    "top_organic": [
+      {"position": 1, "dr": 44, "ur": 6, "refdomains": 48, "traffic": 20821, "url": "https://www.tonegym.co/tool/item?id=vocal-range-test-tool", "page_type": "Interactive_Tools/Quiz"},
+      {"position": 2, "dr": 33, "ur": 22, "refdomains": 32, "traffic": 5506, "url": "https://singingcarrots.com/range-test", "page_type": "Interactive_Tools/Generator"},
+      {"position": 3, "dr": 36, "ur": 11, "refdomains": 3, "traffic": 3649, "url": "https://mixbutton.com/music-tools/frequency-and-pitch/vocal-range-test"},
+      {"position": 5, "dr": 95, "ur": 0, "traffic": 1432, "url": "https://www.reddit.com/r/WeAreTheMusicMakers/comments/8bebxb/singer_or_not_take_this_test_to_see_what_your/"},
+      {"position": 6, "dr": 3, "ur": 4, "refdomains": 0, "traffic": 916, "url": "https://www.tourdefierce.vip/vocal-range-test"},
+      {"position": 7, "dr": 68, "ur": 4, "refdomains": 0, "traffic": 1237, "url": "https://www.superprof.com/blog/vocal-range-test/"},
+      {"position": 8, "dr": 9, "ur": 4, "refdomains": 1, "traffic": 619, "url": "https://www.voicescience.org/articles/how-to-test-your-vocal-range/"},
+      {"position": 10, "dr": 14, "ur": 4, "refdomains": 0, "traffic": 500, "url": "https://crescendovoice.com/vocal-range-and-placement-finder"}
+    ]
+  },
+  "vocal training app": {
+    "volume_us": 250,
+    "kd": 9,
+    "note": "SERP dominated by app stores + review listicles + Reddit/Quora. Hard for a web app to rank its own page; play is to get INTO the listicles.",
+    "top_organic": [
+      {"position": 2, "dr": 29, "ur": 4, "refdomains": 8, "traffic": 820, "url": "https://singwell.eu/singing-apps/", "page_type": "Article/Comparisons"},
+      {"position": 3, "dr": 95, "ur": 0, "traffic": 147, "url": "https://www.reddit.com/r/singing/comments/rgvh09/vocal_pitch_training_app_recommendations/"},
+      {"position": 4, "dr": 97, "ur": 5, "refdomains": 28, "traffic": 121, "url": "https://apps.apple.com/us/app/voice-training-learn-to-sing/id894620096"},
+      {"position": 7, "dr": 99, "ur": 4, "refdomains": 76, "traffic": 459, "url": "https://play.google.com/store/apps/details?id=com.harmonynetwork.singsharp"},
+      {"position": 8, "dr": 97, "ur": 6, "refdomains": 27, "traffic": 95, "url": "https://apps.apple.com/us/app/singing-lessons-vocal-coach/id772052329"},
+      {"position": 9, "dr": 78, "ur": 4, "refdomains": 5, "traffic": 434, "url": "https://americansongwriter.com/best-singing-apps/", "page_type": "Article/Product_or_Brand_Review"}
+    ]
+  }
+}
