@@ -31,8 +31,6 @@ interface Props {
   isIdle: boolean;
   /** All previously logged sessions for this exercise — used for personal-best detection. */
   allSessions?: SessionRecord[];
-  /** Called when the user taps "Switch" in the octave-below hint. */
-  onUseDownAnOctave?: () => void;
 }
 
 export function PostSessionPanel({
@@ -44,7 +42,6 @@ export function PostSessionPanel({
   onTapCoaching,
   isIdle,
   allSessions,
-  onUseDownAnOctave,
 }: Props) {
   const { colors } = useTheme();
   const [sessionNote, setSessionNote] = useState("");
@@ -88,24 +85,14 @@ export function PostSessionPanel({
             </View>
           )}
 
-          {/* Octave-below hint — calm, non-alarming; surfaces the register mismatch. */}
+          {/* Octave-below hint — calm, non-alarming; surfaces the register mismatch.
+              Scoring is octave-honest, so this is informational only. */}
           {hasOctaveBelow && (
             <View style={[styles.octaveBanner, { backgroundColor: colors.bgSurface, borderColor: colors.warning }]}>
               <Text style={[styles.octaveBannerText, { color: colors.textSecondary, fontFamily: Fonts.body }]}>
-                {`You sang this an octave below the notation — your score is still accurate. To practice in your own register, switch Octave to “Down an octave”.`}
-                {onUseDownAnOctave ? " " : ""}
+                You sang this an octave below the notation — your score is still accurate. That&apos;s
+                completely fine; many singers are most comfortable an octave down.
               </Text>
-              {onUseDownAnOctave && (
-                <Pressable
-                  onPress={onUseDownAnOctave}
-                  accessibilityRole="button"
-                  accessibilityLabel="Switch octave to Down an octave"
-                >
-                  <Text style={[styles.octaveBannerSwitch, { color: colors.accent, fontFamily: Fonts.bodySemibold }]}>
-                    Switch
-                  </Text>
-                </Pressable>
-              )}
             </View>
           )}
 

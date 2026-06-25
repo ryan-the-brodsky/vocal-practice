@@ -58,7 +58,6 @@ import { currentStreak } from "@/lib/progress/stats";
 import { loadRoutine, todayStatus, type RoutineConfig, type RoutineStatus } from "@/lib/progress/routine";
 import { SessionTracker, type SessionTrackerSnapshot } from "@/lib/session/tracker";
 import { loadVoicePart, saveVoicePart } from "@/lib/settings/voicePart";
-import { loadOctaveShift, saveOctaveShift } from "@/lib/settings/octaveShift";
 import { TodayRoutineCard } from "@/components/practice/TodayRoutineCard";
 
 const VOICE_PARTS: VoicePart[] = ["soprano", "alto", "tenor", "baritone"];
@@ -72,13 +71,6 @@ const sessionStore = createAsyncStorageStore();
 
 const VALID_VOICE_PARTS: readonly VoicePart[] = ["soprano", "alto", "tenor", "baritone"];
 
-const OCTAVE_OPTIONS: readonly { shift: number; label: string }[] = [
-  { shift: 0, label: "Notated" },
-  { shift: -1, label: "Down an octave" },
-];
-function octaveShiftLabel(shift: number): string {
-  return OCTAVE_OPTIONS.find((o) => o.shift === shift)?.label ?? "Notated";
-}
 
 export default function PracticeScreen() {
   const router = useRouter();
@@ -108,11 +100,8 @@ export default function PracticeScreen() {
     setVoicePartState(next);
     saveVoicePart(next).catch(() => {});
   }, []);
-  const [octaveShift, setOctaveShiftState] = useState<number>(0);
-  const setOctaveShift = useCallback((next: number) => {
-    setOctaveShiftState(next);
-    saveOctaveShift(next).catch(() => {});
-  }, []);
+  // Octave selector removed (scoring is octave-honest). Pinned to 0 internally.
+  const octaveShift = 0;
   const [accompanimentPreset, setAccompanimentPreset] = useState<AccompanimentPreset | undefined>("classical");
   // null = modal not yet answered; true/false set by HeadphonesModal.
   const [headphonesConfirmed, setHeadphonesConfirmed] = useState<boolean | null>(null);
@@ -136,11 +125,6 @@ export default function PracticeScreen() {
     loadVoicePart()
       .then((vp) => {
         if (vp) setVoicePartState(vp);
-      })
-      .catch(() => {});
-    loadOctaveShift()
-      .then((v) => {
-        if (v !== null) setOctaveShiftState(v);
       })
       .catch(() => {});
     getAllExercises()
@@ -840,8 +824,6 @@ export default function PracticeScreen() {
       voicePart={voicePart}
       onVoiceChange={setVoicePart}
       supportsVoicePart={supportsVoicePart}
-      octaveShift={octaveShift}
-      onOctaveShiftChange={setOctaveShift}
       accompanimentPreset={accompanimentPreset}
       onAccompanimentSelect={setAccompanimentPreset}
       guidance={guidance}
@@ -964,7 +946,6 @@ export default function PracticeScreen() {
             }
             isIdle={true}
             allSessions={loggedSessions}
-            onUseDownAnOctave={() => setOctaveShift(-1)}
           />
         </>
       ) : (
@@ -989,7 +970,6 @@ export default function PracticeScreen() {
           micState={micState}
           latestSample={latestSample}
           noteProgress={noteProgress}
-          onUseDownAnOctave={() => setOctaveShift(-1)}
           pendingSession={pendingSession}
           progress={progress}
           router={router}
@@ -1019,8 +999,6 @@ interface PracticeControlsProps {
   voicePart: VoicePart;
   onVoiceChange: (vp: VoicePart) => void;
   supportsVoicePart: boolean;
-  octaveShift: number;
-  onOctaveShiftChange: (n: number) => void;
   accompanimentPreset: AccompanimentPreset | undefined;
   onAccompanimentSelect: (p: AccompanimentPreset | undefined) => void;
   guidance: Guidance;
@@ -1038,7 +1016,6 @@ function PracticeControls(p: PracticeControlsProps) {
   const { colors } = useTheme();
   const [exerciseOpen, setExerciseOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const [octaveOpen, setOctaveOpen] = useState(false);
   const [expandedSongs, setExpandedSongs] = useState<Set<string>>(new Set());
 
   // Standalone (non-song) descriptors group by capability into "what this builds"
@@ -1222,40 +1199,6 @@ function PracticeControls(p: PracticeControlsProps) {
           {!p.supportsVoicePart && (
             <Text style={[styles.error, { color: colors.error, fontFamily: Fonts.body }]}>No {p.voicePart} range defined for this exercise.</Text>
           )}
-        </View>
-      )}
-
-      <Pressable
-        onPress={() => setOctaveOpen((v) => !v)}
-        style={[styles.collapsibleHeader, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}
-        disabled={p.disabled}
-        accessibilityRole="button"
-        accessibilityLabel={`Octave: ${octaveShiftLabel(p.octaveShift)}. ${octaveOpen ? "Tap to collapse." : "Tap to change."}`}
-      >
-        <Text style={[styles.collapsibleLabel, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium }]}>Octave</Text>
-        <Text numberOfLines={1} style={[styles.collapsibleValue, { color: colors.textPrimary, fontFamily: Fonts.bodySemibold }]}>{octaveShiftLabel(p.octaveShift)}</Text>
-        <Text style={[styles.collapsibleChevron, { color: colors.textTertiary, fontFamily: Fonts.mono }]}>{octaveOpen ? "⌃" : "⌄"}</Text>
-      </Pressable>
-      {octaveOpen && (
-        <View style={styles.collapsibleBody}>
-          <View style={styles.row}>
-            {OCTAVE_OPTIONS.map((opt) => {
-              const active = p.octaveShift === opt.shift;
-              return (
-                <Pressable
-                  key={opt.shift}
-                  onPress={() => { p.onOctaveShiftChange(opt.shift); setOctaveOpen(false); }}
-                  style={[styles.chip, { backgroundColor: active ? colors.accentMuted : colors.bgSurface, borderColor: active ? colors.accent : colors.borderSubtle }]}
-                  disabled={p.disabled}
-                >
-                  <Text style={[styles.chipText, { color: active ? colors.accent : colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>{opt.label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Text style={[styles.subtle, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
-            Transposes the whole exercise — piano, staff, and scoring — to the octave you sing in.
-          </Text>
         </View>
       )}
 
@@ -1624,7 +1567,6 @@ interface StandardBodyProps {
   micState: MicStatusState;
   latestSample: PitchSample | null;
   noteProgress: number;
-  onUseDownAnOctave: () => void;
   pendingSession: SessionRecord | null;
   progress: number;
   router: ReturnType<typeof useRouter>;
@@ -1663,7 +1605,6 @@ function StandardModeBody({
   micState,
   latestSample,
   noteProgress,
-  onUseDownAnOctave,
   pendingSession,
   progress,
   router,
@@ -1907,7 +1848,6 @@ function StandardModeBody({
           }
           isIdle={status === "idle"}
           allSessions={loggedSessions}
-          onUseDownAnOctave={onUseDownAnOctave}
         />
       )}
     </>
