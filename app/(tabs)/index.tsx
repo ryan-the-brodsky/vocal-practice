@@ -357,6 +357,23 @@ export default function PracticeScreen() {
     if (nextId && nextId !== exerciseId) handleExerciseChange(nextId);
   }, [routine, availableExercises, exerciseId, handleExerciseChange]);
 
+  // Scroll-to-top so finishing a session can jump back to Start + the next
+  // exercise without the user hunting upward through their results.
+  const scrollRef = useRef<ScrollView>(null);
+  const nextRoutineExerciseName = useMemo(() => {
+    if (!routine) return null;
+    const ids = routine.exerciseIds.filter((id) => availableExercises.some((e) => e.id === id));
+    if (ids.length === 0) return null;
+    const cur = ids.indexOf(exerciseId);
+    const nextId = cur === -1 ? ids[0] : ids[(cur + 1) % ids.length];
+    if (!nextId || nextId === exerciseId) return null;
+    return availableExercises.find((e) => e.id === nextId)?.name ?? null;
+  }, [routine, availableExercises, exerciseId]);
+  const handleNextExercise = useCallback(() => {
+    goToNextRoutineExercise();
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  }, [goToNextRoutineExercise]);
+
   /** Default the active exercise to the routine's next not-yet-done item —
    *  continues a routine across app opens and after each logged session.
    *  Backs off once the user explicitly picks an exercise (chip / routine row /
@@ -839,6 +856,7 @@ export default function PracticeScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={[styles.container, { backgroundColor: colors.canvas }]}
       contentContainerStyle={styles.content}
     >
@@ -983,6 +1001,8 @@ export default function PracticeScreen() {
           voicePart={voicePart}
           isDesktop={isDesktop}
           controls={practiceControls}
+          onNextExercise={handleNextExercise}
+          nextExerciseName={nextRoutineExerciseName}
         />
       )}
     </ScrollView>
@@ -1618,6 +1638,8 @@ interface StandardBodyProps {
   /** Exercise / voice / settings — rendered inside the command console on
    *  desktop, stacked below the staff on smaller screens. */
   controls: React.ReactNode;
+  onNextExercise: () => void;
+  nextExerciseName: string | null;
 }
 
 function StandardModeBody({
@@ -1653,6 +1675,8 @@ function StandardModeBody({
   voicePart,
   isDesktop,
   controls,
+  onNextExercise,
+  nextExerciseName,
 }: StandardBodyProps) {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
@@ -1817,14 +1841,32 @@ function StandardModeBody({
       </View>
     ) : null;
 
+  const justFinished =
+    (snapshot != null && snapshot.completedKeys.length > 0) ||
+    (!detectionEnabled && pendingSession != null);
+  const showNext = status === "idle" && nextExerciseName != null && justFinished;
+
   const afterStage = (
     <>
+      {showNext && (
+        <Pressable
+          onPress={onNextExercise}
+          style={[styles.nextBtn, { backgroundColor: colors.accent }]}
+          accessibilityRole="button"
+          accessibilityLabel={`Next exercise: ${nextExerciseName}`}
+        >
+          <Text style={[styles.nextBtnText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>
+            Next: {nextExerciseName} →
+          </Text>
+        </Pressable>
+      )}
       {snapshot && snapshot.completedKeys.length > 0 && (
         <Section title={`Completed keys · session avg ${snapshot.meanAccuracyPct.toFixed(0)}%`}>
           <View style={styles.keysList}>
-            {snapshot.completedKeys.map((k, i) => (
+            {/* Newest key first so the latest result sits at the top — no scrolling to the bottom. */}
+            {[...snapshot.completedKeys].reverse().map((k) => (
               <View
-                key={`${k.tonic}-${i}`}
+                key={k.tonic}
                 style={[styles.keyRow, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}
               >
                 <NoteResultsStrip
@@ -2248,6 +2290,8 @@ const styles = StyleSheet.create({
   actions: { marginTop: Spacing.sm },
   btn: { paddingVertical: Spacing.md, borderRadius: Radii.md, alignItems: "center" },
   btnLarge: { paddingVertical: Spacing.lg, borderRadius: Radii.lg },
+  nextBtn: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderRadius: Radii.md, alignItems: "center", justifyContent: "center", minHeight: 52, marginBottom: Spacing.md },
+  nextBtnText: { fontSize: Typography.md.size },
   startBtnWide: { minWidth: 200, paddingHorizontal: Spacing.lg },
   idleBarNarrow: { gap: Spacing.sm },
   idleBarWide: { flexDirection: "row", alignItems: "center", gap: Spacing.md },
