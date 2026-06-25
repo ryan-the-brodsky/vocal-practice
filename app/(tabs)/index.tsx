@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, type StyleProp, Switch, Text, useWindowDimensions, View, type ViewStyle } from "react-native";
+import Animated, { FadeInDown, LinearTransition } from "react-native-reanimated";
 import { useTheme } from "@/hooks/use-theme";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -1782,6 +1783,22 @@ function StandardModeBody({
       </View>
     ) : null;
 
+  const syllablesForKey =
+    exercise.syllables.length === 1
+      ? Array(exercise.scaleDegrees.length).fill(exercise.syllables[0])
+      : exercise.syllables;
+  // Latest completed key shows under the staff (desktop); the list below holds
+  // the rest. Mobile has no under-staff panel, so it lists them all.
+  const lastKey =
+    snapshot && snapshot.completedKeys.length > 0
+      ? snapshot.completedKeys[snapshot.completedKeys.length - 1]
+      : null;
+  const keysForList = snapshot
+    ? isDesktop
+      ? snapshot.completedKeys.slice(0, -1)
+      : [...snapshot.completedKeys]
+    : [];
+
   const justFinished =
     (snapshot != null && snapshot.completedKeys.length > 0) ||
     (!detectionEnabled && pendingSession != null);
@@ -1801,26 +1818,24 @@ function StandardModeBody({
           </Text>
         </Pressable>
       )}
-      {snapshot && snapshot.completedKeys.length > 0 && (
-        <Section title={`Completed keys · session avg ${snapshot.meanAccuracyPct.toFixed(0)}%`}>
+      {keysForList.length > 0 && (
+        <Section title={`Completed keys · session avg ${snapshot ? snapshot.meanAccuracyPct.toFixed(0) : "0"}%`}>
           <View style={styles.keysList}>
-            {/* Newest key first so the latest result sits at the top — no scrolling to the bottom. */}
-            {[...snapshot.completedKeys].reverse().map((k) => (
-              <View
+            {/* Newest first; new keys fade/slide in at the top and push the rest down. */}
+            {[...keysForList].reverse().map((k) => (
+              <Animated.View
                 key={k.tonic}
+                entering={FadeInDown.duration(250)}
+                layout={LinearTransition.duration(250)}
                 style={[styles.keyRow, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}
               >
                 <NoteResultsStrip
                   tonic={k.tonic}
                   meta={summarizeKey(k.meanCentsDeviation, k.meanAccuracyPct)}
                   notes={k.notes}
-                  syllables={
-                    exercise.syllables.length === 1
-                      ? Array(exercise.scaleDegrees.length).fill(exercise.syllables[0])
-                      : exercise.syllables
-                  }
+                  syllables={syllablesForKey}
                 />
-              </View>
+              </Animated.View>
             ))}
           </View>
         </Section>
@@ -1870,6 +1885,8 @@ function StandardModeBody({
                 {startInfoLine(false)}
                 <View style={[styles.consoleDivider, { backgroundColor: colors.borderSubtle }]} />
                 {controls}
+                <View style={[styles.consoleDivider, { backgroundColor: colors.borderSubtle }]} />
+                <ConsoleLastTime exercise={exercise} loggedSessions={loggedSessions} />
               </>
             ) : (
               liveReadouts
@@ -1880,10 +1897,7 @@ function StandardModeBody({
             <View style={[styles.hero, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
               {heroContent}
             </View>
-            <DesktopGlancePanel
-              exercise={exercise}
-              loggedSessions={loggedSessions}
-            />
+            <StageGlance exercise={exercise} lastKey={lastKey} />
           </View>
         </View>
         {afterStage}
@@ -1923,10 +1937,10 @@ function relativeDay(ms: number, nowMs: number): string {
   return `${days} days ago`;
 }
 
-/** Desktop-only glance panel under the staff: last session for the current
- *  exercise, current streak, and a one-line "what this trains". Fills the void
- *  in the right column without touching the left console / Start. */
-function DesktopGlancePanel({
+/** Left-console "Last time": most recent logged session for this exercise +
+ *  current streak. Folded out of the under-staff glance so the stage can show
+ *  the latest key score + description. */
+function ConsoleLastTime({
   exercise,
   loggedSessions,
 }: {
@@ -1936,7 +1950,6 @@ function DesktopGlancePanel({
   const { colors } = useTheme();
   const now = Date.now();
 
-  // Follow-along sessions have no accuracy — show a plain "not scored" line.
   const last = useMemo(() => {
     const forExercise = loggedSessions
       .filter((s) => s.exerciseId === exercise.id)
@@ -1944,7 +1957,7 @@ function DesktopGlancePanel({
     const s = forExercise[0];
     if (!s) return null;
     if (s.keyAttempts.length === 0) {
-      return { text: `Follow-along warmup — not scored · ${relativeDay(s.startedAt, now)}` };
+      return { text: `Follow-along — not scored · ${relativeDay(s.startedAt, now)}` };
     }
     const pct = Math.round(
       s.keyAttempts.reduce((a, k) => a + k.meanAccuracyPct, 0) / s.keyAttempts.length,
@@ -1958,26 +1971,55 @@ function DesktopGlancePanel({
   const streak = useMemo(() => currentStreak(loggedSessions, now), [loggedSessions, now]);
 
   return (
-    <View style={[styles.glancePanel, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
+    <View style={styles.consoleLastTime}>
       <View style={styles.glanceRow}>
         <Text style={[styles.glanceEyebrow, { color: colors.textTertiary, fontFamily: Fonts.bodySemibold }]}>
           Last time
         </Text>
         {streak >= 1 && (
           <View style={[styles.streakPill, { backgroundColor: colors.accentMuted, borderColor: colors.accent }]}>
-            <Text style={[styles.streakNumber, { color: colors.accent, fontFamily: Fonts.monoMedium }]}>
-              {streak}
-            </Text>
-            <Text style={[styles.streakLabel, { color: colors.accent, fontFamily: Fonts.bodyMedium }]}>
-              day streak
-            </Text>
+            <Text style={[styles.streakNumber, { color: colors.accent, fontFamily: Fonts.monoMedium }]}>{streak}</Text>
+            <Text style={[styles.streakLabel, { color: colors.accent, fontFamily: Fonts.bodyMedium }]}>day streak</Text>
           </View>
         )}
       </View>
       <Text style={[styles.glanceValue, { color: colors.textPrimary, fontFamily: Fonts.bodyMedium }]}>
-        {last ? last.text : "No sessions yet — your first one shows here."}
+        {last ? last.text : "No sessions yet — your first shows here."}
       </Text>
-      <Text numberOfLines={1} style={[styles.glanceTrains, { color: colors.textSecondary, fontFamily: Fonts.body }]}>
+    </View>
+  );
+}
+
+/** Under-staff panel: the latest completed key's score (during/after a session)
+ *  + what the exercise trains. The historical "Last time" moved to the console. */
+function StageGlance({
+  exercise,
+  lastKey,
+}: {
+  exercise: ExerciseDescriptor;
+  lastKey: SessionTrackerSnapshot["completedKeys"][number] | null;
+}) {
+  const { colors } = useTheme();
+  const syllables =
+    exercise.syllables.length === 1
+      ? Array(exercise.scaleDegrees.length).fill(exercise.syllables[0])
+      : exercise.syllables;
+  return (
+    <View style={[styles.glancePanel, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
+      {lastKey && (
+        <View style={styles.stageLastKey}>
+          <Text style={[styles.glanceEyebrow, { color: colors.textTertiary, fontFamily: Fonts.bodySemibold }]}>
+            Last key
+          </Text>
+          <NoteResultsStrip
+            tonic={lastKey.tonic}
+            meta={summarizeKey(lastKey.meanCentsDeviation, lastKey.meanAccuracyPct)}
+            notes={lastKey.notes}
+            syllables={syllables}
+          />
+        </View>
+      )}
+      <Text style={[styles.glanceTrains, { color: colors.textSecondary, fontFamily: Fonts.body }]}>
         {exercise.pedagogy}
       </Text>
     </View>
@@ -2232,6 +2274,8 @@ const styles = StyleSheet.create({
   btnLarge: { paddingVertical: Spacing.lg, borderRadius: Radii.lg },
   nextBtn: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderRadius: Radii.md, alignItems: "center", justifyContent: "center", minHeight: 52, marginBottom: Spacing.md },
   nextBtnText: { fontSize: Typography.md.size },
+  consoleLastTime: { gap: Spacing["2xs"] },
+  stageLastKey: { gap: Spacing.xs, marginBottom: Spacing.sm },
   startBtnWide: { minWidth: 200, paddingHorizontal: Spacing.lg },
   idleBarNarrow: { gap: Spacing.sm },
   idleBarWide: { flexDirection: "row", alignItems: "center", gap: Spacing.md },
