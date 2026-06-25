@@ -1,0 +1,360 @@
+{
+  "articles": [
+    {
+      "slug": "10-minute-vocal-warm-up",
+      "title": "A 10-Minute Vocal Warm-Up: What to Do and Why",
+      "category": "warmup-sovt",
+      "tags": [
+        "warm up",
+        "routine"
+      ],
+      "embeddedExerciseId": "hum-warmup",
+      "targetKeyword": "10 minute vocal warm up",
+      "volume": "70",
+      "kd": "0",
+      "metaDescription": "A structured 10-minute vocal warm-up for pop, rock, and theater singers \u2014 what each phase does, how to order it, and a free hum exercise to start.",
+      "referenceCount": 6,
+      "wordCount": 2561
+    },
+    {
+      "slug": "5-minute-vocal-warm-up",
+      "title": "A 5-Minute Vocal Warm-Up That Actually Works",
+      "category": "warmup-sovt",
+      "tags": [
+        "warm up",
+        "routine",
+        "quick"
+      ],
+      "embeddedExerciseId": "hum-warmup",
+      "targetKeyword": "5 minute vocal warm up",
+      "volume": "200",
+      "kd": "0",
+      "metaDescription": "A science-grounded 5-minute vocal warm-up for singers \u2014 what it does, how long it needs to be, and a free live hum exercise to start.",
+      "referenceCount": 7,
+      "wordCount": 1945
+    },
+    {
+      "slug": "belting-exercises",
+      "title": "Vocal Belting Exercises for Pop, Rock & Musical Theatre Singers",
+      "category": "style",
+      "tags": [
+        "belt",
+        "twang",
+        "CCM"
+      ],
+      "embeddedExerciseId": "belt-arpeggio-mah",
+      "targetKeyword": "vocal belting exercises",
+      "volume": "60",
+      "kd": "0",
+      "metaDescription": "Learn the science behind vocal belting and try practical exercises \u2014 including a free in-browser belt arpeggio with live pitch scoring.",
+      "referenceCount": 12,
+      "wordCount": 2703
+    },
+    {
+      "slug": "breathing-exercises-for-singing",
+      "title": "Vocal Breathing Exercises: What Actually Works and Why",
+      "category": "foundations",
+      "tags": [
+        "breathing",
+        "breath support",
+        "appoggio"
+      ],
+      "embeddedExerciseId": "messa-di-voce",
+      "targetKeyword": "vocal breathing exercises",
+      "volume": "80",
+      "kd": "6",
+      "metaDescription": "Vocal breathing exercises explained with the science \u2014 appoggio, SOVTs, and the messa di voce. Practical drills for pop, rock, R&B, and musical theatre singers.",
+      "referenceCount": 5,
+      "wordCount": 1394
+    },
+    {
+      "slug": "can-anyone-learn-to-sing",
+      "title": "Can Anyone Learn to Sing?",
+      "category": "foundations",
+      "tags": [
+        "beginner",
+        "mindset",
+        "learn to sing"
+      ],
+      "embeddedExerciseId": "five-note-scale-mee-may-mah",
+      "targetKeyword": "can anyone learn to sing",
+      "volume": "1600",
+      "kd": "0",
+      "metaDescription": "Most people can learn to sing. True tone-deafness is rare. Here's what the research says and a simple exercise to start today.",
+      "referenceCount": 7,
+      "wordCount": 1981
+    },
+    {
+      "slug": "can-tone-deaf-people-learn-to-sing",
+      "title": "Can Tone Deaf People Learn to Sing?",
+      "category": "pitch-ear",
+      "tags": [
+        "tone deaf",
+        "pitch",
+        "ear training"
+      ],
+      "embeddedExerciseId": "nay-1-3-5-3-1",
+      "targetKeyword": "can tone deaf people learn to sing",
+      "volume": "70",
+      "kd": "0",
+      "metaDescription": "Most 'tone-deaf' people can learn to sing. True amusia affects ~1.5% of people. Here's what the research says and an exercise to start.",
+      "referenceCount": 7,
+      "wordCount": 2027
+    },
+    {
+      "slug": "can-you-learn-to-sing-as-an-adult",
+      "title": "Can You Learn to Sing as an Adult?",
+      "category": "foundations",
+      "tags": [
+        "adult learner",
+        "beginner",
+        "mindset"
+      ],
+      "embeddedExerciseId": "nay-1-3-5-3-1",
+      "targetKeyword": "can you learn to sing as an adult",
+      "volume": "150",
+      "kd": "0",
+      "metaDescription": "Yes \u2014 adult vocal learning is well-documented. Here's what the science says, where methods agree, and a free exercise to start right now.",
+      "referenceCount": 6,
+      "wordCount": 2180
+    },
+    {
+      "slug": "chest-voice-exercises",
+      "title": "Chest Voice Exercises: Build a Stronger Lower Register",
+      "category": "chest-voice",
+      "tags": [
+        "chest voice",
+        "lower register",
+        "registration"
+      ],
+      "embeddedExerciseId": "chest-voice-mum",
+      "targetKeyword": "chest voice exercises",
+      "volume": "40",
+      "kd": "0",
+      "metaDescription": "Learn what chest voice actually is, why it matters in CCM, and try a free scored chest voice exercise in your browser \u2014 no download needed.",
+      "referenceCount": 9,
+      "wordCount": 2413
+    },
+    {
+      "slug": "head-voice-exercises",
+      "title": "Head Voice Exercises for Singers (Pop, Rock & Musical Theatre)",
+      "category": "head-voice",
+      "tags": [
+        "head voice",
+        "upper register",
+        "registration"
+      ],
+      "embeddedExerciseId": "head-voice-vwohm",
+      "targetKeyword": "head voice exercises",
+      "volume": "70",
+      "kd": "0",
+      "metaDescription": "Learn what head voice is, how it differs from falsetto, and try practical exercises \u2014 including a free in-browser pitch-scored workout.",
+      "referenceCount": 7,
+      "wordCount": 1780
+    },
+    {
+      "slug": "how-to-improve-singing-voice",
+      "title": "How to Improve Your Singing Voice: What the Science Actually Says",
+      "category": "foundations",
+      "tags": [
+        "improve",
+        "technique",
+        "beginner"
+      ],
+      "embeddedExerciseId": "five-note-scale-mee-may-mah",
+      "targetKeyword": "how to improve singing voice",
+      "volume": "500",
+      "kd": "3",
+      "metaDescription": "Evidence-based ways to improve your singing voice \u2014 breath support, resonance, warm-ups, and register transitions \u2014 for pop, rock, and R&B singers.",
+      "referenceCount": 5,
+      "wordCount": 2173
+    },
+    {
+      "slug": "how-to-increase-vocal-range",
+      "title": "Vocal Exercises to Increase Range (What the Research Actually Says)",
+      "category": "head-voice",
+      "tags": [
+        "vocal range",
+        "range extension",
+        "high notes"
+      ],
+      "embeddedExerciseId": "stepwise-passaggio-ascent",
+      "targetKeyword": "vocal exercises to increase range",
+      "volume": "70",
+      "kd": "0",
+      "metaDescription": "Science-backed vocal exercises to increase range \u2014 what's trainable, what's fixed, and a free in-browser exercise that walks you through the passaggio.",
+      "referenceCount": 6,
+      "wordCount": 1929
+    },
+    {
+      "slug": "how-to-practice-singing",
+      "title": "How to Practice Singing: A Science-Backed Approach That Actually Works",
+      "category": "foundations",
+      "tags": [
+        "practice",
+        "routine",
+        "habits"
+      ],
+      "embeddedExerciseId": "five-note-scale-mee-may-mah",
+      "targetKeyword": "how to practice singing",
+      "volume": "350",
+      "kd": "6",
+      "metaDescription": "Learn how to structure singing practice that builds real skill \u2014 warm-ups, focused technique work, and a free browser exercise to start today.",
+      "referenceCount": 5,
+      "wordCount": 2499
+    },
+    {
+      "slug": "how-to-sing-in-tune",
+      "title": "How to Sing in Tune: What Actually Causes Pitch Problems (and How to Fix Them)",
+      "category": "pitch-ear",
+      "tags": [
+        "pitch",
+        "intonation",
+        "ear training"
+      ],
+      "embeddedExerciseId": "nay-1-3-5-3-1",
+      "targetKeyword": "how to sing in tune",
+      "volume": "300",
+      "kd": "0",
+      "metaDescription": "Learn why singers go flat or sharp \u2014 breath support, ear training, and registration \u2014 plus a practical exercise to build pitch accuracy.",
+      "referenceCount": 6,
+      "wordCount": 2290
+    },
+    {
+      "slug": "how-to-warm-up-your-voice",
+      "title": "How to Warm Up Your Voice Before Singing",
+      "category": "warmup-sovt",
+      "tags": [
+        "warm up",
+        "vocal cords",
+        "voice care"
+      ],
+      "embeddedExerciseId": "hum-warmup",
+      "targetKeyword": "how to warm up vocal cords",
+      "volume": "60",
+      "kd": "16",
+      "metaDescription": "Learn how to warm up your vocal cords before singing \u2014 what the research says, a step-by-step routine, and a free hum exercise to try in your browser.",
+      "referenceCount": 9,
+      "wordCount": 2130
+    },
+    {
+      "slug": "mix-voice-exercises",
+      "title": "Mix Voice Exercises: How to Build a Connected Middle Register",
+      "category": "mix",
+      "tags": [
+        "mix voice",
+        "bridge",
+        "registration"
+      ],
+      "embeddedExerciseId": "bub-mix-voice",
+      "targetKeyword": "mix voice exercises",
+      "volume": "30",
+      "kd": "0",
+      "metaDescription": "What mix voice is, why it breaks down, and practical exercises to build it \u2014 with a live arpeggio drill you can try in your browser.",
+      "referenceCount": 5,
+      "wordCount": 2462
+    },
+    {
+      "slug": "pitch-training-for-singers",
+      "title": "Pitch Training for Singers: What the Research Actually Shows",
+      "category": "pitch-ear",
+      "tags": [
+        "pitch",
+        "ear training",
+        "intonation"
+      ],
+      "embeddedExerciseId": "nay-1-3-5-3-1",
+      "targetKeyword": "pitch training",
+      "volume": "150",
+      "kd": "17",
+      "metaDescription": "Pitch training for singers \u2014 what the research says about ear training, breath support, SOVT, and the nay 1-3-5-3-1 exercise for CCM.",
+      "referenceCount": 6,
+      "wordCount": 2506
+    },
+    {
+      "slug": "sovt-exercises",
+      "title": "Semi-Occluded Vocal Tract Exercises: What They Are and How to Use Them",
+      "category": "warmup-sovt",
+      "tags": [
+        "SOVT",
+        "lip trills",
+        "straw phonation",
+        "warm up"
+      ],
+      "embeddedExerciseId": "rossini-lip-trill",
+      "targetKeyword": "semi occluded vocal tract exercises",
+      "volume": "150",
+      "kd": "2",
+      "metaDescription": "What are semi-occluded vocal tract exercises? Learn the science behind lip trills, straw phonation, and humming \u2014 and try a live SOVT exercise free.",
+      "referenceCount": 8,
+      "wordCount": 2100
+    },
+    {
+      "slug": "vibrato-exercises",
+      "title": "Vibrato Exercises for Singers (Pop, Rock & Musical Theatre)",
+      "category": "vibrato",
+      "tags": [
+        "vibrato",
+        "tone",
+        "control"
+      ],
+      "embeddedExerciseId": "straight-tone-vibrato",
+      "targetKeyword": "vibrato exercises",
+      "volume": "80",
+      "kd": "0",
+      "metaDescription": "Learn what vibrato is, why it works differently in CCM than in opera, and try practical exercises \u2014 including a free in-browser sustain workout.",
+      "referenceCount": 8,
+      "wordCount": 1763
+    },
+    {
+      "slug": "vocal-agility-exercises",
+      "title": "Vocal Agility Exercises: How to Build Faster, Cleaner Runs and Riffs",
+      "category": "agility",
+      "tags": [
+        "agility",
+        "runs",
+        "riffs"
+      ],
+      "embeddedExerciseId": "agility-run",
+      "targetKeyword": "vocal agility exercises",
+      "volume": "70",
+      "kd": "0",
+      "metaDescription": "What vocal agility is, why runs break down, and how to train faster, cleaner riffs \u2014 with a live nine-note agility drill you can try in your browser.",
+      "referenceCount": 2,
+      "wordCount": 1924
+    },
+    {
+      "slug": "vocal-resonance-exercises",
+      "title": "Vocal Resonance Exercises: Shape Your Sound from the Inside Out",
+      "category": "resonance",
+      "tags": [
+        "resonance",
+        "vowels",
+        "tone"
+      ],
+      "embeddedExerciseId": "five-note-scale-mee-may-mah",
+      "targetKeyword": "vocal resonance exercises",
+      "volume": "90",
+      "kd": "0",
+      "metaDescription": "Understand what vocal resonance actually is, why it matters in CCM, and try a free scored resonance exercise in your browser \u2014 no download needed.",
+      "referenceCount": 7,
+      "wordCount": 2106
+    },
+    {
+      "slug": "vocal-warm-ups-for-beginners",
+      "title": "Beginner Vocal Warm-Up Exercises: A Practical Guide",
+      "category": "warmup-sovt",
+      "tags": [
+        "warm up",
+        "beginner"
+      ],
+      "embeddedExerciseId": "hum-warmup",
+      "targetKeyword": "beginner vocal warm up exercises",
+      "volume": "60",
+      "kd": "19",
+      "metaDescription": "The best beginner vocal warm-up exercises \u2014 what the science says, how long to warm up, and a free guided hum exercise to start today.",
+      "referenceCount": 5,
+      "wordCount": 1943
+    }
+  ]
+}

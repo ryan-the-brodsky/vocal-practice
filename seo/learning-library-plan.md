@@ -137,3 +137,19 @@ Volumes/KD = US, from the keyword research. "Embed" = `data/exercises/*.json` id
 - **Voice-part default** in embeds: pick a sensible default (e.g. let the visitor choose, or default to a mid voice) since Learn visitors haven't set a voice part.
 - **Author/E-E-A-T:** consider a short credentialed byline/about for the pedagogy content (helps both Google and AI-answer citations).
 - **AI-answer optimization:** these FAQ-rich, well-structured pages are also the ones that get cited by AI search — there's an `ai-seo` skill if we want to optimize specifically for that later.
+
+---
+
+## Update (2026-06-25): tags, content format, bidirectional linking
+
+**Verified:** every roadmap article maps to (1) a real, existing exercise (`data/exercises/`) and (2) a category tag. Technique articles align 1:1 with `lib/exercises/capabilities.ts` (head-voice, chest-voice, mix, warmup-sovt, vibrato, style, agility, resonance); foundational/pitch articles use the two content-only tags below.
+
+**Library tag schema (for the filterable Learn index).** Each article's primary `category` ∈ the 10 capabilities **plus** two content tags:
+- `foundations` — learn-to-sing / practice / improve / breathing.
+- `pitch-ear` — sing-in-tune / pitch / ear training.
+
+Every article also carries its `embeddedExerciseId` (whose capability links it back into the exercise taxonomy) and a free-form `tags[]` for search. The index page filters on `category` + `tags`.
+
+**Content format (authoring phase):** Markdown with YAML frontmatter at `content/learn/<slug>.md` (`title, slug, category, tags, embeddedExerciseId, targetKeyword, volume, kd, intent, metaDescription, references[], updated`). Renderer-agnostic; the future `/learn/[slug]` route + filterable index consume it. *(Supersedes the "TSX content v1" note above — content-as-data is cleaner to author + adversarially audit.)*
+
+**Future: bidirectional exercise ↔ article linking.** Article → exercise already exists (the embedded exercise). Add the reverse: an optional `learnSlug` on `ExerciseDescriptor` (or a static id→slug map), surfaced on the Practice / Plan exercise UI as a "Learn the why →" link to the article. Students then move both directions — exercising ⇄ learning — with no dead ends. Build alongside the `/learn` routing.
