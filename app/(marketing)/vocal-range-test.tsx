@@ -231,6 +231,10 @@ export default function VocalRangeTestPage() {
             </Link>
           </View>
 
+          <Link href="/learn" style={styles.relatedLink}>
+            New to singing? Read our free guides →
+          </Link>
+
           <Text style={styles.h2}>Sources &amp; further reading</Text>
           <Text style={styles.p}>
             The guidance on this page was fact-checked against voice-science and pedagogy sources,
@@ -346,6 +350,12 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm.size,
     lineHeight: Typography.sm.lineHeight,
     color: c.textSecondary,
+  },
+  relatedLink: {
+    fontFamily: Fonts.bodySemibold,
+    fontSize: Typography.md.size,
+    color: c.accent,
+    marginTop: Spacing.lg,
   },
   disclaimer: {
     fontFamily: Fonts.body,

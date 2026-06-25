@@ -9,6 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "web:export": "expo export --platform web",
+    "learn:gen": "node scripts/gen-learn-content.mjs",
     "lint": "expo lint",
     "test": "jest",
     "test:coverage": "jest --selectProjects unit --coverage"

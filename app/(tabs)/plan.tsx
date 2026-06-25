@@ -258,6 +258,25 @@ export default function PlanScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* e. Learn */}
+        <View style={{ gap: Spacing.xs }}>
+          <Eyebrow>Learn</Eyebrow>
+          <View style={[styles.capCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle, borderRadius: Radii.md, padding: Spacing.md, gap: Spacing.xs }]}>
+            <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body, color: colors.textSecondary }}>
+              Science-backed guides on technique, registers, warm-ups, and practice — each linked to an exercise you can try.
+            </Text>
+            <Pressable
+              onPress={() => router.push("/learn")}
+              style={[styles.editBtn, { backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, marginTop: Spacing['2xs'] }]}
+              accessibilityLabel="Browse the Learn guides"
+            >
+              <Text style={{ fontSize: Typography.base.size, lineHeight: Typography.base.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textPrimary }}>
+                Browse the guides →
+              </Text>
+            </Pressable>
+          </View>
+        </View>
       </ScrollView>
 
       {routine !== null && (
