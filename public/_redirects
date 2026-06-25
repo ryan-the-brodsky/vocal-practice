@@ -1,4 +1,18 @@
-# SPA fallback for Expo Router (web.output: "single").
-# Serve index.html for any deep route so direct-load / refresh on
-# /progress, /coaching, etc. doesn't 404. 200 = rewrite, not redirect.
-/*    /index.html   200
+# SPA fallback for Expo Router. With web.output: "static" every route is
+# pre-rendered to its own .html at export. Netlify serves an existing file
+# before applying redirect rules (this rule has no "!" force flag), so
+# pre-rendered pages — e.g. /vocal-range-test — are served directly; this
+# catch-all only covers paths WITHOUT a matching file (client-only deep
+# links / refreshes into the SPA app shell). 200 = rewrite, not redirect.
+#
+# POST-DEPLOY VERIFICATION (load-bearing for SEO): confirm the catch-all is
+# not shadowing pre-rendered HTML —
+#   curl -s https://vocalhabit.com/vocal-range-test | grep -o "<h1[^>]*>[^<]*"
+# must return the page's real <h1> (and the FAQ/body text), NOT the empty app
+# shell. If it returns the shell, add an explicit file-serving rule for the
+# marketing routes above this line. See seo/static-rendering-architecture.md.
+# Insurance: serve pre-rendered marketing pages explicitly, above the catch-all,
+# so they can never be shadowed regardless of Netlify's file-precedence behavior.
+# Add a line here for each new (marketing) route.
+/vocal-range-test    /vocal-range-test.html    200
+/*                   /index.html               200

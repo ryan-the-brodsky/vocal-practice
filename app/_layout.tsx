@@ -31,6 +31,11 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
+// Top-level route groups that must pre-render real HTML at build time (SEO).
+// These bypass the font/onboarding/splash gate so static export emits content
+// instead of an empty shell. See seo/static-rendering-architecture.md.
+const STATIC_SEGMENTS = new Set(['(marketing)']);
+
 export default function RootLayout() {
   // Light is the default per DESIGN.md. Dark mode is opt-in via a future toggle, not OS-following.
   const c = Colors.light;
@@ -38,6 +43,10 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   const rootNavState = useRootNavigationState();
+
+  // Static SEO routes render synchronously (no fonts/storage/onboarding gate) so
+  // they export as indexable HTML. The interactive app keeps its client gate.
+  const isStaticRoute = STATIC_SEGMENTS.has(segments[0] as string);
 
   const [loaded] = useFonts({
     Fraunces_300Light,
@@ -70,11 +79,14 @@ export default function RootLayout() {
 
   // Ask the browser to exempt our local storage from eviction (Safari ITP /
   // storage pressure). Best-effort, one-time; the user's history is local-only.
+  // Skipped on static SEO routes — public pages shouldn't touch app storage.
   useEffect(() => {
+    if (isStaticRoute) return;
     requestPersistentStorage().catch(() => {});
-  }, []);
+  }, [isStaticRoute]);
 
   useEffect(() => {
+    if (isStaticRoute) return;
     let active = true;
     hasSeenOnboarding().then((seen) => {
       if (!active) return;
@@ -84,7 +96,7 @@ export default function RootLayout() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [isStaticRoute]);
 
   const navReady = !!rootNavState?.key;
   const onOnboarding = segments[0] === 'onboarding';
@@ -94,14 +106,20 @@ export default function RootLayout() {
   }, [onOnboarding, initialRedirectHandled]);
 
   useEffect(() => {
+    if (isStaticRoute) {
+      SplashScreen.hideAsync();
+      return;
+    }
     if (!loaded || !onboardingChecked || !navReady) return;
     if (needsOnboarding && !initialRedirectHandled && !onOnboarding) {
       router.replace('/onboarding');
     }
     SplashScreen.hideAsync();
-  }, [loaded, onboardingChecked, navReady, needsOnboarding, initialRedirectHandled, onOnboarding, router]);
+  }, [isStaticRoute, loaded, onboardingChecked, navReady, needsOnboarding, initialRedirectHandled, onOnboarding, router]);
 
-  if (!loaded || !onboardingChecked) return null;
+  // App routes hold until fonts + onboarding resolve (prevents flash). Static
+  // SEO routes never hold — that's what makes them export with real content.
+  if (!isStaticRoute && (!loaded || !onboardingChecked)) return null;
 
   const navTheme = {
     ...DefaultTheme,
@@ -119,7 +137,7 @@ export default function RootLayout() {
   // While onboarding is needed but the route hasn't taken over yet, cover the
   // tabs with a canvas layer so Practice never flashes (web has no native splash).
   // Drops permanently once the user reaches onboarding, so finishing (→ "/") is clean.
-  const showCover = needsOnboarding && !onOnboarding && !initialRedirectHandled;
+  const showCover = !isStaticRoute && needsOnboarding && !onOnboarding && !initialRedirectHandled;
 
   return (
     <ThemeProvider value={navTheme}>
@@ -127,12 +145,13 @@ export default function RootLayout() {
         <View style={{ flex: 1 }}>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(marketing)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
             <Stack.Screen name="coaching-saved" options={{ headerShown: false }} />
             <Stack.Screen name="song-editor" options={{ headerShown: false }} />
             <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
           </Stack>
-          {!onOnboarding && <FeedbackButton />}
+          {!onOnboarding && !isStaticRoute && <FeedbackButton />}
           {showCover && (
             <View
               pointerEvents="none"
