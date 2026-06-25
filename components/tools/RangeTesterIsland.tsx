@@ -1,7 +1,7 @@
 // COMPONENT TEST: components/tools/__tests__/RangeTesterIsland.test.tsx
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 
 import { Colors, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
 import { midiToNote } from '@/lib/exercises/music';
@@ -196,9 +196,7 @@ export default function RangeTesterIsland() {
               <PrimaryButton
                 label="Practice warm-ups in your range →"
                 onPress={() =>
-                  router.push(
-                    result ? { pathname: '/', params: { voicePart: result.appVoicePart } } : '/',
-                  )
+                  router.push((result ? `/?voicePart=${result.appVoicePart}` : '/') as Href)
                 }
               />
               <Pressable onPress={reset} accessibilityRole="button" accessibilityLabel="Test again" hitSlop={8}>

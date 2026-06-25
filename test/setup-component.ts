@@ -224,6 +224,14 @@ jest.mock("expo-router", () => ({
   useLocalSearchParams: () => mockRouterState.params,
   useRouter: () => mockRouterState.router,
   router: mockRouterState.router,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Link: ({ children }: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const React = require("react");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { Text } = require("react-native");
+    return React.createElement(Text, { accessibilityRole: "link" }, children);
+  },
 }));
 
 // Reset registries between tests so a leak doesn't poison the next test.

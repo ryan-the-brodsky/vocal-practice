@@ -1,7 +1,7 @@
 // COMPONENT TEST: components/learn/__tests__/EmbeddedExercise.test.tsx
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Link, type Href } from 'expo-router';
 
 import { Colors, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
 import { exerciseName } from '@/lib/exercises/names';
@@ -9,6 +9,7 @@ import { getExercise } from '@/lib/exercises/library';
 import { flattenIterations, planExercise } from '@/lib/exercises/engine';
 import type { AudioPlayer, SequenceHandle } from '@/lib/audio';
 import type { VoicePart } from '@/lib/exercises/types';
+import ExerciseStaff, { type StaffNote } from '@/components/learn/ExerciseStaff';
 
 const c = Colors.light;
 // Learn visitors haven't picked a voice part; play a sensible mid default.
@@ -16,14 +17,32 @@ const DEFAULT_VOICE: VoicePart = 'tenor';
 
 type Phase = 'idle' | 'loading' | 'playing';
 
-// In-article mini-player. Static placeholder renders at build (indexable); on
-// Play it lazy-loads the audio engine (keeps Tone.js out of the page bundle +
-// SSG) and plays the exercise's first key iteration. "Open full version" deep-
-// links into Practice for the scored experience (+ the reverse exercise→article
-// link is future). See seo/learning-library-plan.md.
+// In-article mini-player. Renders the exercise's staff + syllables (so a reader
+// sees what they'll sing) as static, indexable SVG; Play lazy-loads the audio
+// engine (Tone.js stays out of SSG) and plays the first key iteration. The
+// "Open full version" link opens Practice (with the exercise preselected) in a
+// NEW TAB so the reader keeps their place. See seo/learning-library-plan.md.
 export default function EmbeddedExercise({ exerciseId }: { exerciseId: string }) {
-  const router = useRouter();
   const name = exerciseName(exerciseId) || 'this exercise';
+  const exercise = getExercise(exerciseId);
+
+  const iters = useMemo(() => {
+    if (!exercise) return [];
+    try {
+      return planExercise({ exercise, voicePart: DEFAULT_VOICE, clickTrackEnabled: false });
+    } catch {
+      return [];
+    }
+  }, [exercise]);
+
+  const notes: StaffNote[] = useMemo(() => {
+    const iter = iters[0];
+    if (!iter) return [];
+    return iter.events
+      .filter((e) => e.type === 'melody')
+      .map((e) => ({ midi: e.midi, syllable: e.syllable ?? '' }));
+  }, [iters]);
+  const tonicMidi = iters[0]?.tonicMidi;
 
   const [phase, setPhase] = useState<Phase>('idle');
   const playerRef = useRef<AudioPlayer | null>(null);
@@ -37,27 +56,21 @@ export default function EmbeddedExercise({ exerciseId }: { exerciseId: string })
     setPhase('idle');
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-      handleRef.current?.stop();
-      playerRef.current?.dispose().catch(() => {});
-    };
+  useEffect(() => () => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    handleRef.current?.stop();
+    playerRef.current?.dispose().catch(() => {});
   }, []);
 
   const play = useCallback(async () => {
     setPhase('loading');
     try {
       if (!playerRef.current) {
-        // Lazy — Tone.js + samples load only on the user's Play gesture.
-        const { createAudioPlayer } = await import('@/lib/audio');
+        const { createAudioPlayer } = await import('@/lib/audio'); // lazy — keeps Tone.js out of SSG
         const p = createAudioPlayer();
         await p.init();
         playerRef.current = p;
       }
-      const exercise = getExercise(exerciseId);
-      if (!exercise) { setPhase('idle'); return; }
-      const iters = planExercise({ exercise, voicePart: DEFAULT_VOICE, clickTrackEnabled: false });
       const flat = flattenIterations(iters.slice(0, 1), 0); // first key only — short preview
       if (!flat.events.length) { setPhase('idle'); return; }
       handleRef.current = playerRef.current.playSequence(flat.events);
@@ -68,15 +81,17 @@ export default function EmbeddedExercise({ exerciseId }: { exerciseId: string })
     } catch {
       setPhase('idle');
     }
-  }, [exerciseId, stop]);
+  }, [iters, stop]);
+
+  const fullHref = `/?exerciseId=${encodeURIComponent(exerciseId)}` as Href;
 
   return (
     <View style={styles.card}>
       <Text style={styles.eyebrow}>TRY IT — FREE, IN YOUR BROWSER</Text>
       <Text style={styles.title}>{name}</Text>
-      <Text style={styles.body}>
-        Hear the exercise and sing along right here — your audio never leaves your device.
-      </Text>
+
+      <ExerciseStaff notes={notes} tonicMidi={tonicMidi} />
+
       <View style={styles.row}>
         {phase === 'playing' ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Stop" onPress={stop}
@@ -89,11 +104,9 @@ export default function EmbeddedExercise({ exerciseId }: { exerciseId: string })
             <Text style={styles.btnText}>{phase === 'loading' ? 'Loading…' : '▶ Play'}</Text>
           </Pressable>
         )}
-        <Pressable accessibilityRole="button" accessibilityLabel={`Open full version of ${name} with scoring`}
-          onPress={() => router.push({ pathname: '/', params: { exerciseId } })}
-          style={styles.ghost}>
-          <Text style={styles.ghostText}>Open full version with scoring →</Text>
-        </Pressable>
+        <Link href={fullHref} target="_blank" style={styles.fullLink}>
+          Open full version with scoring →
+        </Link>
       </View>
     </View>
   );
@@ -101,7 +114,9 @@ export default function EmbeddedExercise({ exerciseId }: { exerciseId: string })
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: c.bgEmphasis,
+    backgroundColor: c.bgSurface,
+    borderWidth: 1,
+    borderColor: c.borderStrong,
     borderRadius: Radii.lg,
     padding: Spacing.lg,
     gap: Spacing.xs,
@@ -112,23 +127,17 @@ const styles = StyleSheet.create({
     fontSize: Typography.xs.size,
     lineHeight: Typography.xs.lineHeight,
     letterSpacing: 0.5,
-    color: c.textOnEmphasisDim,
+    color: c.textTertiary,
   },
   title: {
     fontFamily: Fonts.displaySemibold,
     fontSize: Typography.lg.size,
     lineHeight: Typography.lg.lineHeight,
-    color: c.textOnEmphasis,
+    color: c.textPrimary,
   },
-  body: {
-    fontFamily: Fonts.body,
-    fontSize: Typography.base.size,
-    lineHeight: Typography.base.lineHeight,
-    color: c.textOnEmphasisDim,
-  },
-  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.xs },
+  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.md, marginTop: Spacing.xs },
   btn: {
-    backgroundColor: c.accentOnEmphasis,
+    backgroundColor: c.accent,
     borderRadius: Radii.md,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
@@ -137,9 +146,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  btnPressed: { opacity: 0.85 },
+  btnPressed: { backgroundColor: c.accentHover },
   btnDim: { opacity: 0.6 },
-  btnText: { fontFamily: Fonts.bodySemibold, fontSize: Typography.base.size, color: c.bgEmphasis },
-  ghost: { minHeight: 44, justifyContent: 'center' },
-  ghostText: { fontFamily: Fonts.bodyMedium, fontSize: Typography.sm.size, color: c.textOnEmphasisDim, textDecorationLine: 'underline' },
+  btnText: { fontFamily: Fonts.bodySemibold, fontSize: Typography.base.size, color: c.bgCanvas },
+  fullLink: { fontFamily: Fonts.bodyMedium, fontSize: Typography.sm.size, color: c.accent, textDecorationLine: 'underline' },
 });

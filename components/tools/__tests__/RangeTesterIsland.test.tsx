@@ -58,9 +58,6 @@ describe("<RangeTesterIsland />", () => {
 
     // CTA carries the classified voice part into Practice
     fireEvent.click(screen.getByText(/practice warm-ups in your range/i));
-    expect(getMockRouter().push).toHaveBeenCalledWith({
-      pathname: "/",
-      params: { voicePart: "tenor" },
-    });
+    expect(getMockRouter().push).toHaveBeenCalledWith("/?voicePart=tenor");
   });
 });
