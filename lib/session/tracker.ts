@@ -21,12 +21,19 @@ export interface SessionTrackerSnapshot {
   meanCentsDeviation: number;
 }
 
+// A key is finalized this many seconds after its last note ends — long enough to
+// capture the note's trailing samples (detection latency), then commit the result
+// immediately instead of waiting for the next key's first sample to land.
+const FINALIZE_MARGIN_SEC = 0.3;
+
 export class SessionTracker {
   private readonly scorers: Scorer[] = [];
   private readonly melodyByKey: NoteEvent[][] = [];
   private completed: KeyAttemptResult[] = [];
   private currentIdx = 0;
   private finalized = false;
+  // Session-relative time by which each key's melody has finished (+ margin).
+  private readonly keyEndSec: number[];
 
   constructor(
     private readonly iterations: KeyIteration[],
@@ -43,6 +50,10 @@ export class SessionTracker {
       const syllables = targets.map((e) => e.syllable ?? "");
       this.scorers.push(new Scorer(targets, leadInEndMs, syllables, alignConfig));
     }
+    this.keyEndSec = this.melodyByKey.map((targets, i) => {
+      const lastEndRel = targets.reduce((m, t) => Math.max(m, t.startTime + t.duration), 0);
+      return (this.keyStarts[i]?.startTime ?? 0) + lastEndRel + FINALIZE_MARGIN_SEC;
+    });
   }
 
   pushSample(sample: PitchSample): void {
@@ -78,6 +89,18 @@ export class SessionTracker {
   }
 
   getSnapshot(currentSessionTimeSec: number): SessionTrackerSnapshot {
+    // Finalize any intermediate key whose melody has ended by now, so its result
+    // shows immediately rather than waiting for the next key's first sample. The
+    // last key is left for finalize() at session end (avoids a no-current-key flash).
+    while (
+      this.currentIdx < this.scorers.length - 1 &&
+      currentSessionTimeSec >= this.keyEndSec[this.currentIdx]!
+    ) {
+      const result = this.scorers[this.currentIdx]!.finalize(this.keyStarts[this.currentIdx]!.tonic);
+      this.completed.push(result);
+      this.currentIdx++;
+    }
+
     const idx = this.currentIdx;
     const tonic = this.keyStarts[idx]?.tonic ?? null;
     const melody = this.melodyByKey[idx] ?? [];

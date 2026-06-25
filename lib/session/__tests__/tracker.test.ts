@@ -111,7 +111,7 @@ describe("SessionTracker — construction & routing", () => {
     expect(completed[1]!.meanAccuracyPct).toBeLessThan(50);
   });
 
-  it("crossing a key boundary finalizes the prior key's Scorer (visible via snapshot)", () => {
+  it("finalizes a key by time once its melody ends — no next-key sample needed", () => {
     const iters = [KEY_A, KEY_B];
     const keyStarts = buildKeyStarts(iters);
     const tracker = new SessionTracker(iters, keyStarts, 0, 0);
@@ -119,10 +119,24 @@ describe("SessionTracker — construction & routing", () => {
     for (const s of samplesForKey(iters, keyStarts, 0, [48, 50, 52, 53, 55])) {
       tracker.pushSample(s);
     }
-    // Mid-stream: only key 0 has samples → no completed keys yet (still "current").
-    expect(tracker.getSnapshot(2.0).completedKeys.length).toBe(0);
+    // Early in key 0: nothing finalized yet.
+    expect(tracker.getSnapshot(0.1).completedKeys.length).toBe(0);
+    // Past key 0's melody end, its result appears immediately — without any key-1
+    // sample having arrived (the old behavior waited for the next key's first sample).
+    const snap = tracker.getSnapshot(KEY_A.totalDurationSec + 1);
+    expect(snap.completedKeys.length).toBe(1);
+    expect(snap.completedKeys[0]!.tonic).toBe("C3");
+    expect(snap.currentKeyIndex).toBe(1);
+  });
 
-    // Push first sample for key 1 — boundary cross finalizes key 0.
+  it("crossing a key boundary via a next-key sample also finalizes the prior key", () => {
+    const iters = [KEY_A, KEY_B];
+    const keyStarts = buildKeyStarts(iters);
+    const tracker = new SessionTracker(iters, keyStarts, 0, 0);
+
+    for (const s of samplesForKey(iters, keyStarts, 0, [48, 50, 52, 53, 55])) {
+      tracker.pushSample(s);
+    }
     const firstBSample = samplesForKey(iters, keyStarts, 1, [49])[0]!;
     tracker.pushSample(firstBSample);
     const snap = tracker.getSnapshot(KEY_A.totalDurationSec + 1.5);
