@@ -87,6 +87,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="library"
+        options={{
+          title: 'Learn',
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="book.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="triallab"
         options={
           SHOW_TRILL_LAB

@@ -33,6 +33,7 @@ const MAPPING = {
   'chart.bar.fill': 'bar-chart',
   'arrow.counterclockwise': 'replay',
   'list.bullet.clipboard': 'assignment',
+  'book.fill': 'menu-book',
 } as IconMapping;
 
 /**
