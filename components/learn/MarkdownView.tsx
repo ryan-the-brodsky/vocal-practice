@@ -90,12 +90,15 @@ export default function MarkdownView({ content }: { content: string }) {
     <View style={styles.root}>
       {blocks.map((b, idx) => {
         switch (b.kind) {
+          // aria-level makes react-native-web emit the right <h1>/<h2>/<h3>.
+          // Without it, every accessibilityRole="header" serializes as <h1>
+          // (the "multiple H1" SEO issue — 14 h1s per article).
           case 'h1':
-            return <Text key={idx} accessibilityRole="header" style={styles.h1}><Inline text={b.text} /></Text>;
+            return <Text key={idx} accessibilityRole="header" aria-level={1} style={styles.h1}><Inline text={b.text} /></Text>;
           case 'h2':
-            return <Text key={idx} accessibilityRole="header" style={styles.h2}><Inline text={b.text} /></Text>;
+            return <Text key={idx} accessibilityRole="header" aria-level={2} style={styles.h2}><Inline text={b.text} /></Text>;
           case 'h3':
-            return <Text key={idx} accessibilityRole="header" style={styles.h3}><Inline text={b.text} /></Text>;
+            return <Text key={idx} accessibilityRole="header" aria-level={3} style={styles.h3}><Inline text={b.text} /></Text>;
           case 'p':
             return <Text key={idx} style={styles.p}><Inline text={b.text} /></Text>;
           case 'quote':

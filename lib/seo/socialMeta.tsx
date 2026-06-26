@@ -5,8 +5,10 @@
 
 export const SITE = 'https://vocalhabit.com';
 const SITE_NAME = 'Vocal Habit';
-// Fallback share image. TODO: replace with a real 1200×630 OG image in public/.
-const DEFAULT_IMAGE = `${SITE}/favicon.png`;
+// Branded share image (1200×630 at 2× = 2400×1260), generated to public/og-image.png.
+const DEFAULT_IMAGE = `${SITE}/og-image.png`;
+const IMAGE_W = 2400;
+const IMAGE_H = 1260;
 
 export interface SocialMetaOpts {
   title: string;
@@ -31,6 +33,9 @@ export function socialMetaTags({
     <meta key="og:url" property="og:url" content={url} />,
     <meta key="og:site_name" property="og:site_name" content={SITE_NAME} />,
     <meta key="og:image" property="og:image" content={image} />,
+    <meta key="og:image:width" property="og:image:width" content={String(IMAGE_W)} />,
+    <meta key="og:image:height" property="og:image:height" content={String(IMAGE_H)} />,
+    <meta key="og:image:alt" property="og:image:alt" content={SITE_NAME} />,
     <meta key="tw:card" name="twitter:card" content="summary_large_image" />,
     <meta key="tw:title" name="twitter:title" content={title} />,
     <meta key="tw:description" name="twitter:description" content={description} />,
