@@ -1,5 +1,6 @@
 ---
 title: "Beginner Vocal Warm-Up Exercises: A Practical Guide"
+seoTitle: "Beginner Vocal Warm-Up Exercises | Vocal Habit"
 slug: vocal-warm-ups-for-beginners
 category: warmup-sovt
 tags: ["warm up", "beginner"]

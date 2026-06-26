@@ -1,5 +1,6 @@
 ---
 title: "Vibrato Exercises for Singers (Pop, Rock & Musical Theatre)"
+seoTitle: "Vibrato Exercises for Singers | Vocal Habit"
 slug: vibrato-exercises
 category: vibrato
 tags: ["vibrato", "tone", "control"]

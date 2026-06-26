@@ -1,5 +1,6 @@
 ---
 title: "Chest Voice Exercises: Build a Stronger Lower Register"
+seoTitle: "Chest Voice Exercises for Singers | Vocal Habit"
 slug: chest-voice-exercises
 category: chest-voice
 tags: ["chest voice", "lower register", "registration"]

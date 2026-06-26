@@ -1,5 +1,6 @@
 ---
 title: "Pitch Training for Singers: What the Research Actually Shows"
+seoTitle: "Pitch Training for Singers | Vocal Habit"
 slug: pitch-training-for-singers
 category: pitch-ear
 tags: ["pitch", "ear training", "intonation"]

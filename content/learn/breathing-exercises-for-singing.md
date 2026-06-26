@@ -1,5 +1,6 @@
 ---
 title: "Vocal Breathing Exercises: What Actually Works and Why"
+seoTitle: "Breathing Exercises for Singing | Vocal Habit"
 slug: breathing-exercises-for-singing
 category: foundations
 tags: ["breathing", "breath support", "appoggio"]

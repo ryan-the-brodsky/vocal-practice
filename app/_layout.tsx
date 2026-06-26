@@ -13,6 +13,7 @@ import {
 } from '@expo-google-fonts/jetbrains-mono';
 import { useFonts } from 'expo-font';
 import { Stack, useRootNavigationState, useRouter, useSegments } from 'expo-router';
+import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -23,6 +24,7 @@ import { Colors } from '@/constants/theme';
 import FeedbackButton from '@/components/FeedbackButton';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { hasSeenOnboarding } from '@/lib/settings/onboarding';
+import { SITE, socialMetaTags } from '@/lib/seo/socialMeta';
 import { requestPersistentStorage } from '@/lib/storage/persist';
 
 SplashScreen.preventAutoHideAsync();
@@ -35,6 +37,60 @@ export const unstable_settings = {
 // These bypass the font/onboarding/splash gate so static export emits content
 // instead of an empty shell. See seo/static-rendering-architecture.md.
 const STATIC_SEGMENTS = new Set(['(marketing)']);
+
+// Per-route <head> for the (client-rendered) app shell. App routes export an
+// EMPTY body at SSG (gated below), so this Head is rendered UNCONDITIONALLY —
+// before the gate's `return null` — to give every app URL a real title, meta
+// description, self-referencing canonical, and OG/Twitter tags. The self
+// canonical (no query string) collapses /?exerciseId=… deep-links onto "/".
+const APP_HOME_DESCRIPTION =
+  'Free browser vocal warm-ups with real-time pitch scoring and piano accompaniment. No signup — pick a voice part, sing along, and see how accurate you are.';
+const APP_ROUTE_HEAD: Record<string, { title: string; description: string }> = {
+  index: { title: 'Vocal Habit — Free Vocal Warm-Ups & Pitch Training', description: APP_HOME_DESCRIPTION },
+  plan: {
+    title: 'Plan Your Practice — Vocal Habit',
+    description:
+      'Build a daily vocal-practice routine — browse warm-ups and exercises by capability and set your plan. Free, in your browser, no signup.',
+  },
+  progress: {
+    title: 'Your Progress — Vocal Habit',
+    description:
+      'Track your vocal practice — weekly summaries, per-exercise trends, and accuracy over time. Free and private, stored on your device.',
+  },
+  library: {
+    title: 'Exercise Library — Vocal Habit',
+    description:
+      'Browse vocal exercises and warm-ups by capability — chest, mix, head voice, agility, belt and more. Free in your browser, no signup.',
+  },
+  coaching: {
+    title: 'Coaching — Vocal Habit',
+    description:
+      'Targeted feedback on your singing — Vocal Habit finds your most common pitch mistakes and helps you fix them. Free, in your browser.',
+  },
+};
+const APP_ROUTE_HEAD_FALLBACK = { title: 'Vocal Habit', description: APP_HOME_DESCRIPTION };
+
+function AppRouteHead({ segments }: { segments: string[] }) {
+  const inTabs = segments[0] === '(tabs)';
+  const routeKey = inTabs ? segments[1] ?? 'index' : segments[0] ?? 'index';
+  const meta = APP_ROUTE_HEAD[routeKey] ?? APP_ROUTE_HEAD_FALLBACK;
+  const path = inTabs
+    ? segments[1]
+      ? `/${segments[1]}`
+      : '/'
+    : segments[0]
+      ? `/${segments[0]}`
+      : '/';
+  const canonical = `${SITE}${path}`;
+  return (
+    <Head>
+      <title>{meta.title}</title>
+      <meta name="description" content={meta.description} />
+      <link rel="canonical" href={canonical} />
+      {socialMetaTags({ title: meta.title, description: meta.description, url: canonical })}
+    </Head>
+  );
+}
 
 export default function RootLayout() {
   // Light is the default per DESIGN.md. Dark mode is opt-in via a future toggle, not OS-following.
@@ -117,9 +173,14 @@ export default function RootLayout() {
     SplashScreen.hideAsync();
   }, [isStaticRoute, loaded, onboardingChecked, navReady, needsOnboarding, initialRedirectHandled, onOnboarding, router]);
 
+  // App-shell <head> for non-marketing routes. Rendered even while the body is
+  // gated so the title/canonical/OG flush to static HTML (the body stays empty).
+  const appHead = isStaticRoute ? null : <AppRouteHead segments={segments} />;
+
   // App routes hold until fonts + onboarding resolve (prevents flash). Static
   // SEO routes never hold — that's what makes them export with real content.
-  if (!isStaticRoute && (!loaded || !onboardingChecked)) return null;
+  // The head still flushes during the hold (SSG + first paint).
+  if (!isStaticRoute && (!loaded || !onboardingChecked)) return appHead;
 
   const navTheme = {
     ...DefaultTheme,
@@ -141,6 +202,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={navTheme}>
+      {appHead}
       <ErrorBoundary>
         <View style={{ flex: 1 }}>
           <Stack>

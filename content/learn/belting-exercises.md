@@ -1,5 +1,6 @@
 ---
 title: "Vocal Belting Exercises for Pop, Rock & Musical Theatre Singers"
+seoTitle: "Vocal Belting Exercises for Singers | Vocal Habit"
 slug: belting-exercises
 category: style
 tags: ["belt", "twang", "CCM"]

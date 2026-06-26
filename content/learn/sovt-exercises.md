@@ -1,5 +1,6 @@
 ---
 title: "Semi-Occluded Vocal Tract Exercises: What They Are and How to Use Them"
+seoTitle: "Semi-Occluded Vocal Tract (SOVT) Exercises | Vocal Habit"
 slug: sovt-exercises
 category: warmup-sovt
 tags: ["SOVT", "lip trills", "straw phonation", "warm up"]

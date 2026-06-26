@@ -4,13 +4,14 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
 import RangeTesterIsland from '@/components/tools/RangeTesterIsland';
+import { SITE, socialMetaTags } from '@/lib/seo/socialMeta';
 
 const c = Colors.light;
 
 const TITLE = 'Free Vocal Range Test — Find Your Range & Voice Type | Vocal Habit';
 const DESCRIPTION =
-  'Find your vocal range and likely voice type free in your browser — sing your lowest and highest notes, no signup, audio stays on your device. Plus how range works and how to expand it.';
-const URL = 'https://vocalhabit.com/vocal-range-test';
+  'Find your vocal range and likely voice type free in your browser — sing your lowest and highest notes. No signup, and your audio stays on your device.';
+const URL = `${SITE}/vocal-range-test`;
 
 // ── Content (data-driven so prose is plain JS strings, not JSX text) ──────────
 // Science claims fact-checked by adversarial review (voice-science + pedagogy
@@ -69,10 +70,24 @@ const VOICE_TABLE: VoiceRow[] = [
   { type: 'Bass', range: 'E2 – E4', note: 'Lowest voice (often extends below)' },
 ];
 
-const HOW_IT_WORKS: string[] = [
-  'Allow microphone access when your browser asks — nothing is recorded or uploaded; the audio is analyzed on your device.',
-  'Sing your lowest comfortable note and hold it steady for about a second.',
-  'Sing your highest comfortable note the same way. You will see your range and the voice type it is closest to.',
+interface HowStep {
+  name: string;
+  text: string;
+}
+
+const HOW_IT_WORKS: HowStep[] = [
+  {
+    name: 'Allow microphone access',
+    text: 'Allow microphone access when your browser asks — nothing is recorded or uploaded; the audio is analyzed on your device.',
+  },
+  {
+    name: 'Sing your lowest note',
+    text: 'Sing your lowest comfortable note and hold it steady for about a second.',
+  },
+  {
+    name: 'Sing your highest note',
+    text: 'Sing your highest comfortable note the same way. You will see your range and the voice type it is closest to.',
+  },
 ];
 
 interface Faq {
@@ -127,7 +142,12 @@ const howToJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'HowTo',
   name: 'How to test your vocal range',
-  step: HOW_IT_WORKS.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, text: s })),
+  step: HOW_IT_WORKS.map((s, i) => ({
+    '@type': 'HowToStep',
+    position: i + 1,
+    name: s.name,
+    text: s.text,
+  })),
 };
 
 // Real, verifiable references surfaced and checked during adversarial review.
@@ -145,10 +165,7 @@ export default function VocalRangeTestPage() {
         <title>{TITLE}</title>
         <meta name="description" content={DESCRIPTION} />
         <link rel="canonical" href={URL} />
-        <meta property="og:title" content={TITLE} />
-        <meta property="og:description" content={DESCRIPTION} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={URL} />
+        {socialMetaTags({ title: TITLE, description: DESCRIPTION, url: URL })}
         <script type="application/ld+json">{JSON.stringify(appJsonLd)}</script>
         <script type="application/ld+json">{JSON.stringify(howToJsonLd)}</script>
         <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
@@ -175,7 +192,7 @@ export default function VocalRangeTestPage() {
           <Text style={styles.h2}>How the test works</Text>
           {HOW_IT_WORKS.map((s, i) => (
             <Text key={`how-${i}`} style={styles.li}>
-              {i + 1}. {s}
+              {i + 1}. {s.text}
             </Text>
           ))}
 
@@ -231,7 +248,7 @@ export default function VocalRangeTestPage() {
             </Link>
           </View>
 
-          <Link href="/learn" style={styles.relatedLink}>
+          <Link href="/learn/" style={styles.relatedLink}>
             New to singing? Read our free guides →
           </Link>
 

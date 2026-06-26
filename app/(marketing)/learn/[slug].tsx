@@ -6,9 +6,9 @@ import { Colors, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
 import { LEARN_ARTICLES } from '@/content/learn/articles.generated';
 import MarkdownView from '@/components/learn/MarkdownView';
 import EmbeddedExercise from '@/components/learn/EmbeddedExercise';
+import { SITE, socialMetaTags } from '@/lib/seo/socialMeta';
 
 const c = Colors.light;
-const SITE = 'https://vocalhabit.com';
 
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
   return LEARN_ARTICLES.map((a) => ({ slug: a.slug }));
@@ -22,7 +22,7 @@ export default function LearnArticlePage() {
     return (
       <View style={styles.missing}>
         <Text style={styles.h1}>Article not found</Text>
-        <Link href="/learn" style={styles.backLink}>← All guides</Link>
+        <Link href="/learn/" style={styles.backLink}>← All guides</Link>
       </View>
     );
   }
@@ -47,22 +47,27 @@ export default function LearnArticlePage() {
     publisher: { '@type': 'Organization', name: 'Vocal Habit', url: SITE },
   };
 
+  // SEO <title> (≤60 chars) can differ from the descriptive on-page H1 / og:title.
+  const pageTitle = article.seoTitle?.trim() || `${article.title} | Vocal Habit`;
+
   return (
     <>
       <Head>
-        <title>{`${article.title} | Vocal Habit`}</title>
+        <title>{pageTitle}</title>
         <meta name="description" content={article.metaDescription} />
         <link rel="canonical" href={url} />
-        <meta property="og:title" content={article.title} />
-        <meta property="og:description" content={article.metaDescription} />
-        <meta property="og:type" content="article" />
-        <meta property="og:url" content={url} />
+        {socialMetaTags({
+          title: article.title,
+          description: article.metaDescription,
+          url,
+          type: 'article',
+        })}
         <script type="application/ld+json">{JSON.stringify(articleJsonLd)}</script>
       </Head>
 
       <ScrollView style={styles.page} contentContainerStyle={styles.content}>
         <View style={styles.col}>
-          <Link href="/learn" style={styles.backLink}>← All guides</Link>
+          <Link href="/learn/" style={styles.backLink}>← All guides</Link>
 
           <MarkdownView content={intro} />
           <EmbeddedExercise exerciseId={article.embeddedExerciseId} />
@@ -78,6 +83,10 @@ export default function LearnArticlePage() {
               ))}
             </View>
           )}
+
+          <Link href="/vocal-range-test" style={styles.toolLink}>
+            Find your vocal range — free test →
+          </Link>
         </View>
       </ScrollView>
     </>
@@ -118,5 +127,11 @@ const styles = StyleSheet.create({
     fontSize: Typography.base.size,
     lineHeight: Typography.md.lineHeight,
     color: c.accent,
+  },
+  toolLink: {
+    fontFamily: Fonts.bodySemibold,
+    fontSize: Typography.md.size,
+    color: c.accent,
+    marginTop: Spacing.lg,
   },
 });

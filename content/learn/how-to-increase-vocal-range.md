@@ -1,5 +1,6 @@
 ---
 title: "Vocal Exercises to Increase Range (What the Research Actually Says)"
+seoTitle: "How to Increase Your Vocal Range | Vocal Habit"
 slug: how-to-increase-vocal-range
 category: head-voice
 tags: ["vocal range", "range extension", "high notes"]

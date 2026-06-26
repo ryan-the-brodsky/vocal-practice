@@ -6,12 +6,13 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { Colors, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
 import { LEARN_ARTICLES } from '@/content/learn/articles.generated';
 import { capabilityMeta, isCapability, type Capability } from '@/lib/exercises/capabilities';
+import { SITE, socialMetaTags } from '@/lib/seo/socialMeta';
 
 const c = Colors.light;
-const SITE = 'https://vocalhabit.com';
+const URL = `${SITE}/learn/`;
 const TITLE = 'Learn to Sing — Free Guides & Exercises | Vocal Habit';
 const DESCRIPTION =
-  'Science-backed, no-nonsense guides to singing — warm-ups, head & chest voice, mix, belt, vibrato, pitch and more. Each guide links to a free exercise you can practice in your browser.';
+  'Free, science-backed singing guides — warm-ups, head & chest voice, mix, belt, vibrato and pitch. Each links to a free exercise you practice in-browser.';
 
 // Content-only tags (not exercise capabilities) get labels/order here.
 const CONTENT_TAGS: Record<string, { label: string; order: number }> = {
@@ -50,11 +51,8 @@ export default function LearnIndexPage() {
       <Head>
         <title>{TITLE}</title>
         <meta name="description" content={DESCRIPTION} />
-        <link rel="canonical" href={`${SITE}/learn/`} />
-        <meta property="og:title" content={TITLE} />
-        <meta property="og:description" content={DESCRIPTION} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${SITE}/learn/`} />
+        <link rel="canonical" href={URL} />
+        {socialMetaTags({ title: TITLE, description: DESCRIPTION, url: URL })}
       </Head>
 
       <ScrollView style={styles.page} contentContainerStyle={styles.content}>
@@ -64,6 +62,17 @@ export default function LearnIndexPage() {
             Clear, science-backed guides — no hype, no single-method dogma. Every guide links to a free
             exercise you can practice in your browser with live pitch feedback.
           </Text>
+
+          <Link href="/vocal-range-test" style={styles.toolCardLink}>
+            <View style={styles.toolCard}>
+              <Text style={styles.toolBadge}>Free tool</Text>
+              <Text style={styles.toolTitle}>Vocal Range Test</Text>
+              <Text style={styles.toolDesc}>
+                Sing your lowest and highest notes to find your range and likely voice type — right in
+                your browser.
+              </Text>
+            </View>
+          </Link>
 
           <TextInput
             style={styles.search}
@@ -184,4 +193,32 @@ const styles = StyleSheet.create({
     color: c.textSecondary,
   },
   empty: { fontFamily: Fonts.body, fontSize: Typography.base.size, color: c.textTertiary },
+  toolCardLink: { textDecorationLine: 'none', marginTop: Spacing.xs },
+  toolCard: {
+    backgroundColor: c.bgEmphasis,
+    borderWidth: 1,
+    borderColor: c.borderOnEmphasis,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    gap: Spacing['2xs'],
+  },
+  toolBadge: {
+    fontFamily: Fonts.bodyMedium,
+    fontSize: Typography.xs.size,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: c.accentOnEmphasis,
+  },
+  toolTitle: {
+    fontFamily: Fonts.displayMedium,
+    fontSize: Typography.lg.size,
+    lineHeight: Typography.lg.lineHeight,
+    color: c.textOnEmphasis,
+  },
+  toolDesc: {
+    fontFamily: Fonts.body,
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+    color: c.textOnEmphasisDim,
+  },
 });

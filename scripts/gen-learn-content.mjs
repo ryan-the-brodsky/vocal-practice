@@ -11,7 +11,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const DIR = join(HERE, "..", "content", "learn");
 
 const SCALAR_KEYS = [
-  "title", "slug", "category", "embeddedExerciseId", "targetKeyword",
+  "title", "seoTitle", "slug", "category", "embeddedExerciseId", "targetKeyword",
   "intent", "metaDescription", "updated",
 ];
 const NUM_KEYS = ["volume", "kd"];

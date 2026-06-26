@@ -1,5 +1,6 @@
 ---
 title: "How to Sing in Tune: What Actually Causes Pitch Problems (and How to Fix Them)"
+seoTitle: "How to Sing in Tune | Vocal Habit"
 slug: how-to-sing-in-tune
 category: pitch-ear
 tags: ["pitch", "intonation", "ear training"]

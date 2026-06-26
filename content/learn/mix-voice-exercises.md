@@ -1,5 +1,6 @@
 ---
 title: "Mix Voice Exercises: How to Build a Connected Middle Register"
+seoTitle: "Mix Voice Exercises for Singers | Vocal Habit"
 slug: mix-voice-exercises
 category: mix
 tags: ["mix voice", "bridge", "registration"]

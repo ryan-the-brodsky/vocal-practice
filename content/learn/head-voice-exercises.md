@@ -1,5 +1,6 @@
 ---
 title: "Head Voice Exercises for Singers (Pop, Rock & Musical Theatre)"
+seoTitle: "Head Voice Exercises for Singers | Vocal Habit"
 slug: head-voice-exercises
 category: head-voice
 tags: ["head voice", "upper register", "registration"]

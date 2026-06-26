@@ -1,5 +1,6 @@
 ---
 title: "How to Improve Your Singing Voice: What the Science Actually Says"
+seoTitle: "How to Improve Your Singing Voice | Vocal Habit"
 slug: how-to-improve-singing-voice
 category: foundations
 tags: ["improve", "technique", "beginner"]

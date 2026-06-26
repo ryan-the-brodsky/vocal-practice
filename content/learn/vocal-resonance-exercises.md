@@ -1,5 +1,6 @@
 ---
 title: "Vocal Resonance Exercises: Shape Your Sound from the Inside Out"
+seoTitle: "Vocal Resonance Exercises for Singers | Vocal Habit"
 slug: vocal-resonance-exercises
 category: resonance
 tags: ["resonance", "vowels", "tone"]

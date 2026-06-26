@@ -1,5 +1,6 @@
 ---
 title: "Vocal Agility Exercises: How to Build Faster, Cleaner Runs and Riffs"
+seoTitle: "Vocal Agility Exercises for Singers | Vocal Habit"
 slug: vocal-agility-exercises
 category: agility
 tags: ["agility", "runs", "riffs"]

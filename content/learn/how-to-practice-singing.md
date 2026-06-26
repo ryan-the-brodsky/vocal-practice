@@ -1,5 +1,6 @@
 ---
 title: "How to Practice Singing: A Science-Backed Approach That Actually Works"
+seoTitle: "How to Practice Singing | Vocal Habit"
 slug: how-to-practice-singing
 category: foundations
 tags: ["practice", "routine", "habits"]

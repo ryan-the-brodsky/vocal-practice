@@ -5,6 +5,8 @@
 export interface LearnArticle {
   slug: string;
   title: string;
+  /** Optional ≤60-char HTML <title>; falls back to `${title} | Vocal Habit`. */
+  seoTitle?: string;
   /** Capability id (lib/exercises/capabilities) or a content tag: foundations | pitch-ear. */
   category: string;
   tags: string[];
