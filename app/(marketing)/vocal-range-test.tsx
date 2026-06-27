@@ -10,7 +10,7 @@ const c = Colors.light;
 
 const TITLE = 'Free Vocal Range Test — Find Your Range & Voice Type | Vocal Habit';
 const DESCRIPTION =
-  'Find your vocal range and likely voice type free in your browser — sing your lowest and highest notes. No signup, and your audio stays on your device.';
+  'Find your vocal range and likely voice type free in your browser. We play notes from middle C and you sing them back — no signup, and your audio stays on your device.';
 const URL = `${SITE}/vocal-range-test`;
 
 // ── Content (data-driven so prose is plain JS strings, not JSX text) ──────────
@@ -81,12 +81,12 @@ const HOW_IT_WORKS: HowStep[] = [
     text: 'Allow microphone access when your browser asks — nothing is recorded or uploaded; the audio is analyzed on your device.',
   },
   {
-    name: 'Sing your lowest note',
-    text: 'Sing your lowest comfortable note and hold it steady for about a second.',
+    name: 'Match the note',
+    text: 'Starting from middle C, the tool plays a note on the piano. Sing it back and hold it steady for about a second, and it steps down a half step to the next note.',
   },
   {
-    name: 'Sing your highest note',
-    text: 'Sing your highest comfortable note the same way. You will see your range and the voice type it is closest to.',
+    name: 'Tap out at your limit',
+    text: 'When a note is too low to reach, tap “Too low.” The tool then walks upward from middle C the same way until you tap “Too high.” That span is your range, plus the voice type it is closest to.',
   },
 ];
 
@@ -98,7 +98,11 @@ interface Faq {
 const FAQ: Faq[] = [
   {
     q: 'What is my vocal range?',
-    a: 'It is the span from the lowest to the highest note you can sing, usually written as two note names (for example C3 – C5) and often described in octaves. This tool measures it by listening to the lowest and highest notes you can hold.',
+    a: 'It is the span from the lowest to the highest note you can sing, usually written as two note names (for example C3 – C5) and often described in octaves. This tool measures it by playing notes from middle C and asking you to sing each one back, stepping down then up until you reach your limits.',
+  },
+  {
+    q: 'Do I need to read music or have perfect pitch?',
+    a: 'No. The tool plays each note out loud first, so you always have a pitch to copy rather than having to find your lowest or highest note on your own. When a note is out of reach, you simply tap to say so — no music theory required.',
   },
   {
     q: 'What voice type am I?',
@@ -175,8 +179,8 @@ export default function VocalRangeTestPage() {
         <View style={styles.col}>
           <Text style={styles.h1}>Vocal Range Test</Text>
           <Text style={styles.deck}>
-            Sing your lowest and highest notes and find your range and likely voice type — free, no
-            signup, and your audio never leaves your device.
+            We play a note, you sing it back — stepping down from middle C and then up — to find your
+            range and likely voice type. Free, no signup, and your audio never leaves your device.
           </Text>
 
           <View style={styles.tool}>

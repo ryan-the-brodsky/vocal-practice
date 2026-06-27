@@ -5,6 +5,7 @@
 
 import { VOICE_RANGES } from "@/lib/music/voiceRanges";
 import { midiToNote } from "@/lib/exercises/music";
+import { snapOctave } from "@/lib/scoring/align";
 import type { VoicePart } from "@/lib/exercises/types";
 
 export interface RangeSample {
@@ -172,4 +173,76 @@ export function classifyVoice(lowMidi: number, highMidi: number): VoiceClassific
     appVoicePart: APP_VOICE[best.vp],
     alsoConsider: runnerUp && runnerUp.dist - best.dist <= 3 ? runnerUp.vp : null,
   };
+}
+
+// ── Guided chromatic walk ─────────────────────────────────────────────────────
+// The walk drives the range test like a coach at a piano: play a note, wait for
+// the singer to match it, then step by a semitone. It descends from middle C
+// until the singer taps out ("too low"), then ascends from middle C until they
+// tap out ("too high"). The matched extremes are the measured range. This is the
+// pure progression logic; the async pitch-matching + audio live in the island.
+
+/** Octave-tolerant signed cents of a detected pitch vs a target (snaps pitchy's
+ *  sub-/second-harmonic octave errors toward the target, like guided scoring). */
+export function centsFromTarget(
+  midi: number | null,
+  cents: number | null,
+  targetMidi: number,
+): number | null {
+  if (midi == null) return null;
+  const snapped = snapOctave(midi, targetMidi);
+  return (snapped - targetMidi) * 100 + (cents ?? 0);
+}
+
+export type WalkPhase = "descend" | "ascend" | "done";
+
+export interface WalkState {
+  phase: WalkPhase;
+  target: number; // current MIDI note to attempt (meaningful unless phase === "done")
+  lowMidi: number | null; // lowest matched so far
+  highMidi: number | null; // highest matched so far
+}
+
+export interface WalkBounds {
+  anchor: number; // start note for both directions (middle C)
+  floor: number; // stop descending at/above this (loop safety)
+  ceiling: number; // stop ascending at/below this (loop safety)
+}
+
+// Anchor at middle C (MIDI 60); C2..C6 covers essentially every untrained voice
+// and bounds the loop so a noisy mic can't walk forever.
+export const DEFAULT_WALK_BOUNDS: WalkBounds = { anchor: 60, floor: 36, ceiling: 84 };
+
+export function startWalk(bounds: WalkBounds = DEFAULT_WALK_BOUNDS): WalkState {
+  return { phase: "descend", target: bounds.anchor, lowMidi: null, highMidi: null };
+}
+
+function beginAscend(state: WalkState, bounds: WalkBounds): WalkState {
+  // The anchor was already attempted while descending — ascend from one above it.
+  const target = bounds.anchor + 1;
+  if (target > bounds.ceiling) return { ...state, phase: "done" };
+  return { ...state, phase: "ascend", target };
+}
+
+/** The singer matched the current target. Record it and pick the next note. */
+export function onMatch(state: WalkState, bounds: WalkBounds = DEFAULT_WALK_BOUNDS): WalkState {
+  if (state.phase === "done") return state;
+  const m = state.target;
+  const lowMidi = state.lowMidi == null ? m : Math.min(state.lowMidi, m);
+  const highMidi = state.highMidi == null ? m : Math.max(state.highMidi, m);
+  if (state.phase === "descend") {
+    const next = m - 1;
+    if (next < bounds.floor) return beginAscend({ ...state, lowMidi, highMidi }, bounds);
+    return { phase: "descend", target: next, lowMidi, highMidi };
+  }
+  const next = m + 1;
+  if (next > bounds.ceiling) return { phase: "done", target: m, lowMidi, highMidi };
+  return { phase: "ascend", target: next, lowMidi, highMidi };
+}
+
+/** The singer tapped out — the current target is beyond their range in this
+ *  direction. Descending → switch to ascending; ascending → finish. */
+export function onTapOut(state: WalkState, bounds: WalkBounds = DEFAULT_WALK_BOUNDS): WalkState {
+  if (state.phase === "descend") return beginAscend(state, bounds);
+  return { ...state, phase: "done" };
 }

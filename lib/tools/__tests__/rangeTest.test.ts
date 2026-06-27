@@ -1,11 +1,16 @@
 import { noteToMidi } from "@/lib/exercises/music";
 import {
+  centsFromTarget,
   classifyVoice,
   confirmFromWindow,
   DEFAULT_SUSTAIN_OPTS,
+  DEFAULT_WALK_BOUNDS,
   describeSpan,
+  onMatch,
+  onTapOut,
   preciseMidi,
   qualifies,
+  startWalk,
   SustainedPitchTracker,
 } from "@/lib/tools/rangeTest";
 
@@ -91,6 +96,102 @@ describe("describeSpan", () => {
     const d = describeSpan(noteToMidi("C5"), noteToMidi("C3"));
     expect(d.lowNote).toBe("C3");
     expect(d.highNote).toBe("C5");
+  });
+});
+
+describe("centsFromTarget", () => {
+  it("is zero when on the target", () => {
+    expect(centsFromTarget(60, 0, 60)).toBe(0);
+  });
+  it("folds the within-semitone cents term", () => {
+    expect(centsFromTarget(60, -20, 60)).toBe(-20);
+  });
+  it("snaps an octave error toward the target (pitchy sub-harmonic)", () => {
+    // Detector reports C3 (48) while singing C4 (60) — should snap to ~0 cents.
+    expect(centsFromTarget(48, 0, 60)).toBe(0);
+  });
+  it("returns null when there is no pitch", () => {
+    expect(centsFromTarget(null, 0, 60)).toBeNull();
+  });
+});
+
+describe("guided walk", () => {
+  const b = DEFAULT_WALK_BOUNDS;
+
+  it("starts descending from the anchor (middle C)", () => {
+    const s = startWalk();
+    expect(s.phase).toBe("descend");
+    expect(s.target).toBe(60);
+    expect(s.lowMidi).toBeNull();
+    expect(s.highMidi).toBeNull();
+  });
+
+  it("records a match and steps down a semitone", () => {
+    const s = onMatch(startWalk());
+    expect(s.phase).toBe("descend");
+    expect(s.target).toBe(59);
+    expect(s.lowMidi).toBe(60);
+    expect(s.highMidi).toBe(60);
+  });
+
+  it("tap-out while descending switches to ascending from anchor+1", () => {
+    let s = onMatch(startWalk()); // matched 60, now at 59
+    s = onTapOut(s); // can't reach 59
+    expect(s.phase).toBe("ascend");
+    expect(s.target).toBe(61);
+    expect(s.lowMidi).toBe(60); // floor stays at the last matched note
+  });
+
+  it("tap-out while ascending finishes the walk", () => {
+    let s = onMatch(startWalk()); // 60 matched
+    s = onTapOut(s); // -> ascend at 61
+    s = onMatch(s); // 61 matched -> 62
+    s = onTapOut(s); // can't reach 62 -> done
+    expect(s.phase).toBe("done");
+    expect(s.lowMidi).toBe(60);
+    expect(s.highMidi).toBe(61);
+  });
+
+  it("the anchor seeds the high end even if the singer can't ascend at all", () => {
+    let s = onMatch(startWalk()); // 60 matched (low=high=60)
+    s = onTapOut(s); // -> ascend at 61
+    s = onTapOut(s); // can't reach 61 -> done
+    expect(s.phase).toBe("done");
+    expect(s.lowMidi).toBe(60);
+    expect(s.highMidi).toBe(60);
+  });
+
+  it("auto-switches to ascending when it reaches the floor", () => {
+    const bounds = { anchor: 60, floor: 58, ceiling: 84 };
+    let s = startWalk(bounds); // target 60
+    s = onMatch(s, bounds); // -> 59
+    s = onMatch(s, bounds); // -> 58
+    s = onMatch(s, bounds); // 58 matched, next 57 < floor -> ascend
+    expect(s.phase).toBe("ascend");
+    expect(s.target).toBe(61);
+    expect(s.lowMidi).toBe(58);
+  });
+
+  it("finishes when it reaches the ceiling while ascending", () => {
+    const bounds = { anchor: 60, floor: 36, ceiling: 62 };
+    let s = startWalk(bounds);
+    s = onTapOut(s, bounds); // -> ascend at 61
+    s = onMatch(s, bounds); // 61 -> 62
+    s = onMatch(s, bounds); // 62 matched, next 63 > ceiling -> done
+    expect(s.phase).toBe("done");
+    expect(s.highMidi).toBe(62);
+  });
+
+  it("never mutates the input state", () => {
+    const s = startWalk();
+    const before = { ...s };
+    onMatch(s);
+    onTapOut(s);
+    expect(s).toEqual(before);
+  });
+
+  it("anchors at middle C by default", () => {
+    expect(b.anchor).toBe(60);
   });
 });
 
