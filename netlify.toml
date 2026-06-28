@@ -1,0 +1,12 @@
+# Env-only — inherits the existing Netlify UI build command + publish dir so it
+# can't change the working production build. It only flips the draft flag per
+# deploy context: artist-spotlight drafts render on preview/branch deploys and
+# are hidden on production. See seo/artist-spotlight-partnerships-plan.md §3e.
+[build.environment]
+  EXPO_PUBLIC_INCLUDE_DRAFTS = "0"
+
+[context.deploy-preview.environment]
+  EXPO_PUBLIC_INCLUDE_DRAFTS = "1"
+
+[context.branch-deploy.environment]
+  EXPO_PUBLIC_INCLUDE_DRAFTS = "1"

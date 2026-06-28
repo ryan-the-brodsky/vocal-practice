@@ -7,6 +7,7 @@ import { Colors, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
 import { LEARN_ARTICLES } from '@/content/learn/articles.generated';
 import { capabilityMeta, isCapability, type Capability } from '@/lib/exercises/capabilities';
 import { SITE, socialMetaTags } from '@/lib/seo/socialMeta';
+import SpotlightCarousel from '@/components/artists/SpotlightCarousel';
 
 const c = Colors.light;
 const URL = `${SITE}/learn/`;
@@ -73,6 +74,8 @@ export default function LearnIndexPage() {
               </Text>
             </View>
           </Link>
+
+          <SpotlightCarousel />
 
           <TextInput
             style={styles.search}
