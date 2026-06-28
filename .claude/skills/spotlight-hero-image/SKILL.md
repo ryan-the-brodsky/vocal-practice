@@ -34,6 +34,17 @@ text + the **rights basis**, staged for human approval. Draft-only — never pub
      rights still apply); approve case-by-case.
 - **Always** return the rights basis with the image and flag it for human sign-off. If unsure → typographic.
 
+**Why an article hero ≠ a YouTuber's thumbnail (the rationale, not legal advice):** a coach's reaction
+thumbnail leans on *commentary/criticism* fair use, lives behind YouTube's notice-and-takedown shield, and
+is rarely a clean marketing asset. Our OG/hero image is different on four axes: (1) **purpose** — it markets
+our product/brand, which weakens the fair-use "transformative commentary" argument; (2) **two stacked
+rights** — the photo's copyright (photographer/agency) *and* the artist's right of publicity/likeness, the
+latter triggered by using their face to front a brand asset (reads as endorsement); (3) **no platform
+shield** — on our own domain a rights-holder bills/cease-and-desists us directly (Getty-style), with no
+Content-ID buffer; (4) **redistribution** — the OG image is *re-served* across every platform it's shared to,
+multiplying exposure. Net: prefer the typographic/brand default or coach-thumbnail-with-permission; treat a
+real artist photo as license-required + human-approved, never scraped.
+
 ## Composition rules (studied from YouTube thumbnails — what makes them click)
 - **Canvas:** OG = **1200×630** (1.91:1). Also export a **16:9 card** (e.g. 1280×720) for the carousel.
 - **One focal subject**, off-center (rule of thirds). If a face/figure is used, it goes on one side; text on

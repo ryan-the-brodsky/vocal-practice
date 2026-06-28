@@ -189,10 +189,8 @@ Deploys** (any branch → `<branch>--<site>.netlify.app`, optionally a custom su
 **context-scoped env vars** from a `netlify.toml`, so we flip the draft flag off-production with no app code:
 
 ```toml
-# netlify.toml (repo root) — ready to add once the Netlify↔GitHub connection is confirmed
-[build]
-  command = "npx expo export --platform web"
-  publish = "dist"
+# netlify.toml (repo root) — env-only; inherits the existing UI build command/publish dir (don't override
+# a build that already ships prod). Just flips the draft flag per deploy context.
 [build.environment]
   EXPO_PUBLIC_INCLUDE_DRAFTS = "0"          # production: drafts hidden
 [context.deploy-preview.environment]
@@ -201,10 +199,12 @@ Deploys** (any branch → `<branch>--<site>.netlify.app`, optionally a custom su
   EXPO_PUBLIC_INCLUDE_DRAFTS = "1"          # the `preview` branch: drafts visible
 ```
 
-**The one prerequisite:** the Netlify site must be **connected to the GitHub repo** (so it builds on push). If
-vocalhabit.com is currently a manual `expo export` → drag-to-Netlify deploy, connecting the repo is a one-time
-dashboard step — after that, previews are automatic. *(I can't see the Netlify dashboard from here; confirm
-git-connected vs manual and I'll wire the `netlify.toml` + the draft-gate in the feature PR.)*
+**Prerequisite — CONFIRMED met (2026-06-28):** vocalhabit.com is **git-connected to the GitHub repo on
+Netlify**, so Deploy Previews + Branch Deploys are already available; we only add the config. **Safety note:**
+ship the `netlify.toml` as **env-only** (just the `[build.environment]` + `[context.*.environment]` draft-flag
+blocks) and *omit* `[build] command`/`publish` so it inherits the working UI build settings — don't risk
+changing a build that already deploys prod. Land it in the feature PR alongside the route + draft-gate so the
+flag and its consumer arrive together.
 
 **Preview surface options (pick per the Netlify setup — there's no `netlify.toml` in the repo today):**
 - **A (recommended, if Netlify is git-connected to `ryan-the-brodsky/vocal-practice`):** add a `netlify.toml` that sets `EXPO_PUBLIC_INCLUDE_DRAFTS=1` for `branch-deploy`/`deploy-preview` contexts (and `0` for production). Push a `preview` branch → Netlify branch deploy → map a stable **`preview.vocalhabit.com`** (Namecheap CNAME → Netlify) so it's bookmarkable on the phone. Drafts visible there, never on `vocalhabit.com`.
