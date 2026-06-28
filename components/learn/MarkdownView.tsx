@@ -15,6 +15,9 @@ type Block =
   | { kind: 'h1' | 'h2' | 'h3' | 'p' | 'quote'; text: string }
   | { kind: 'ul' | 'ol'; items: string[] };
 
+// Lines that start a new block (so list-item continuation folding stops here).
+const NEW_BLOCK = /^(#{1,3} |>\s?|[-*] |\d+\.\s)/;
+
 function parse(md: string): Block[] {
   const lines = md.replace(/\r\n/g, '\n').split('\n');
   const blocks: Block[] = [];
@@ -33,13 +36,21 @@ function parse(md: string): Block[] {
     }
     if (/^[-*] /.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^[-*] /.test(lines[i])) { items.push(lines[i].slice(2)); i++; }
+      while (i < lines.length && /^[-*] /.test(lines[i])) {
+        let item = lines[i].slice(2); i++;
+        while (i < lines.length && lines[i].trim() && !NEW_BLOCK.test(lines[i])) { item += ' ' + lines[i].trim(); i++; }
+        items.push(item);
+      }
       blocks.push({ kind: 'ul', items });
       continue;
     }
     if (/^\d+\.\s/.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^\d+\.\s/.test(lines[i])) { items.push(lines[i].replace(/^\d+\.\s/, '')); i++; }
+      while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
+        let item = lines[i].replace(/^\d+\.\s/, ''); i++;
+        while (i < lines.length && lines[i].trim() && !NEW_BLOCK.test(lines[i])) { item += ' ' + lines[i].trim(); i++; }
+        items.push(item);
+      }
       blocks.push({ kind: 'ol', items });
       continue;
     }
