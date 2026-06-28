@@ -165,9 +165,13 @@ coachSources:
   - { channel: "<name>", url: "<watch url>", embedUrl: "<embed url>", captions: "manual|auto", confirmEmbed: true }
 relatedArticles:          # REQUIRED — our evergreen Learn articles for the techniques in this profile (step 3 map)
   - { slug: <learn-slug>, label: "<anchor text>" }
+heroImage: "public/spotlights/<slug>-hero.webp"   # 16:9 carousel card (spotlight-hero-image subskill, step 5b)
+ogImage: "public/spotlights/<slug>-og.png"        # 1200×630 OG/Twitter share image
+heroHeadline: "<3–6 word technique teaser shown on the image>"
 metaDescription: "<140–155 chars, target term + 'test your range free in your browser'>"
 references: [ <verified citations carried from the local bank / coach-cited science> ]
 status: draft
+published: <YYYY-MM-DD>    # date written — drives chronological "latest" ordering on the Learn carousel
 updated: <YYYY-MM-DD>
 ---
 ```
@@ -192,6 +196,23 @@ text; never leave a technique unlinked the first time it appears.
 7. **`## Common mistakes / sing it safely`** — health-honest; route risky belt/whistle to the disclaimer.
 8. **FAQ** — real queries ("What is <artist>'s vocal range?", "What voice type is <artist>?") for `FAQPage` JSON-LD.
 9. **Sources** — verified only + the coach credits. Current medical disclaimer if belt/whistle/scream-adjacent.
+
+Also add a **`## Share` row** (near the top under the lead, and again after the FAQ): static, prefilled
+share links — X `https://twitter.com/intent/tweet?text=<headline>&url=<canonical>`, Facebook
+`https://www.facebook.com/sharer/sharer.php?u=<canonical>`, Reddit `https://www.reddit.com/submit?url=<canonical>&title=<title>`,
+plus a copy-link. Static `<a>`s (no JS) so they render at build time. The OG/Twitter `<head>` tags
+(`og:image`/`twitter:image` = `ogImage`, `og:title`/`twitter:card=summary_large_image`) make the shared
+preview show the hero image — so social sharing + the hero image are one feature.
+
+### 5b. Social + hero / OG image (farm the image to a subagent)
+- **Hero / OG image:** invoke the **`spotlight-hero-image` subskill in a subagent** (`Agent` tool) with
+  `{ artist, slug, heroHeadline (3–6 word technique teaser), coach-thumbnail option, DESIGN.md tokens }`.
+  It returns `<slug>-og.png` (1200×630) + `<slug>-hero.webp` (16:9 card) + `alt` + **`rightsBasis`**, staged
+  for human approval. **Rights rule lives in that subskill** — never ship a scraped celebrity photo; default
+  to a typographic/brand treatment or the coach's thumbnail *with permission*. Set `heroImage`/`ogImage`/
+  `heroHeadline` in frontmatter from its output.
+- **Carousel metadata:** ensure `published` (date written) + `heroImage` + `title` are set so the Learn
+  "Artist Spotlight" carousel can show newest-first with a hero card (plan §3f).
 
 ### 6. Quality gate (MANDATORY — from the style guide)
 Before declaring the draft done, run the **adversarial fact-check with ≥2 refutation lenses**

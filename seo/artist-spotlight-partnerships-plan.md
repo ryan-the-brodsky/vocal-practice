@@ -183,6 +183,29 @@ The human approves drafts (article + candidate exercises) by **trying them on a 
 - Profiles live as `content/artist-profiles/<slug>.draft.md` with `status: draft`.
 - The `artists/[slug]` route's `generateStaticParams()` **includes drafts only when a build flag is set** (e.g. `EXPO_PUBLIC_INCLUDE_DRAFTS=1`, or Netlify's `CONTEXT !== "production"`). Production builds filter `status: draft` out → **nothing renders publicly** until promoted. Mirrors the MVP-Club `PUBLISHED_SLUGS` gate, driven by build context.
 
+**Does Netlify support this natively? Yes — and it's toggle-on from the repo.** Two native features cover it:
+**Deploy Previews** (an automatic `deploy-preview-N--<site>.netlify.app` URL per pull request) and **Branch
+Deploys** (any branch → `<branch>--<site>.netlify.app`, optionally a custom subdomain). Both read
+**context-scoped env vars** from a `netlify.toml`, so we flip the draft flag off-production with no app code:
+
+```toml
+# netlify.toml (repo root) — ready to add once the Netlify↔GitHub connection is confirmed
+[build]
+  command = "npx expo export --platform web"
+  publish = "dist"
+[build.environment]
+  EXPO_PUBLIC_INCLUDE_DRAFTS = "0"          # production: drafts hidden
+[context.deploy-preview.environment]
+  EXPO_PUBLIC_INCLUDE_DRAFTS = "1"          # PR previews: drafts visible
+[context.branch-deploy.environment]
+  EXPO_PUBLIC_INCLUDE_DRAFTS = "1"          # the `preview` branch: drafts visible
+```
+
+**The one prerequisite:** the Netlify site must be **connected to the GitHub repo** (so it builds on push). If
+vocalhabit.com is currently a manual `expo export` → drag-to-Netlify deploy, connecting the repo is a one-time
+dashboard step — after that, previews are automatic. *(I can't see the Netlify dashboard from here; confirm
+git-connected vs manual and I'll wire the `netlify.toml` + the draft-gate in the feature PR.)*
+
 **Preview surface options (pick per the Netlify setup — there's no `netlify.toml` in the repo today):**
 - **A (recommended, if Netlify is git-connected to `ryan-the-brodsky/vocal-practice`):** add a `netlify.toml` that sets `EXPO_PUBLIC_INCLUDE_DRAFTS=1` for `branch-deploy`/`deploy-preview` contexts (and `0` for production). Push a `preview` branch → Netlify branch deploy → map a stable **`preview.vocalhabit.com`** (Namecheap CNAME → Netlify) so it's bookmarkable on the phone. Drafts visible there, never on `vocalhabit.com`.
 - **B (manual, no git connection):** a second Netlify "staging" site; `EXPO_PUBLIC_INCLUDE_DRAFTS=1 npx expo export` → `netlify deploy` to it. More manual but isolates prod.
@@ -191,6 +214,27 @@ The human approves drafts (article + candidate exercises) by **trying them on a 
 **Approval flow:** agent writes draft → preview build → human opens `preview.vocalhabit.com/artists/<slug>` on phone → tries the candidate exercises + reads the article → picks the keeper drills + edits → on approval, flip `status` + drop the draft suffix (promote into the rendered set), and (if a bespoke drill was kept) author + validate its descriptor. **Nothing reaches `vocalhabit.com` without that explicit promote.**
 
 > Needs the human's hands (cannot be done from the repo alone): confirm whether Netlify auto-builds from GitHub, and the `preview.vocalhabit.com` DNS + Netlify domain alias. The draft-gate + `netlify.toml` are repo-side and can ship in the feature PR.
+
+### 3f. The Learn "Artist Spotlight" section — a reason to come back
+
+Spotlights are a **growing, dated collection**, so the Learn surface treats them differently from the
+evergreen articles: a place people bookmark and return to for "what's new."
+
+- **A first-class `Artist Spotlight` category** on `/learn` (alongside the evergreen pillars), filterable.
+- **Newest-first** ordering by the `published` date (each card shows the date written), so the page has a
+  visible cadence. A **"Latest spotlights" carousel** (hero cards) sits at the top of the section / Learn hub.
+- **Hero cards** use the spotlight's `heroImage` (the 16:9 card from the `spotlight-hero-image` subskill) +
+  the artist + the `heroHeadline` technique teaser — the same image that becomes the social share card.
+- **Each article carries:** `published` (and `updated`), `heroImage` + `ogImage` (OG/Twitter card so shares
+  look right), and a static **`## Share`** row (X / Facebook / Reddit / copy-link, prefilled). The hero image
+  and the social-share preview are the **same asset** — composed once per spotlight.
+- **Dedicated index** option later: `/artists` (or `/learn/artist-spotlights`) listing all spotlights by date
+  + the manifest-driven "By Artist" exercise browse (§3d) — one place that says "there's a whole series here."
+
+This is what turns one-off SEO landers into return visitors: a dated, growing, visually distinct shelf. The
+`artist-profile` skill already emits the fields this needs (`published`, `heroImage`, `ogImage`,
+`heroHeadline`, `category: artist-spotlight`); the Learn-page UI (category + carousel + hero cards + share
+row) is the build step.
 
 ---
 
@@ -226,6 +270,7 @@ The legitimacy ratchet, in four moves:
 - **No implied endorsement.** The artist is the *subject*, not a partner. Avoid logos/branding that imply the artist or label is involved. "Spotlight on [artist]'s technique" framing, editorial/educational.
 - **Written usage rights from the teacher.** A short release: we may embed the video on the Spotlight page + cut and post short-form clips with credit; they retain ownership + may post anywhere. Get it in writing before publishing. (The henchmen agent drafts this; a human sends/signs.)
 - **Name/likeness + factual claims.** Range/voice-type claims are editorial commentary (fine) but must be **hedged + sourced** per the style guide — inflated "X-octave range" myths are a credibility trap. Run the adversarial fact-check.
+- **Hero / OG image rights.** Never scrape a copyrighted press photo of the artist for the share image — that's a copyright + likeness risk (a brand's OG image isn't a YouTuber's fair-use thumbnail). Default to a **typographic/brand** treatment or the **coach's thumbnail with written permission**; licensed stock or *non-photoreal* stylized art only with case-by-case sign-off. Enforced by the `spotlight-hero-image` subskill; human-approved before publish.
 - **Disclosure + UTM.** Mark co-created content honestly; tag every outbound social link with UTMs.
 
 ### 6a. License pre-made vs. commission fresh — the deciding rule
@@ -254,13 +299,22 @@ Ultimate goal: the flywheel runs in the background, human only at gates. This ma
 | → | **GATE 1: approve artist + target teacher** | outward-adjacent | **human one-tap** |
 | 2 | Draft the **outreach** message (cold-email skill) + propose the **video tier** (§6a: A embed-only / B clean-cut / C commission) + the matching usage-rights release | draft | agent |
 | → | **GATE 2: approve + send outreach** | outward | **human one-tap** |
-| 3 | (teacher delivers video) → draft the **Spotlight article** (style guide + fact-check + sources file) | draft | agent |
-| 4 | Draft the **short-form cut-list** (timestamps + hooks + captions + UTM CTAs) | draft | agent |
-| → | **GATE 3: approve + publish article** | outward | **human one-tap** |
+| 3 | draft the **Spotlight article** (`artist-profile` skill: consolidate + cross-link + candidate drills + fact-check + sources file) | draft | agent |
+| 3b | compose the **hero / OG image** (`spotlight-hero-image` subskill in a sub-subagent) + the **`## Share`** links + carousel metadata (`published`/`heroImage`/`ogImage`) | draft | agent → subagent |
+| 4 | Draft the **short-form cut-list** (timestamps + hooks + captions + UTM CTAs) — *partnership phase only* | draft | agent |
+| → | **GATE 3: approve on preview (§3e) + publish article** | outward | **human one-tap** |
 | → | **GATE 4: approve + post/schedule shorts** | outward | **human one-tap** |
 | 5 | **Measure** (Ahrefs rank tracker + backlink check + Web Analytics UTM referral) → report | read-only | agent, unattended |
 
 Stages 1–4 + 5 are **unattended drafting/reading**; the four gates are the only human touches — exactly the "approval at gates like outreach and publishing" the user asked for. Each gate prompt shows the *exact* payload (the message, the draft, the post text) per the approval policy — never "approve this batch."
+
+> **MVP background agent (YT-embed era — what we're building toward first):** simpler than the full
+> partnership pipeline above. It's the `artist-profile` skill on a schedule with **no outreach gates** — pick
+> a trending/under-served artist (Ahrefs) → run the skill (discover + embed coach videos + draft + hero image
+> + fact-check) → push to the **preview** branch → **one gate: human approves on phone + publishes.** That is
+> the end state the user described: "a new artist spotlight article generated by a background agent as part of
+> the henchmen harness," with the human only at the publish gate. The commissioning/outreach gates light up
+> later when we move from embedding coaches' videos to co-creating with them.
 
 ### 7b. Reuse from the fleet
 
