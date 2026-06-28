@@ -61,3 +61,6 @@ __pycache__/
 
 # Eval harness output
 scripts/eval-results.json
+
+# yt-extract bootstrap venv (artist-profile pipeline)
+scripts/.ytvenv/

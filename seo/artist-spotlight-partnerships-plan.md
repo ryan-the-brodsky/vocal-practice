@@ -149,6 +149,48 @@ H1: "[Artist]'s Vocal Range and Voice Type — Explained"   ← targets "[artist
 
 Every Spotlight runs the **content-style-guide** gate before publish: "Jeff Nippard for singing" voice; voice-type labels presented as **approximate / overlapping** (never "X has a 5-octave range" as hard fact — these claims are contested and frequently inflated online; attribute and hedge); CCM framing; the **adversarial fact-check (≥2 refutation lenses)** on every range/technique/health claim, verdicts recorded in `seo/spotlight-<artist>-content-sources.md`; current medical disclaimer on anything belt/whistle/scream-adjacent.
 
+### 3d. Exercise integration + the "add to routine" conversion hook (DECIDED 2026-06-28)
+
+The spotlight's drills are **native app exercises**, not article-local imports. **Decision: native-first.**
+
+**Why native (the deciding constraint):** the routine is id-based — `RoutineConfig = { exerciseIds: string[] }` at `vocal-training:routine:v1` (`lib/progress/routine.ts`). "Add to routine" = append an id + `saveRoutine()`. That **one-tap** only resolves if the id already exists app-side. A native drill → tap appends its `data/exercises/<id>` id → app resolves instantly. An imported "custom" drill has **no id until the user imports it** → the CTA degrades to *import → mint id → add*, two steps and fragile. The `<EmbeddedExercise>` island has the same constraint (it resolves by id via `getExercise`). Both the embed and the CTA point to native.
+
+**The "massive list" worry dissolves with reuse-first tiering.** Most artist signatures are *already* covered by an existing exercise; only a genuinely novel move becomes a new descriptor:
+
+| Artist signature | Reuse this native exercise | New descriptor? |
+|---|---|---|
+| Chappell Roan chest↔falsetto flips | `octave-leap-wow` / `passaggio-leap-and-back` | No (reuse + suggested start key) |
+| Ariana runs | `agility-run` / `staccato-arpeggio` | No |
+| Mariah belt | `belt-arpeggio-mah` | No |
+| Genuinely novel move | — | Yes — author **one** bespoke, validated descriptor |
+
+So most profiles ship **zero** new descriptors. The library stays small + curated; the human-validation gate (already agreed) covers the rare bespoke ones.
+
+**The "Artist Spotlight" picker category = a manifest-driven *browse* section, not a per-exercise tag.** A generated `artist → [exerciseIds]` manifest (from published profiles) powers a "By Artist" browse surface in Plan/Practice (artist → its drills → back-link to the article). This keeps the *pedagogical* capability taxonomy honest (a register-flip drill stays `head-voice`, not retagged "Chappell Roan") and the main picker uncluttered, while still giving the artist category. *Avoid* adding `artist-spotlight` as a capability — it's cross-cutting, not pedagogical.
+
+**The conversion mechanic (the sly funnel):** Learn pages + the app are **same-origin** (vocalhabit.com), so an "Add to routine" button *in the article island* calls `loadRoutine()` → append the drill id → `saveRoutine()` (the same localStorage the app reads) → deep-links to `/`. A cold lander who taps it arrives in the app with the drill already in their routine — discovering the whole app, with nothing being sold. *(Build-time check: confirm the marketing island can write the app's `vocal-training:routine:v1` key same-origin.)*
+
+**Keep the import/custom path for genuine user content** (their own songs via the Import modal / song store) — not for our curated artist drills, which we want version-controlled, QA'd, and updatable (imported copies would go stale in users' localStorage).
+
+**Agent final-step change:** each profile proposes a **menu of 4–6 candidate drills** (reuse-first, each labeled with what-it-drills / origin / suggested-key / why-this-artist) rendered **in the draft** with an **Add-to-routine** affordance, so the human keeps the 2–3 that fit **in-context** (no back-and-forth). Bespoke descriptors are emitted as **`NEEDS VALIDATION`**, never auto-published.
+
+### 3e. Preview domain — how drafts get approved (phone-first)
+
+The human approves drafts (article + candidate exercises) by **trying them on a phone**, not by reading raw markdown. So drafts must be **safely publishable to a preview surface that production never exposes.**
+
+**Draft-gating mechanism (context-flagged static render):**
+- Profiles live as `content/artist-profiles/<slug>.draft.md` with `status: draft`.
+- The `artists/[slug]` route's `generateStaticParams()` **includes drafts only when a build flag is set** (e.g. `EXPO_PUBLIC_INCLUDE_DRAFTS=1`, or Netlify's `CONTEXT !== "production"`). Production builds filter `status: draft` out → **nothing renders publicly** until promoted. Mirrors the MVP-Club `PUBLISHED_SLUGS` gate, driven by build context.
+
+**Preview surface options (pick per the Netlify setup — there's no `netlify.toml` in the repo today):**
+- **A (recommended, if Netlify is git-connected to `ryan-the-brodsky/vocal-practice`):** add a `netlify.toml` that sets `EXPO_PUBLIC_INCLUDE_DRAFTS=1` for `branch-deploy`/`deploy-preview` contexts (and `0` for production). Push a `preview` branch → Netlify branch deploy → map a stable **`preview.vocalhabit.com`** (Namecheap CNAME → Netlify) so it's bookmarkable on the phone. Drafts visible there, never on `vocalhabit.com`.
+- **B (manual, no git connection):** a second Netlify "staging" site; `EXPO_PUBLIC_INCLUDE_DRAFTS=1 npx expo export` → `netlify deploy` to it. More manual but isolates prod.
+- **C (quickest, ephemeral):** `netlify deploy --alias <slug>` deploy previews → a unique throwaway URL per draft.
+
+**Approval flow:** agent writes draft → preview build → human opens `preview.vocalhabit.com/artists/<slug>` on phone → tries the candidate exercises + reads the article → picks the keeper drills + edits → on approval, flip `status` + drop the draft suffix (promote into the rendered set), and (if a bespoke drill was kept) author + validate its descriptor. **Nothing reaches `vocalhabit.com` without that explicit promote.**
+
+> Needs the human's hands (cannot be done from the repo alone): confirm whether Netlify auto-builds from GitHub, and the `preview.vocalhabit.com` DNS + Netlify domain alias. The draft-gate + `netlify.toml` are repo-side and can ship in the feature PR.
+
 ---
 
 ## 4. Short-form repurposing — feeding the "many stupid platforms"
