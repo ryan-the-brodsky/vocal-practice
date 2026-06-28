@@ -85,14 +85,37 @@ Read the transcripts and synthesize, in our voice:
 - The **specific vocal facts** each coach asserts about this artist: range (notes), voice type,
   the signature move, the common pitfalls. Attribute non-obvious claims to the coach who said it.
 
-### 3. Cross-reference the local research bank (supplement = our added value)
-Tie the coaches' takes to **our** verified material so the page is more than a transcript digest:
-- `content/learn/*.md` — 21 fact-checked articles (e.g. `head-voice-exercises`, `mix-voice-exercises`,
-  `belting-exercises`, `how-to-increase-vocal-range`, `how-to-sing-in-tune`). Reuse their **verified
-  `references:`** and link to them internally.
-- `seo/keyword-research-2026-06.md` + the plan — for the target keywords + internal-link targets
-  (`/vocal-range-test`, the relevant `/learn/...`).
-- `lib/exercises/capabilities.ts` — the capability blurbs ("what this builds").
+### 3. Cross-reference + INTERNALLY LINK the local research bank (required — our added value + SEO)
+Tie the coaches' takes to **our** verified material so the page is more than a transcript digest, and
+**cross-link our evergreen technique articles** wherever a technique comes up. Internal linking is
+**mandatory**, not optional — it builds topical authority, gives Google crawl paths from the spotlight
+into the cluster, and routes the reader to the real "how-to." Two placements, both required:
+- **Inline contextual links** the *first time* each technique is named in the prose (e.g. the first
+  mention of mix → `[mix voice](/learn/mix-voice-exercises)`, passaggio/registration → head/chest
+  articles, belt → `[belting](/learn/belting-exercises)`). Natural anchor text, no keyword stuffing.
+- **A "Go deeper" related-articles block** near the drills listing the 3–5 most relevant Learn articles.
+
+Pick the articles from the technique→article map (every `data/exercises` capability has a 1:1 Learn
+article; range/pitch add two topical ones):
+
+| Technique / capability in the profile | Link to `/learn/…` |
+|---|---|
+| chest voice | `chest-voice-exercises` |
+| mix voice | `mix-voice-exercises` |
+| head voice / registration / passaggio | `head-voice-exercises` |
+| belt / twang / style | `belting-exercises` |
+| runs / agility | `vocal-agility-exercises` |
+| resonance / placement | `vocal-resonance-exercises` |
+| vibrato / straight-tone | `vibrato-exercises` |
+| breath / support | `breathing-exercises-for-singing` |
+| SOVT / warm-up | `sovt-exercises`, `5-minute-vocal-warm-up` |
+| range-building | `how-to-increase-vocal-range` |
+| pitch / intonation | `how-to-sing-in-tune`, `pitch-training-for-singers` |
+
+Also reuse those articles' **verified `references:`** for this profile's sources (don't re-research what we
+already fact-checked), and pull internal-link + keyword targets from `seo/keyword-research-2026-06.md`
+(`/vocal-range-test` always; the relevant `/learn/...`). Capability blurbs: `lib/exercises/capabilities.ts`.
+Record the chosen set in the `relatedArticles:` frontmatter field (step 5) so it's auditable.
 
 ### 4. Propose a candidate-drill MENU for in-draft selection (native-first — see plan §3d)
 Do **not** pre-pick the final drills. Propose a **menu of 4–6 candidate drills** so the human approves the
@@ -140,6 +163,8 @@ candidateDrills:          # 4–6 proposed; human keeps 2–3 at approval. Each 
   # - { exerciseId: <proposed-new-id>, label: "<…>", origin: bespoke, status: NEEDS_VALIDATION, why: "<…>" }
 coachSources:
   - { channel: "<name>", url: "<watch url>", embedUrl: "<embed url>", captions: "manual|auto", confirmEmbed: true }
+relatedArticles:          # REQUIRED — our evergreen Learn articles for the techniques in this profile (step 3 map)
+  - { slug: <learn-slug>, label: "<anchor text>" }
 metaDescription: "<140–155 chars, target term + 'test your range free in your browser'>"
 references: [ <verified citations carried from the local bank / coach-cited science> ]
 status: draft
@@ -147,7 +172,9 @@ updated: <YYYY-MM-DD>
 ---
 ```
 
-Body = the page anatomy from the plan (§3a):
+Body = the page anatomy from the plan (§3a). **Internal-linking rule (applies throughout):** the first time
+each technique is named in the prose, link it inline to its Learn article (step 3 map) with natural anchor
+text; never leave a technique unlinked the first time it appears.
 1. **Lead** — one-line answer: range in notes (hedged) + voice-type label (approximate).
 2. **`## <Artist>'s vocal range`** — incl. the exact span people search; note `→ embed /vocal-range-test
    ("test your range against <artist>'s")`.
@@ -160,9 +187,11 @@ Body = the page anatomy from the plan (§3a):
    **"Candidate drills — keep the ones that fit"** so the human approves in-context (on the preview domain).
    Reused drills are live immediately; bespoke ones render a `NEEDS VALIDATION` callout (don't fabricate the
    descriptor — the human authors it).
-6. **`## Common mistakes / sing it safely`** — health-honest; route risky belt/whistle to the disclaimer.
-7. **FAQ** — real queries ("What is <artist>'s vocal range?", "What voice type is <artist>?") for `FAQPage` JSON-LD.
-8. **Sources** — verified only + the coach credits. Current medical disclaimer if belt/whistle/scream-adjacent.
+6. **`## Go deeper` (required)** — a short "New to these terms?" block linking the 3–5 `relatedArticles`
+   (our evergreen Learn guides for this profile's techniques). This is the spotlight → cluster bridge.
+7. **`## Common mistakes / sing it safely`** — health-honest; route risky belt/whistle to the disclaimer.
+8. **FAQ** — real queries ("What is <artist>'s vocal range?", "What voice type is <artist>?") for `FAQPage` JSON-LD.
+9. **Sources** — verified only + the coach credits. Current medical disclaimer if belt/whistle/scream-adjacent.
 
 ### 6. Quality gate (MANDATORY — from the style guide)
 Before declaring the draft done, run the **adversarial fact-check with ≥2 refutation lenses**

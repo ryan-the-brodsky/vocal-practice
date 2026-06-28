@@ -144,6 +144,7 @@ H1: "[Artist]'s Vocal Range and Voice Type — Explained"   ← targets "[artist
 - **Reuse:** `content/learn/<slug>.md` frontmatter + `npm run learn:gen` + `/learn/[slug]` route + `RangeTesterIsland` + `EmbeddedExercise`. Add a new `category: artist-spotlight` (content-only tag, like `foundations` / `pitch-ear` in `learning-library-plan.md`).
 - **Build (small, one-time):** a `<GuestVideo>` island — SSG renders a static placeholder card (title + teacher credit + poster frame) so there's indexable HTML; post-hydration it mounts the player (self-host the file or embed the teacher's YouTube — see §6 rights). Add the matching `VideoObject` JSON-LD. Honors DESIGN.md tokens; lazy-loads.
 - **Hub:** group Spotlights under a pillar on `/learn` (or a dedicated `/artists` index later). Bidirectionally link each Spotlight ↔ `/vocal-range-test` ("don't know your range? test it" / "compare your range to the pros").
+- **Internal-link the evergreen cluster (required):** every Spotlight links our own Learn technique articles for the techniques it discusses — inline the first time each technique appears + a "Go deeper" block. This is the spotlight → cluster bridge that builds topical authority and crawl paths; the `artist-profile` skill enforces it (step 3 + a `relatedArticles` frontmatter field).
 
 ### 3c. Quality gates (same as every Learn page)
 
