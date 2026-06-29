@@ -326,6 +326,36 @@ Stages 1–4 + 5 are **unattended drafting/reading**; the four gates are the onl
 
 Relationship judgment (which teacher, tone of a reply), the actual video edit/render, signing the release, and the final publish/post taps. The agent removes the *busywork* (research, first drafts, clip planning, reporting), not the *judgment*.
 
+### 7d. Agent architecture — orchestrator + single-purpose subskills (DECIDED 2026-06-28)
+
+The article generator is **an orchestrator agent that delegates to focused subskills**, run research-first with a parallel fan-out — *not* one monolithic skill. The decomposition:
+
+```
+artist-profile (ORCHESTRATOR — conducts, holds judgment + gates, does no mechanical work)
+  Phase 1 RESEARCH (blocking)   → artist-research subskill        → the shared "research brief"
+  Phase 2 FAN-OUT  (parallel)   → spotlight-drills · spotlight-hero-image · content-fact-check
+  Phase 3 DRAFT    (barrier)    → draft-spotlight subskill        → <slug>.draft.md
+  Phase 4 EDIT     (loop)       → editorial-critic (anti-slop/voice)
+```
+
+**Principles:** research-first + a single shared brief (compute the expensive context once → no duplicate
+scraping, consistent facts); single-responsibility subskills (independently testable/swappable/reusable —
+`content-fact-check` + `spotlight-hero-image` generalize to Learn too); parallel where independent (drills ∥
+hero ∥ fact-check), barrier before draft, sequential edit; orchestrator = judgment + gates, subagents =
+mechanical. Don't over-fragment — the orchestrator + 3 heavy parallel workers is the right granularity;
+trivial steps stay inline.
+
+**Two runtimes, same decomposition:**
+- **Interactive** ("artist-profile Chappell Roan") → the orchestrator spawns the Phase-2 workers as parallel
+  `Agent` calls in one message, awaits the barrier, drafts.
+- **Autonomous** (the henchmen end-goal) → the identical shape as a **Workflow** script
+  (`.claude/workflows/artist-spotlight.js`): `phase()` + `parallel()` + `agent(prompt, {schema})`, on a
+  schedule, gated. The MVP background agent = this Workflow + a single publish gate (§7's "MVP background
+  agent" note).
+
+Skills: `artist-research`, `spotlight-drills`, `content-fact-check`, `draft-spotlight`, `spotlight-hero-image`
+(+ `editorial-critic` reused) under `.claude/skills/`; the orchestrator is `artist-profile`.
+
 ---
 
 ## 8. Metrics & success criteria
