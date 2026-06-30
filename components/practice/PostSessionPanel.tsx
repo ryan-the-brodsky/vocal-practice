@@ -3,7 +3,7 @@
 // (Routine progress is surfaced via the TodayRoutineCard on Practice; the
 // per-session "Next: X →" / "Routine done" banner was removed in favor of
 // keeping Start visually primary at idle.)
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
@@ -31,6 +31,13 @@ interface Props {
   isIdle: boolean;
   /** All previously logged sessions for this exercise — used for personal-best detection. */
   allSessions?: SessionRecord[];
+  /** Silent-log mode (Standard): when set, the panel renders just these two
+   *  implied-outcome buttons — primary "Next exercise →" (logs silently) and
+   *  secondary "Try again" (discards) — instead of the explicit Log/Discard +
+   *  note. The note field and "won't count unless logged" hint are dropped.
+   *  Guided mode omits both props and keeps the legacy explicit Log/Discard. */
+  primaryAction?: ReactNode;
+  secondaryAction?: ReactNode;
 }
 
 export function PostSessionPanel({
@@ -42,6 +49,8 @@ export function PostSessionPanel({
   onTapCoaching,
   isIdle,
   allSessions,
+  primaryAction,
+  secondaryAction,
 }: Props) {
   const { colors } = useTheme();
   const [sessionNote, setSessionNote] = useState("");
@@ -64,10 +73,6 @@ export function PostSessionPanel({
         <View
           style={[styles.logPanel, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}
         >
-          <Text style={[styles.logHint, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
-            This won't count toward your history unless you log it.
-          </Text>
-
           {/* Personal-best badge — shown whenever we have session comparison data. */}
           {personalBest?.isBest && (
             <View style={[styles.bestBadge, { backgroundColor: colors.accentMuted, borderColor: colors.accent }]}>
@@ -85,6 +90,69 @@ export function PostSessionPanel({
             </View>
           )}
 
+          {primaryAction ? (
+            /* Silent-log mode (Standard): two implied-outcome buttons. Logging
+               happens inside the primary action; "Try again" discards. */
+            <View style={styles.actionRow}>
+              {secondaryAction}
+              {primaryAction}
+            </View>
+          ) : (
+            /* Legacy explicit mode (Guided): Log / Discard + optional note. */
+            <>
+              <View style={styles.actionRow}>
+                <Pressable
+                  style={[styles.rowBtn, { backgroundColor: colors.accent, borderColor: colors.accent }]}
+                  onPress={() => {
+                    onLog(sessionNote);
+                    setSessionNote("");
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Log this session to your history"
+                >
+                  <Text numberOfLines={1} style={[styles.rowBtnText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>
+                    Log session
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.rowBtn, { backgroundColor: "transparent", borderColor: colors.borderStrong }]}
+                  onPress={() => {
+                    onDiscard();
+                    setSessionNote("");
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Discard this session"
+                >
+                  <Text numberOfLines={1} style={[styles.rowBtnText, { color: colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>
+                    Discard
+                  </Text>
+                </Pressable>
+              </View>
+
+              <TextInput
+                style={[
+                  styles.logNoteInput,
+                  {
+                    borderColor: colors.borderStrong,
+                    color: colors.textPrimary,
+                    backgroundColor: colors.canvas,
+                    fontFamily: Fonts.body,
+                  },
+                ]}
+                placeholder='Add a note (optional) — e.g. "Felt good on the high notes"'
+                placeholderTextColor={colors.textTertiary}
+                value={sessionNote}
+                onChangeText={setSessionNote}
+                returnKeyType="done"
+                blurOnSubmit
+              />
+
+              <Text style={[styles.logHint, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
+                This won't count toward your history unless you log it.
+              </Text>
+            </>
+          )}
+
           {/* Octave-below hint — calm, non-alarming; surfaces the register mismatch.
               Scoring is octave-honest, so this is informational only. */}
           {hasOctaveBelow && (
@@ -95,46 +163,6 @@ export function PostSessionPanel({
               </Text>
             </View>
           )}
-
-          <TextInput
-            style={[
-              styles.logNoteInput,
-              {
-                borderColor: colors.borderStrong,
-                color: colors.textPrimary,
-                backgroundColor: colors.canvas,
-                fontFamily: Fonts.body,
-              },
-            ]}
-            placeholder='Note (optional) — e.g. "Felt good on the high notes"'
-            placeholderTextColor={colors.textTertiary}
-            value={sessionNote}
-            onChangeText={setSessionNote}
-            returnKeyType="done"
-            blurOnSubmit
-          />
-          <Pressable
-            style={[styles.btn, { backgroundColor: colors.accent }]}
-            onPress={() => {
-              onLog(sessionNote);
-              setSessionNote("");
-            }}
-          >
-            <Text style={[styles.btnText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>
-              Log session
-            </Text>
-          </Pressable>
-          <Pressable
-            style={styles.discardLink}
-            onPress={() => {
-              onDiscard();
-              setSessionNote("");
-            }}
-          >
-            <Text style={[styles.discardLinkText, { color: colors.textTertiary, fontFamily: Fonts.body }]}>
-              Discard
-            </Text>
-          </Pressable>
         </View>
       )}
 
@@ -184,21 +212,25 @@ const styles = StyleSheet.create({
     fontSize: Typography.sm.size,
     lineHeight: Typography.sm.lineHeight,
   },
-  btn: {
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-    alignItems: "center",
-    minHeight: 44,
+  // Post-session actions laid out as one scannable row of options.
+  actionRow: {
+    flexDirection: "row",
+    gap: Spacing.xs,
+    flexWrap: "wrap",
   },
-  btnText: {
+  rowBtn: {
+    flex: 1,
+    minWidth: 104,
+    minHeight: 48,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: Spacing.sm,
+  },
+  rowBtnText: {
     fontSize: Typography.md.size,
     lineHeight: Typography.md.lineHeight,
-  },
-  discardLink: { alignItems: "center", paddingVertical: Spacing.xs, minHeight: 36 },
-  discardLinkText: {
-    fontSize: Typography.sm.size,
-    lineHeight: Typography.sm.lineHeight,
-    textDecorationLine: "underline",
   },
   loggedConfirm: {
     fontSize: Typography.sm.size,

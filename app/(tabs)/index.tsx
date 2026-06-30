@@ -226,6 +226,9 @@ export default function PracticeScreen() {
   const sessionStartMsRef = useRef<number>(0);
   const audioStartMsRef = useRef<number>(0);
   const detectorStartMsRef = useRef<number>(0);
+  // The tonic this run started from — so "Try again" replays the same span
+  // rather than the post-completion advanced tonic.
+  const sessionStartTonicRef = useRef<number | null>(null);
   const iterationsRef = useRef<KeyIteration[]>([]);
   // Per-exercise session-end state. Switching exercises stashes the current
   // exercise's bucket here and rehydrates the destination's, so each exercise
@@ -354,10 +357,45 @@ export default function PracticeScreen() {
     if (!nextId || nextId === exerciseId) return null;
     return availableExercises.find((e) => e.id === nextId)?.name ?? null;
   }, [routine, availableExercises, exerciseId]);
+  /** Persist the just-finished session (optionally with a note). Memoized so handleNextExercise
+   *  can default-log on advance without re-creating every render. */
+  const handleLogSession = useCallback(
+    async (note: string) => {
+      if (!pendingSession) return;
+      const record: SessionRecord = note.trim()
+        ? { ...pendingSession, notes: note.trim() }
+        : pendingSession;
+      try {
+        await sessionStore.upsert(record);
+        setPendingSession(null);
+        // Append to local sessions list so routineStatus recomputes without a fresh fetch. The
+        // routine-tracking effect will advance exerciseId to the next not-yet-done item once
+        // loggedSessions changes.
+        setLoggedSessions((prev) => [...prev, record]);
+        // Keep coachingCta alive — it becomes visible once pendingSession is cleared.
+        setLoggedMessage("Logged");
+      } catch (e) {
+        setSavedMessage(`Log failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    },
+    [pendingSession],
+  );
   const handleNextExercise = useCallback(() => {
-    goToNextRoutineExercise();
+    // Going through all the scales and hitting Next counts as completing the exercise: log the
+    // pending session by default (Discard in the panel stays the opt-out — the only decision left
+    // is log-vs-discard, not done-vs-not-done). After advancing, null out the just-logged session
+    // in the stashed per-exercise slice so returning here doesn't re-prompt to log the same record.
+    if (pendingSession) {
+      const loggedId = exerciseId;
+      void handleLogSession("");
+      goToNextRoutineExercise();
+      const slice = exerciseSessionsRef.current.get(loggedId);
+      if (slice) exerciseSessionsRef.current.set(loggedId, { ...slice, pendingSession: null });
+    } else {
+      goToNextRoutineExercise();
+    }
     scrollRef.current?.scrollTo({ y: 0, animated: true });
-  }, [goToNextRoutineExercise]);
+  }, [pendingSession, exerciseId, handleLogSession, goToNextRoutineExercise]);
 
   /** Default the active exercise to the routine's next not-yet-done item —
    *  continues a routine across app opens and after each logged session.
@@ -417,7 +455,7 @@ export default function PracticeScreen() {
     }
   }, [status, latestSample, micState]);
 
-  async function handleStart() {
+  async function handleStart(tonicOverride?: number | null) {
     if (status !== "idle") return;
     if (!supportsVoicePart) {
       setError(`This exercise has no ${voicePart} range defined.`);
@@ -439,7 +477,11 @@ export default function PracticeScreen() {
       await playerRef.current.init();
 
       // Capture startTonicMidi here so both demo and session use the same snapshot.
-      const sessionStartTonic = startTonicMidi;
+      // Guard with typeof: onPress passes a press event as the first arg, so
+      // only an explicit numeric override (from "Try again") counts.
+      const sessionStartTonic =
+        typeof tonicOverride === "number" ? tonicOverride : startTonicMidi;
+      sessionStartTonicRef.current = sessionStartTonic;
       const startTonicNote = sessionStartTonic !== null ? midiToNote(sessionStartTonic) : undefined;
 
       // Plan the session up front so the demo can preview the *actual* first
@@ -738,8 +780,10 @@ export default function PracticeScreen() {
           });
         }
 
-        // Advance per-exercise tonic: next key after the last iteration attempted.
-        const lastIter = iterations[iterations.length - 1];
+        // Advance per-exercise tonic: next key after the last key the singer
+        // actually *completed* — not the last planned key. Stopping early must
+        // resume where they left off, not jump to the top of the range.
+        const lastIter = iterations[completed.length - 1];
         if (lastIter) {
           const range = exercise.voicePartRanges[voicePart];
           if (range) {
@@ -787,30 +831,19 @@ export default function PracticeScreen() {
     setLeadInCountdown(null);
   }
 
-  async function handleLogSession(note: string) {
-    if (!pendingSession) return;
-    const record: SessionRecord = note.trim()
-      ? { ...pendingSession, notes: note.trim() }
-      : pendingSession;
-    try {
-      await sessionStore.upsert(record);
-      setPendingSession(null);
-      // Append to local sessions list so routineStatus recomputes without a
-      // fresh fetch. The routine-tracking effect will advance exerciseId to the
-      // next not-yet-done item once loggedSessions changes.
-      setLoggedSessions((prev) => [...prev, record]);
-      // Keep coachingCta alive — it becomes visible once pendingSession is cleared.
-      setLoggedMessage("Logged");
-    } catch (e) {
-      setSavedMessage(`Log failed: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  }
-
   function handleDiscardSession() {
     setPendingSession(null);
     setCoachingCta(null);
     setLoggedMessage(null);
   }
+
+  // "Try again" = implied discard + replay the same exercise from where this run
+  // started. handleStart already clears the pending session / coaching / messages,
+  // so the just-finished (unlogged) take is dropped; the tonic override replays
+  // the same span rather than the post-completion advanced tonic.
+  const handleTryAgain = () => {
+    void handleStart(sessionStartTonicRef.current);
+  };
 
   const rmsGate = rmsGateFor(accompanimentPreset, headphonesConfirmed ?? false);
 
@@ -983,6 +1016,7 @@ export default function PracticeScreen() {
           isDesktop={isDesktop}
           controls={practiceControls}
           onNextExercise={handleNextExercise}
+          onTryAgain={handleTryAgain}
           nextExerciseName={nextRoutineExerciseName}
         />
       )}
@@ -1582,6 +1616,7 @@ interface StandardBodyProps {
    *  desktop, stacked below the staff on smaller screens. */
   controls: React.ReactNode;
   onNextExercise: () => void;
+  onTryAgain: () => void;
   nextExerciseName: string | null;
 }
 
@@ -1618,6 +1653,7 @@ function StandardModeBody({
   isDesktop,
   controls,
   onNextExercise,
+  onTryAgain,
   nextExerciseName,
 }: StandardBodyProps) {
   const { colors } = useTheme();
@@ -1799,47 +1835,40 @@ function StandardModeBody({
       : [...snapshot.completedKeys]
     : [];
 
-  const justFinished =
-    (snapshot != null && snapshot.completedKeys.length > 0) ||
-    (!detectionEnabled && pendingSession != null);
-  const showNext = status === "idle" && nextExerciseName != null && justFinished;
+  // Two implied-outcome buttons for the finished state. Primary "Next exercise →"
+  // silently logs this take and advances the routine ("Done" when there's no
+  // next). Secondary "Try again" discards it and replays the same exercise. No
+  // explicit Log button, no note field — completing + advancing is the credit.
+  const primaryActionButton = (
+    <Pressable
+      onPress={onNextExercise}
+      style={[styles.actionRowBtn, { backgroundColor: colors.accent, borderColor: colors.accent }]}
+      accessibilityRole="button"
+      accessibilityLabel={nextExerciseName ? `Next exercise: ${nextExerciseName}` : "Done — log and finish"}
+    >
+      <Text numberOfLines={1} style={[styles.actionRowBtnText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>
+        {nextExerciseName ? "Next exercise →" : "Done"}
+      </Text>
+    </Pressable>
+  );
+  const secondaryActionButton = (
+    <Pressable
+      onPress={onTryAgain}
+      style={[styles.actionRowBtn, { backgroundColor: "transparent", borderColor: colors.borderStrong }]}
+      accessibilityRole="button"
+      accessibilityLabel="Try again — discard this take and replay this exercise"
+    >
+      <Text numberOfLines={1} style={[styles.actionRowBtnText, { color: colors.textSecondary, fontFamily: Fonts.bodyMedium }]}>
+        Try again
+      </Text>
+    </Pressable>
+  );
 
-  const afterStage = (
+  // Actionable + recent-feedback content — kept top-of-fold so the user rarely
+  // scrolls: error/saved messages, the implied-outcome action row + coaching CTA.
+  // Sits directly under the staff, above the latest-key glance and the history.
+  const actionBlock = (
     <>
-      {showNext && (
-        <Pressable
-          onPress={onNextExercise}
-          style={[styles.nextBtn, { backgroundColor: colors.accent }]}
-          accessibilityRole="button"
-          accessibilityLabel={`Next exercise: ${nextExerciseName}`}
-        >
-          <Text style={[styles.nextBtnText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>
-            Next: {nextExerciseName} →
-          </Text>
-        </Pressable>
-      )}
-      {keysForList.length > 0 && (
-        <Section title={`Completed keys · session avg ${snapshot ? snapshot.meanAccuracyPct.toFixed(0) : "0"}%`}>
-          <View style={styles.keysList}>
-            {/* Newest first; new keys fade/slide in at the top and push the rest down. */}
-            {[...keysForList].reverse().map((k) => (
-              <Animated.View
-                key={k.tonic}
-                entering={FadeInDown.duration(250)}
-                layout={LinearTransition.duration(250)}
-                style={[styles.keyRow, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}
-              >
-                <NoteResultsStrip
-                  tonic={k.tonic}
-                  meta={summarizeKey(k.meanCentsDeviation, k.meanAccuracyPct)}
-                  notes={k.notes}
-                  syllables={syllablesForKey}
-                />
-              </Animated.View>
-            ))}
-          </View>
-        </Section>
-      )}
       {error && <Text style={[styles.error, { color: colors.error, fontFamily: Fonts.body }]}>{error}</Text>}
       {savedMessage && <Text style={[styles.saved, { color: colors.success, fontFamily: Fonts.body }]}>{savedMessage}</Text>}
       {!detectionEnabled ? (
@@ -1863,10 +1892,39 @@ function StandardModeBody({
           }
           isIdle={status === "idle"}
           allSessions={loggedSessions}
+          primaryAction={primaryActionButton}
+          secondaryAction={secondaryActionButton}
         />
       )}
     </>
   );
+
+  // The growing per-key results history — newest fades in at the top and pushes
+  // the rest down, so the action block above it stays put. Rendered last (and
+  // full-width below the stage on desktop).
+  const historyList =
+    keysForList.length > 0 ? (
+      <Section title={`Completed keys · session avg ${snapshot ? snapshot.meanAccuracyPct.toFixed(0) : "0"}%`}>
+        <View style={styles.keysList}>
+          {/* Newest first; new keys fade/slide in at the top and push the rest down. */}
+          {[...keysForList].reverse().map((k) => (
+            <Animated.View
+              key={k.tonic}
+              entering={FadeInDown.duration(250)}
+              layout={LinearTransition.duration(250)}
+              style={[styles.keyRow, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}
+            >
+              <NoteResultsStrip
+                tonic={k.tonic}
+                meta={summarizeKey(k.meanCentsDeviation, k.meanAccuracyPct)}
+                notes={k.notes}
+                syllables={syllablesForKey}
+              />
+            </Animated.View>
+          ))}
+        </View>
+      </Section>
+    ) : null;
 
   // Desktop: staff on the left, command console (Start/Stop, starting-key, and
   // the collapsed pickers + session settings) on the right — one row.
@@ -1897,10 +1955,12 @@ function StandardModeBody({
             <View style={[styles.hero, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle }]}>
               {heroContent}
             </View>
+            {/* Actions above the fold; the latest-key glance drops below them. */}
+            {actionBlock}
             <StageGlance exercise={exercise} lastKey={lastKey} />
           </View>
         </View>
-        {afterStage}
+        {historyList}
       </>
     );
   }
@@ -1923,7 +1983,8 @@ function StandardModeBody({
       )}
       {micMeter}
       {status !== "idle" && liveReadouts}
-      {afterStage}
+      {actionBlock}
+      {historyList}
       {controls}
     </>
   );
@@ -2272,8 +2333,9 @@ const styles = StyleSheet.create({
   actions: { marginTop: Spacing.sm },
   btn: { paddingVertical: Spacing.md, borderRadius: Radii.md, alignItems: "center" },
   btnLarge: { paddingVertical: Spacing.lg, borderRadius: Radii.lg },
-  nextBtn: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderRadius: Radii.md, alignItems: "center", justifyContent: "center", minHeight: 52, marginBottom: Spacing.md },
-  nextBtnText: { fontSize: Typography.md.size },
+  // Finished-state action buttons (Next exercise / Try again) — match PostSessionPanel's rowBtn.
+  actionRowBtn: { flex: 1, minWidth: 104, minHeight: 48, borderRadius: Radii.md, borderWidth: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: Spacing.sm },
+  actionRowBtnText: { fontSize: Typography.md.size, lineHeight: Typography.md.lineHeight },
   consoleLastTime: { gap: Spacing["2xs"] },
   stageLastKey: { gap: Spacing.xs, marginBottom: Spacing.sm },
   startBtnWide: { minWidth: 200, paddingHorizontal: Spacing.lg },
