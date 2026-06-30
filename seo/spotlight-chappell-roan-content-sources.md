@@ -1,6 +1,6 @@
 # Content Sources & Fact-Check Verdicts — Chappell Roan Spotlight
 
-**Draft:** `content/artist-profiles/chappell-roan.draft.md` · **Status:** draft (not published)
+**File:** `content/artist-profiles/chappell-roan.md` · **Status:** published 2026-06-30 (hero/OG image deferred pending image-rights research)
 **Process:** per `seo/content-style-guide.md` — claims checked against sources with ≥2 lenses
 (voice-science/acoustics + applied-pedagogy), keep SUPPORTED, hedge OVERSTATED, cut REFUTED.
 **Date:** 2026-06-28
