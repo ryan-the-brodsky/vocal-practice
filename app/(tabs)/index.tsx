@@ -244,6 +244,9 @@ export default function PracticeScreen() {
   const demoSkipRef = useRef<(() => void) | null>(null);
   // Set to true when Stop is pressed during the demo phase so handleStart can abort.
   const demoAbortedRef = useRef(false);
+  // Set by "Next exercise →" to auto-start once the new exercise has switched in,
+  // so the singer flows straight into it without a second tap on Start.
+  const autoStartRef = useRef(false);
 
   const exercise = useMemo(
     () =>
@@ -335,14 +338,19 @@ export default function PracticeScreen() {
   }, [switchExerciseTo]);
 
   /** Advance to the routine item after the current exercise (wraps); falls back
-   *  to the first routine item. Used by the ArrowRight keyboard shortcut. */
+   *  to the first routine item. Returns true if it actually moved to a different
+   *  exercise. Used by the ArrowRight keyboard shortcut and "Next exercise →". */
   const goToNextRoutineExercise = useCallback(() => {
-    if (!routine) return;
+    if (!routine) return false;
     const ids = routine.exerciseIds.filter((id) => availableExercises.some((e) => e.id === id));
-    if (ids.length === 0) return;
+    if (ids.length === 0) return false;
     const cur = ids.indexOf(exerciseId);
     const nextId = cur === -1 ? ids[0] : ids[(cur + 1) % ids.length];
-    if (nextId && nextId !== exerciseId) handleExerciseChange(nextId);
+    if (nextId && nextId !== exerciseId) {
+      handleExerciseChange(nextId);
+      return true;
+    }
+    return false;
   }, [routine, availableExercises, exerciseId, handleExerciseChange]);
 
   // Scroll-to-top so finishing a session can jump back to Start + the next
@@ -357,6 +365,15 @@ export default function PracticeScreen() {
     if (!nextId || nextId === exerciseId) return null;
     return availableExercises.find((e) => e.id === nextId)?.name ?? null;
   }, [routine, availableExercises, exerciseId]);
+
+  // True when the current exercise is the last not-yet-done routine item, so
+  // completing it finishes the routine. Drives the "Complete routine" button
+  // (instead of wrapping back to the first exercise). Computed against the
+  // logged sessions, which don't yet include the pending take. */
+  const isRoutineFinisher = useMemo(() => {
+    const notDone = routineStatus.items.filter((i) => !i.done);
+    return notDone.length === 1 && notDone[0].id === exerciseId;
+  }, [routineStatus, exerciseId]);
   /** Persist the just-finished session (optionally with a note). Memoized so handleNextExercise
    *  can default-log on advance without re-creating every render. */
   const handleLogSession = useCallback(
@@ -385,17 +402,26 @@ export default function PracticeScreen() {
     // pending session by default (Discard in the panel stays the opt-out — the only decision left
     // is log-vs-discard, not done-vs-not-done). After advancing, null out the just-logged session
     // in the stashed per-exercise slice so returning here doesn't re-prompt to log the same record.
+    let advanced = false;
     if (pendingSession) {
       const loggedId = exerciseId;
       void handleLogSession("");
-      goToNextRoutineExercise();
+      // Last routine item: log it for credit but don't advance/wrap — completing
+      // it finishes the routine (the routine card flips to "All done"). Otherwise
+      // move to the next item.
+      if (!isRoutineFinisher) advanced = goToNextRoutineExercise();
       const slice = exerciseSessionsRef.current.get(loggedId);
       if (slice) exerciseSessionsRef.current.set(loggedId, { ...slice, pendingSession: null });
-    } else {
-      goToNextRoutineExercise();
+    } else if (!isRoutineFinisher) {
+      advanced = goToNextRoutineExercise();
     }
+    // Completing one exercise and tapping Next implies intent to keep going — arm
+    // an auto-start so the next exercise begins on its own (no second Start tap).
+    // Only when we actually moved to a different exercise; the auto-start effect
+    // waits for the switch to land, then fires handleStart once.
+    if (advanced) autoStartRef.current = true;
     scrollRef.current?.scrollTo({ y: 0, animated: true });
-  }, [pendingSession, exerciseId, handleLogSession, goToNextRoutineExercise]);
+  }, [pendingSession, exerciseId, handleLogSession, goToNextRoutineExercise, isRoutineFinisher]);
 
   /** Default the active exercise to the routine's next not-yet-done item —
    *  continues a routine across app opens and after each logged session.
@@ -661,6 +687,23 @@ export default function PracticeScreen() {
     // handleStart is stable across renders (closure over state setters + refs).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-start after "Next exercise →" armed autoStartRef and the new exercise
+  // has switched in. Runs once the exercise+status have settled so handleStart
+  // reads the new exercise's plan/tonic. Skip if the next exercise needs a
+  // headphones check the user hasn't answered — let the modal + Start handle it.
+  useEffect(() => {
+    if (!autoStartRef.current) return;
+    if (status !== "idle") return;
+    if (detectionEnabled && headphonesConfirmed === null) {
+      autoStartRef.current = false;
+      return;
+    }
+    autoStartRef.current = false;
+    void handleStart();
+    // handleStart is redefined each render; the effect reads the latest closure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exerciseId, status, detectionEnabled, headphonesConfirmed]);
 
   // Keyboard shortcuts (web): Space toggles Start/Stop, ArrowRight advances the
   // routine. A ref carries the latest handlers so the listener stays subscribed
@@ -1018,6 +1061,7 @@ export default function PracticeScreen() {
           onNextExercise={handleNextExercise}
           onTryAgain={handleTryAgain}
           nextExerciseName={nextRoutineExerciseName}
+          isRoutineFinisher={isRoutineFinisher}
         />
       )}
     </ScrollView>
@@ -1618,6 +1662,9 @@ interface StandardBodyProps {
   onNextExercise: () => void;
   onTryAgain: () => void;
   nextExerciseName: string | null;
+  /** True when completing this exercise finishes the routine — the primary
+   *  button reads "Complete routine" and stays put instead of advancing. */
+  isRoutineFinisher: boolean;
 }
 
 function StandardModeBody({
@@ -1655,6 +1702,7 @@ function StandardModeBody({
   onNextExercise,
   onTryAgain,
   nextExerciseName,
+  isRoutineFinisher,
 }: StandardBodyProps) {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
@@ -1835,19 +1883,32 @@ function StandardModeBody({
       : [...snapshot.completedKeys]
     : [];
 
-  // Two implied-outcome buttons for the finished state. Primary "Next exercise →"
-  // silently logs this take and advances the routine ("Done" when there's no
-  // next). Secondary "Try again" discards it and replays the same exercise. No
-  // explicit Log button, no note field — completing + advancing is the credit.
+  // Two implied-outcome buttons for the finished state. Primary silently logs
+  // this take, then either advances to the next routine item ("Next exercise →",
+  // auto-starting it) or, on the routine's last item, finishes without wrapping
+  // ("Complete routine"). "Done" is the fallback when there's no routine next.
+  // Secondary "Try again" discards it and replays the same exercise. No explicit
+  // Log button, no note field — completing is the credit.
+  const primaryLabel = isRoutineFinisher
+    ? "Complete routine"
+    : nextExerciseName
+      ? "Next exercise →"
+      : "Done";
   const primaryActionButton = (
     <Pressable
       onPress={onNextExercise}
       style={[styles.actionRowBtn, { backgroundColor: colors.accent, borderColor: colors.accent }]}
       accessibilityRole="button"
-      accessibilityLabel={nextExerciseName ? `Next exercise: ${nextExerciseName}` : "Done — log and finish"}
+      accessibilityLabel={
+        isRoutineFinisher
+          ? "Complete routine — log this and finish"
+          : nextExerciseName
+            ? `Next exercise: ${nextExerciseName}`
+            : "Done — log and finish"
+      }
     >
       <Text numberOfLines={1} style={[styles.actionRowBtnText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>
-        {nextExerciseName ? "Next exercise →" : "Done"}
+        {primaryLabel}
       </Text>
     </Pressable>
   );
