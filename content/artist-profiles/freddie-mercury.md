@@ -1,10 +1,10 @@
 <!--
-DRAFT artist-profile (status: draft), staged for human review; the pipeline never publishes or commits.
+PUBLISHED artist-profile (status: published). Hero photo: Carl Lender 1977, CC BY 2.0 — credit
+caption rendered by the route from the heroCredit* frontmatter below.
 Island render contract (markers the artists/[slug] route maps to hydrated islands):
   [[COACH-VIDEO id=<ytid> by="<channel>" title="…"]]  -> YouTube embed card
   [[DRILL exerciseId=<id> key="<key>"]]               -> EmbeddedExercise + "Add to routine" button
 Fact-check verdicts: seo/spotlight-freddie-mercury-content-sources.md
-Open item before publish: confirm each coach video still allows embedding (confirmEmbed: pending below).
 -->
 ---
 title: "Freddie Mercury's Vocal Range and Voice Type, Explained"
@@ -15,12 +15,12 @@ mode: artist
 artist: "Freddie Mercury"
 targetKeywords: ["freddie mercury vocal range", "freddie mercury voice type", "how to sing like freddie mercury"]
 coachSources:
-  - { channel: "New York Vocal Coaching", title: "Voice Lessons Online Ep. 5: Freddie Mercury", url: "https://www.youtube.com/watch?v=cGEKIsyOpKk", embedUrl: "https://www.youtube.com/embed/cGEKIsyOpKk", confirmEmbed: pending }
-  - { channel: "Beth Roars", title: "What Makes Freddie Mercury (Queen) Great?", url: "https://www.youtube.com/watch?v=N-V6Ha2mqrg", embedUrl: "https://www.youtube.com/embed/N-V6Ha2mqrg", confirmEmbed: pending }
-  - { channel: "Phil Moufarrege", title: "The ULTIMATE Freddie Mercury Singing Technique ANALYSIS", url: "https://www.youtube.com/watch?v=ganP0dyR3GI", embedUrl: "https://www.youtube.com/embed/ganP0dyR3GI", confirmEmbed: pending }
-  - { channel: "Ken Tamplin Vocal Academy", title: "How To Sing Like Freddie Mercury", url: "https://www.youtube.com/watch?v=UMpbXfWQbXE", embedUrl: "https://www.youtube.com/embed/UMpbXfWQbXE", confirmEmbed: pending }
-  - { channel: "Chris Liepe", title: "How to Sing Like Freddie Mercury (with Marc Martel)", url: "https://www.youtube.com/watch?v=z4C7sXWZUWw", embedUrl: "https://www.youtube.com/embed/z4C7sXWZUWw", confirmEmbed: pending }
-  - { channel: "Ramsey Voice Studio", title: "Hit High Notes Like Freddie", url: "https://www.youtube.com/watch?v=8OH3EFGUXt0", embedUrl: "https://www.youtube.com/embed/8OH3EFGUXt0", confirmEmbed: pending }
+  - { channel: "New York Vocal Coaching", title: "Voice Lessons Online Ep. 5: Freddie Mercury", url: "https://www.youtube.com/watch?v=cGEKIsyOpKk", embedUrl: "https://www.youtube.com/embed/cGEKIsyOpKk", confirmEmbed: true }
+  - { channel: "Beth Roars", title: "What Makes Freddie Mercury (Queen) Great?", url: "https://www.youtube.com/watch?v=N-V6Ha2mqrg", embedUrl: "https://www.youtube.com/embed/N-V6Ha2mqrg", confirmEmbed: true }
+  - { channel: "Phil Moufarrege", title: "The ULTIMATE Freddie Mercury Singing Technique ANALYSIS", url: "https://www.youtube.com/watch?v=ganP0dyR3GI", embedUrl: "https://www.youtube.com/embed/ganP0dyR3GI", confirmEmbed: true }
+  - { channel: "Ken Tamplin Vocal Academy", title: "How To Sing Like Freddie Mercury", url: "https://www.youtube.com/watch?v=UMpbXfWQbXE", embedUrl: "https://www.youtube.com/embed/UMpbXfWQbXE", confirmEmbed: true }
+  - { channel: "Chris Liepe", title: "How to Sing Like Freddie Mercury (with Marc Martel)", url: "https://www.youtube.com/watch?v=z4C7sXWZUWw", embedUrl: "https://www.youtube.com/embed/z4C7sXWZUWw", confirmEmbed: true }
+  - { channel: "Ramsey Voice Studio", title: "Hit High Notes Like Freddie", url: "https://www.youtube.com/watch?v=8OH3EFGUXt0", embedUrl: "https://www.youtube.com/embed/8OH3EFGUXt0", confirmEmbed: true }
 candidateDrills:   # keep-what-fits at approval; all reuse, no bespoke. False-fold distortion deliberately NOT drilled (no safe unsupervised app exercise).
   - { exerciseId: belt-arpeggio-mah, label: "resonance-led belt on an open AH: ring without weight", origin: reuse, key: "Bb3", why: "Zac Bradford (NYVC) shows Freddie belting via resonance/formant tuning: brightening AH on the Bb4 in 'Somebody To Love'; let vowel brightness carry the power instead of pushing." }
   - { exerciseId: bub-mix-voice, label: "descending mix: the 'illusion of thickness' on lean folds", origin: reuse, key: "E3", why: "McCall (NYVC): ringing consistent-volume sound from leaner folds; 'bub' keeps compression efficient while the 8-5-3-1 descent resists grabbing chest weight." }
@@ -46,9 +46,9 @@ heroCreditLicense: "CC BY 2.0"
 heroCreditLicenseUrl: "https://creativecommons.org/licenses/by/2.0/"
 heroCreditSourceUrl: "https://commons.wikimedia.org/wiki/File:Queen_-_Freddie_Mercury.jpg"
 metaDescription: "Freddie Mercury's vocal range and voice type: the measured F♯2–G5 vs. the four-octave legend, what coaches hear in his power, and free in-browser drills."
-status: draft
+status: published
 published: 2026-07-02
-updated: 2026-07-02
+updated: 2026-07-03
 ---
 
 # Freddie Mercury's Vocal Range and Voice Type, Explained
