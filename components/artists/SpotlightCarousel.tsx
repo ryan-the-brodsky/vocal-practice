@@ -1,5 +1,5 @@
 import { Link } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
 import { ARTIST_PROFILES } from '@/content/artist-profiles/profiles.generated';
@@ -14,9 +14,9 @@ const SPOTLIGHTS = ARTIST_PROFILES
   .sort((a, b) => (b.published || '').localeCompare(a.published || ''));
 
 // "Latest Artist Spotlights" — a newest-first row of hero cards on the Learn hub.
-// Hero images land later (spotlight-hero-image subskill); for now the card is a
-// typographic treatment (artist + technique teaser + date). Renders nothing when
-// there are no visible spotlights (e.g. production before the first one ships).
+// Cards lead with the spotlight's hero photo (CC-licensed, credited on the article
+// page) and fall back to the typographic treatment when a profile has no image.
+// Renders nothing when there are no visible spotlights.
 export default function SpotlightCarousel() {
   if (SPOTLIGHTS.length === 0) return null;
   return (
@@ -29,9 +29,18 @@ export default function SpotlightCarousel() {
         {SPOTLIGHTS.map((p) => (
           <Link key={p.slug} href={{ pathname: '/artists/[slug]', params: { slug: p.slug } }} style={styles.cardLink}>
             <View style={styles.card}>
-              <Text style={styles.cardEyebrow}>{p.artist}</Text>
-              <Text style={styles.cardTitle}>{p.heroHeadline || p.title}</Text>
-              <Text style={styles.cardDate}>{p.published}</Text>
+              {p.heroImage ? (
+                <Image
+                  source={{ uri: p.heroImage }}
+                  style={styles.cardImage}
+                  accessibilityLabel={p.heroAlt || p.artist}
+                />
+              ) : null}
+              <View style={styles.cardBody}>
+                <Text style={styles.cardEyebrow}>{p.artist}</Text>
+                <Text style={styles.cardTitle}>{p.heroHeadline || p.title}</Text>
+                <Text style={styles.cardDate}>{p.published}</Text>
+              </View>
             </View>
           </Link>
         ))}
@@ -53,11 +62,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: c.borderOnEmphasis,
     borderRadius: Radii.md,
-    padding: Spacing.md,
-    gap: Spacing['2xs'],
-    justifyContent: 'flex-end',
+    overflow: 'hidden',
     minHeight: 132,
+    justifyContent: 'flex-end',
   },
+  cardImage: { width: '100%', aspectRatio: 16 / 9, backgroundColor: c.bgEmphasis },
+  cardBody: { padding: Spacing.md, gap: Spacing['2xs'], flexGrow: 1, justifyContent: 'flex-end' },
   cardEyebrow: { fontFamily: Fonts.bodyMedium, fontSize: Typography.xs.size, letterSpacing: 0.5, color: c.accentOnEmphasis },
   cardTitle: {
     fontFamily: Fonts.displaySemibold,
