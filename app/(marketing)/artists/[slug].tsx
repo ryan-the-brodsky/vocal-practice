@@ -1,8 +1,8 @@
 import Head from 'expo-router/head';
 import { Link, useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Colors, Fonts, Spacing, Typography } from '@/constants/theme';
+import { Colors, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
 import { ARTIST_PROFILES } from '@/content/artist-profiles/profiles.generated';
 import SpotlightBody from '@/components/artists/SpotlightBody';
 import { SITE, socialMetaTags } from '@/lib/seo/socialMeta';
@@ -34,6 +34,7 @@ export default function ArtistSpotlightPage() {
   const url = `${SITE}/artists/${profile.slug}`;
   const pageTitle = profile.seoTitle?.trim() || `${profile.title} | Vocal Habit`;
   const shareText = profile.heroHeadline?.trim() || profile.title;
+  const ogImage = profile.ogImage ? `${SITE}${profile.ogImage}` : undefined;
 
   const articleJsonLd = {
     '@context': 'https://schema.org',
@@ -41,6 +42,7 @@ export default function ArtistSpotlightPage() {
     headline: profile.title,
     description: profile.metaDescription,
     about: profile.artist,
+    image: ogImage ? [ogImage] : undefined,
     datePublished: profile.published || undefined,
     dateModified: profile.updated || profile.published || undefined,
     mainEntityOfPage: url,
@@ -53,7 +55,15 @@ export default function ArtistSpotlightPage() {
         <title>{pageTitle}</title>
         <meta name="description" content={profile.metaDescription} />
         <link rel="canonical" href={url} />
-        {socialMetaTags({ title: profile.title, description: profile.metaDescription, url, type: 'article' })}
+        {socialMetaTags({
+          title: profile.title,
+          description: profile.metaDescription,
+          url,
+          type: 'article',
+          ...(ogImage
+            ? { image: ogImage, imageWidth: 1200, imageHeight: 630, imageAlt: profile.heroAlt || profile.artist }
+            : {}),
+        })}
         <script type="application/ld+json">{JSON.stringify(articleJsonLd)}</script>
       </Head>
 
@@ -63,6 +73,37 @@ export default function ArtistSpotlightPage() {
             <Link href="/learn/" style={styles.backLink}>← All guides</Link>
             <Text style={styles.eyebrow}>ARTIST SPOTLIGHT</Text>
           </View>
+
+          {profile.heroImage ? (
+            <View style={styles.heroWrap}>
+              <Image
+                source={{ uri: profile.heroImage }}
+                style={styles.heroImage}
+                accessibilityLabel={profile.heroAlt || `${profile.artist} performing live`}
+              />
+              {profile.heroCredit ? (
+                <Text style={styles.heroCredit}>
+                  Photo:{' '}
+                  <Text
+                    style={styles.heroCreditLink}
+                    accessibilityRole="link"
+                    onPress={() => profile.heroCreditSourceUrl && Linking.openURL(profile.heroCreditSourceUrl)}
+                  >
+                    {profile.heroCredit}
+                  </Text>
+                  {', '}
+                  <Text
+                    style={styles.heroCreditLink}
+                    accessibilityRole="link"
+                    onPress={() => profile.heroCreditLicenseUrl && Linking.openURL(profile.heroCreditLicenseUrl)}
+                  >
+                    {profile.heroCreditLicense}
+                  </Text>
+                  , via Wikimedia Commons
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
 
           <SpotlightBody body={profile.body} url={url} shareText={shareText} />
 
@@ -94,6 +135,14 @@ const styles = StyleSheet.create({
     color: c.textTertiary,
   },
   backLink: { fontFamily: Fonts.bodyMedium, fontSize: Typography.sm.size, color: c.accent },
+  heroWrap: { gap: Spacing['2xs'] },
+  heroImage: { width: '100%', aspectRatio: 16 / 9, borderRadius: Radii.md, backgroundColor: c.bgEmphasis },
+  heroCredit: {
+    fontFamily: Fonts.body,
+    fontSize: Typography.xs.size,
+    color: c.textTertiary,
+  },
+  heroCreditLink: { color: c.textTertiary, textDecorationLine: 'underline' },
   toolLink: {
     fontFamily: Fonts.bodySemibold,
     fontSize: Typography.md.size,

@@ -20,6 +20,13 @@ export interface ArtistProfile {
   heroImage?: string;
   ogImage?: string;
   heroHeadline?: string;
+  /** Literal description of the hero photo for accessibility / og:image:alt. */
+  heroAlt?: string;
+  /** Photographer name — visible attribution is REQUIRED whenever heroImage is a CC photo. */
+  heroCredit?: string;
+  heroCreditLicense?: string; // e.g. 'CC BY 2.0'
+  heroCreditLicenseUrl?: string; // license deed URL
+  heroCreditSourceUrl?: string; // Commons/Flickr file page (provenance)
   metaDescription: string;
   /** 'draft' | 'published' — drafts are excluded from prod builds (draft-gate). */
   status: string;

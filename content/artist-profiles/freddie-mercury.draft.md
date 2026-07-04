@@ -1,7 +1,6 @@
 <!--
 DRAFT artist-profile (status: draft), staged for human review; the pipeline never publishes or commits.
 Island render contract (markers the artists/[slug] route maps to hydrated islands):
-  [[RANGE-TESTER compareTo="Freddie Mercury"]]        -> RangeTesterIsland
   [[COACH-VIDEO id=<ytid> by="<channel>" title="…"]]  -> YouTube embed card
   [[DRILL exerciseId=<id> key="<key>"]]               -> EmbeddedExercise + "Add to routine" button
 Fact-check verdicts: seo/spotlight-freddie-mercury-content-sources.md
@@ -39,8 +38,13 @@ relatedArticles:   # our evergreen Learn guides for the techniques in this profi
   - { slug: how-to-increase-vocal-range, label: "how to increase your range" }
   - { slug: how-to-sing-in-tune, label: "how to sing in tune" }
 heroImage: "/spotlights/freddie-mercury-hero.webp"
-ogImage: "/spotlights/freddie-mercury-og.png"
+ogImage: "/spotlights/freddie-mercury-og.jpg"
 heroHeadline: "Freddie Mercury's Power, Decoded"
+heroAlt: "Freddie Mercury singing into a microphone mid-phrase, fist raised, on stage in 1977"
+heroCredit: "Carl Lender"
+heroCreditLicense: "CC BY 2.0"
+heroCreditLicenseUrl: "https://creativecommons.org/licenses/by/2.0/"
+heroCreditSourceUrl: "https://commons.wikimedia.org/wiki/File:Queen_-_Freddie_Mercury.jpg"
 metaDescription: "Freddie Mercury's vocal range and voice type: the measured F♯2–G5 vs. the four-octave legend, what coaches hear in his power, and free in-browser drills."
 status: draft
 published: 2026-07-02
@@ -58,11 +62,6 @@ did study piano as a boy). What made him remarkable was less a freakish instrume
 coordinations you can study: power without weight, a fast, irregular vibrato, and a warm rasp
 that made voice researchers curious enough to film a professional imitator's larynx at over 4,000
 frames per second.
-
-> [[RANGE-TESTER compareTo="Freddie Mercury"]]
-> **Test your range against Freddie Mercury's:** sing your lowest and highest comfortable notes
-> and we'll show your range next to his (and your likely voice type). Free, in your browser, no
-> signup.
 
 [[SHARE]]
 
@@ -145,7 +144,7 @@ could at most color his timbre, and a dentist and geneticists have both signed o
 
 > [[COACH-VIDEO id=ganP0dyR3GI by="Phil Moufarrege" title="The ULTIMATE Freddie Mercury Singing Technique ANALYSIS"]]
 
-The sharpest studio-versus-live distinction comes from **Phil Moufarrege**. On record, Freddie blended
+The clearest studio-versus-live distinction comes from **Phil Moufarrege**. On record, Freddie blended
 chest and falsetto so the tonal quality matched across the break: a light, almost flute-like
 register that sounds like the same singer top to bottom. Live, he leaned heavier and shoutier.
 Moufarrege's read: some of that live weight wasn't a stylistic choice but a

@@ -13,8 +13,9 @@ const DIR = join(HERE, "..", "content", "artist-profiles");
 
 const SCALAR_KEYS = [
   "title", "seoTitle", "slug", "category", "mode", "artist", "song",
-  "heroImage", "ogImage", "heroHeadline", "metaDescription", "status",
-  "published", "updated",
+  "heroImage", "ogImage", "heroHeadline", "heroAlt", "heroCredit",
+  "heroCreditLicense", "heroCreditLicenseUrl", "heroCreditSourceUrl",
+  "metaDescription", "status", "published", "updated",
 ];
 
 // Extract a leading quoted string, else strip an inline `# comment`.

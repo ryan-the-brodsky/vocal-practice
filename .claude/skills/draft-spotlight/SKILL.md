@@ -18,11 +18,13 @@ OVERSTATED, cut REFUTED). Voice = `seo/content-style-guide.md`. **Draft-only.**
 
 ## Island marker grammar (the route's SpotlightBody expands these)
 ```
-[[RANGE-TESTER compareTo="<artist>"]]                  -> the range tester
 [[COACH-VIDEO id=<ytid> by="<channel>" title="…"]]     -> YouTube embed (one per coach source)
 [[DRILL exerciseId=<native id> key="<key>"]]           -> in-article exercise + "Add to routine"
 [[SHARE]]                                               -> share row
 ```
+**Never embed `[[RANGE-TESTER]]` in a spotlight** (the renderer still supports it for other page types).
+The embedded `[[DRILL]]`s are the article's lead magnet into the app — pointing readers to the range
+tester dilutes that. Don't link to /vocal-range-test from spotlight prose either.
 Markers sit on their own line. Keep **list items + bold/italic on a single line** (the renderer folds wrapped
 list continuations, but don't rely on it for emphasis spanning a wrap).
 
@@ -30,15 +32,17 @@ list continuations, but don't rely on it for emphasis spanning a wrap).
 ```yaml
 title, seoTitle, slug, category: artist-profile, mode, artist, song?,
 targetKeywords[], coachSources[], candidateDrills[], relatedArticles[],
-heroImage, ogImage, heroHeadline, metaDescription, status: draft, published, updated
+heroImage, ogImage, heroHeadline, heroAlt, heroCredit, heroCreditLicense,
+heroCreditLicenseUrl, heroCreditSourceUrl, metaDescription, status: draft, published, updated
 ```
-Set `heroImage`/`ogImage`/`heroHeadline` from the hero-image worker; `candidateDrills`/`relatedArticles`/
-`coachSources` from the brief + drill menu.
+Set `heroImage`/`ogImage`/`heroHeadline` + the `heroAlt`/`heroCredit*` block from the hero-image worker
+(the credit block is REQUIRED for CC-sourced photos — see `spotlight-hero-image`);
+`candidateDrills`/`relatedArticles`/`coachSources` from the brief + drill menu.
 
 ## Body anatomy (lead with specs)
 1. **`# H1`** = `<Artist>'s Vocal Range and Voice Type, Explained` (one H1).
 2. **Lead** — one-line answer: range in notes (hedged) + voice-type label (approximate) + a human hook.
-3. **`[[RANGE-TESTER]]` + `[[SHARE]]`** near the top.
+3. **`[[SHARE]]`** near the top (no range tester — see the marker rule above).
 4. **`## <Artist>'s vocal range`** — incl. the exact span people search; range ≠ voice type.
 5. **`## What voice type is <Artist>?`** — approximate/overlapping, CCM framing.
 6. **`## What the coaches say`** — the consolidated analysis with a `[[COACH-VIDEO]]` per source (credited);

@@ -2,7 +2,6 @@
 PUBLISHED artist-profile (status: published). Hero/OG image intentionally deferred — pending
 legal research on artist-image rights; the page falls back to the generic branded OG card for now.
 Island render contract (markers the artists/[slug] route maps to hydrated islands):
-  [[RANGE-TESTER compareTo="Chappell Roan"]]         -> RangeTesterIsland
   [[COACH-VIDEO id=<ytid> by="<channel>" title="…"]] -> YouTube embed card
   [[DRILL exerciseId=<id> key="<key>"]]              -> EmbeddedExercise + "Add to routine" button
 Fact-check verdicts: seo/spotlight-chappell-roan-content-sources.md
@@ -30,9 +29,14 @@ relatedArticles:   # our evergreen Learn guides for the techniques in this profi
   - { slug: head-voice-exercises, label: "head voice exercises" }
   - { slug: belting-exercises, label: "belting exercises" }
   - { slug: how-to-increase-vocal-range, label: "how to increase your range" }
-heroImage: "public/spotlights/chappell-roan-hero.webp"   # NEEDS GEN via spotlight-hero-image subskill
-ogImage: "public/spotlights/chappell-roan-og.png"        # NEEDS GEN — 1200×630 share card
-heroHeadline: "Chappell Roan's Register Flip"            # technique teaser on the image
+heroImage: "/spotlights/chappell-roan-hero.webp"
+ogImage: "/spotlights/chappell-roan-og.jpg"
+heroHeadline: "Chappell Roan's Register Flip"
+heroAlt: "Chappell Roan singing into a handheld microphone under a teal stage light at Capitol Hill Block Party 2024"
+heroCredit: "Junefreund"
+heroCreditLicense: "CC BY 4.0"
+heroCreditLicenseUrl: "https://creativecommons.org/licenses/by/4.0/"
+heroCreditSourceUrl: "https://commons.wikimedia.org/wiki/File:Chappell_Roan_performing_at_Capitol_Hill_Block_Party.jpg"
 metaDescription: "Chappell Roan's vocal range and voice type, explained by vocal coaches — plus free in-browser drills for her chest-voice flips. Test your range against hers."
 status: published
 published: 2026-06-28     # date written — drives newest-first carousel order
@@ -47,10 +51,6 @@ Fan analyses put her range at roughly **E3 to E♭6** — close to three octaves
 described as a **soprano**, though in pop those labels are loose (more on that below). Worth knowing
 before you feel behind: she has said she didn't take a *proper* singing lesson until December 2022 and
 felt she'd been "singing wrong" for a decade. The theatrical control you hear now is trained, not magic.
-
-> [[RANGE-TESTER compareTo="Chappell Roan"]]
-> **Test your range against Chappell Roan's** — sing your lowest and highest comfortable notes and
-> we'll show your range next to hers (and your likely voice type). Free, in your browser, no signup.
 
 [[SHARE]]
 
@@ -79,8 +79,7 @@ usually skips:
   belt high. Chappell's whole appeal is that she doesn't stay in one lane.
 
 So: think "soprano-ish, with a belt she takes unusually high" — and don't let a label box in what you
-practice. (Curious what *you* are? The range test above gives an approximate voice type from your range
-and where your own break sits.)
+practice.
 
 ## What the coaches say — the signature move
 

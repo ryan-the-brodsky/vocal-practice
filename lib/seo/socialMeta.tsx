@@ -17,6 +17,10 @@ export interface SocialMetaOpts {
   url: string;
   type?: 'website' | 'article';
   image?: string;
+  /** Pixel dimensions + alt of a custom `image` (defaults describe the branded card). */
+  imageWidth?: number;
+  imageHeight?: number;
+  imageAlt?: string;
 }
 
 export function socialMetaTags({
@@ -25,6 +29,9 @@ export function socialMetaTags({
   url,
   type = 'website',
   image = DEFAULT_IMAGE,
+  imageWidth = IMAGE_W,
+  imageHeight = IMAGE_H,
+  imageAlt = SITE_NAME,
 }: SocialMetaOpts) {
   return [
     <meta key="og:title" property="og:title" content={title} />,
@@ -33,9 +40,9 @@ export function socialMetaTags({
     <meta key="og:url" property="og:url" content={url} />,
     <meta key="og:site_name" property="og:site_name" content={SITE_NAME} />,
     <meta key="og:image" property="og:image" content={image} />,
-    <meta key="og:image:width" property="og:image:width" content={String(IMAGE_W)} />,
-    <meta key="og:image:height" property="og:image:height" content={String(IMAGE_H)} />,
-    <meta key="og:image:alt" property="og:image:alt" content={SITE_NAME} />,
+    <meta key="og:image:width" property="og:image:width" content={String(imageWidth)} />,
+    <meta key="og:image:height" property="og:image:height" content={String(imageHeight)} />,
+    <meta key="og:image:alt" property="og:image:alt" content={imageAlt} />,
     <meta key="tw:card" name="twitter:card" content="summary_large_image" />,
     <meta key="tw:title" name="twitter:title" content={title} />,
     <meta key="tw:description" name="twitter:description" content={description} />,

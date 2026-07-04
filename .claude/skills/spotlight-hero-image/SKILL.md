@@ -1,79 +1,78 @@
 ---
 name: spotlight-hero-image
 description: >-
-  Compose the hero / Open-Graph share image for an artist spotlight — an artist visual with bold
-  superimposed text teasing the technique, in the high-contrast "YouTube thumbnail" style. Use as a
-  subskill the artist-profile agent farms out to a subagent during article build, or when the user asks
-  to "make the hero image / OG image / share thumbnail" for a spotlight. Outputs a 1200×630 OG image + a
-  card crop, rights-checked, staged for human approval. Never ships a scraped celebrity photo.
+  Source and produce the hero + Open-Graph images for an artist spotlight from a rights-verified
+  photo of the artist (Wikimedia Commons CC BY/BY-SA first, paid editorial license second,
+  typographic treatment as fallback). Use as a subskill the artist-profile agent farms out during
+  article build, or when the user asks to "make the hero image / OG image" for a spotlight.
+  Outputs a 16:9 hero webp + 1200×630 OG jpg + the credit frontmatter block, rights-checked,
+  staged for human approval. Never ships a scraped photo or an AI likeness.
 metadata:
-  version: 1.0.0
+  version: 2.0.0
 ---
 
 # Spotlight Hero / OG Image
 
-Compose the **share image** for an artist spotlight: the picture that shows up as the article's hero on the
-Learn "Artist Spotlight" carousel **and** as the Open-Graph/Twitter card when someone shares the link. It
-must do two jobs at once — sell the click on social, and look right on the page.
+Produce the spotlight's **hero photo** (top of the article + Learn-carousel card) and **OG share
+image**. Full rights research behind these rules: `seo/hero-image-rights-research.md` (2026-07-03).
+Ryan's direction: real photos of the artist ARE wanted on these pages — sourced only as below.
 
-Farmed out by `artist-profile` (step "Social + hero image") to a **subagent** with: `{ artist, slug,
-technique-teaser, coach-thumbnail option, DESIGN.md tokens }`. Returns the image file(s) + headline + alt
-text + the **rights basis**, staged for human approval. Draft-only — never publishes.
+## Sourcing order (STRICT — this is the guideline, not a suggestion)
 
-## ⚠️ Rights guardrail (read first — this is the easy place to get it wrong)
-- **Never scrape and republish a copyrighted press/paparazzi photo of the artist.** A brand site reusing a
-  celebrity photo as its OG image is a copyright **and** likeness risk — different from a YouTuber's fair-use
-  thumbnail.
-- **Allowed bases, in order of preference:**
-  1. **Typographic / brand treatment** (no photo) — bold technique-teaser headline + brand motif + the song
-     title, on a DESIGN.md-tokened background. **Safe default; use when no rights-cleared image exists.**
-  2. **The coach's video thumbnail, used WITH the coach's written permission** — ties into the partnership
-     (they're a collaborator) and is the most on-brand "real" image.
-  3. **Properly licensed stock / editorial image** with a license that covers web + social use.
-  4. **AI-generated *stylized, non-photoreal* artwork evoking the vibe** — not a realistic likeness (likeness
-     rights still apply); approve case-by-case.
-- **Always** return the rights basis with the image and flag it for human sign-off. If unsure → typographic.
+1. **Wikimedia Commons / Flickr CC photo — the default.** License must be **CC BY or CC BY-SA**
+   (any version) or public domain with US status established. **Never NC** (NonCommercial — the
+   site markets an app; ambiguous = unusable) and **never ND** (blocks cropping).
+   **Provenance checklist — all must pass before using a file:**
+   - License confirmed via the Commons API (`prop=imageinfo&iiprop=extmetadata`), not just the page.
+   - "Own work" claims: EXIF present and plausible; uploader has a credible upload history.
+   - Flickr-sourced files: original Flickr page still live and still showing the CC license.
+   - Red flags → skip: agency watermarks, press-scan look, no EXIF + no source link, PD tags whose
+     US status the file page itself questions (e.g. PD-Argentina).
+2. **Paid editorial license** when no clean CC image exists: **Alamy individual editorial
+   (~$22/image)** is the default; Getty ($199–499) only if a specific iconic shot justifies it.
+   Editorial terms: illustrating the analysis only — never ads/endorsement implications.
+3. **Typographic / brand treatment** (no photo) — fallback while an image is pending. DESIGN.md
+   tokens only.
 
-**Why an article hero ≠ a YouTuber's thumbnail (the rationale, not legal advice):** a coach's reaction
-thumbnail leans on *commentary/criticism* fair use, lives behind YouTube's notice-and-takedown shield, and
-is rarely a clean marketing asset. Our OG/hero image is different on four axes: (1) **purpose** — it markets
-our product/brand, which weakens the fair-use "transformative commentary" argument; (2) **two stacked
-rights** — the photo's copyright (photographer/agency) *and* the artist's right of publicity/likeness, the
-latter triggered by using their face to front a brand asset (reads as endorsement); (3) **no platform
-shield** — on our own domain a rights-holder bills/cease-and-desists us directly (Getty-style), with no
-Content-ID buffer; (4) **redistribution** — the OG image is *re-served* across every platform it's shared to,
-multiplying exposure. Net: prefer the typographic/brand default or coach-thumbnail-with-permission; treat a
-real artist photo as license-required + human-approved, never scraped.
+**Never, under any circumstances:** Google-Images/press grabs, re-hosted `gettyimages-*` files,
+frame-grabs or thumbnails of OTHER people's videos, or **AI-generated artist likenesses** (right
+of publicity + ELVIS-Act-class statutes make an AI likeness WORSE than an unlicensed photo).
+Why scraping loses: fair use protects commentary ON a photo, not decorating commentary about the
+person (Warhol 2023; Philpot v. IJR, 4th Cir. 2024) — see the research doc.
 
-## Composition rules (studied from YouTube thumbnails — what makes them click)
-- **Canvas:** OG = **1200×630** (1.91:1). Also export a **16:9 card** (e.g. 1280×720) for the carousel.
-- **One focal subject**, off-center (rule of thirds). If a face/figure is used, it goes on one side; text on
-  the other — never text over the eyes.
-- **3–6 word headline, huge and bold**, teasing the *technique*, not just the name: "Chappell Roan's Register
-  Flip", "How Ariana Hits the Whistle", "Mariah's Belt — Decoded". Readable at phone-feed size.
-- **High contrast + saturation.** Dark scrim/gradient behind text so it's legible over any base. One accent
-  color (DESIGN.md token), not a rainbow.
-- **Minimal clutter** — headline + subject + small brand mark ("Vocal Habit"). No paragraphs.
-- **Optional thumbnail device:** a single highlight (circle/arrow) on the technique moment, used sparingly.
-- **Brand-consistent** so a row of spotlights looks like a set (same type treatment, logo position, accent).
-- **Safe zones:** keep text ~7% off the edges; assume the platform may crop to square — keep the headline
-  centered enough to survive a 1:1 crop.
+## Attribution (REQUIRED for CC — it's the entire license fee)
 
-## Output
-- `public/spotlights/<slug>-og.png` — 1200×630 (the `og:image` / `twitter:image`).
-- `public/spotlights/<slug>-hero.webp` — 16:9 card for the Learn carousel.
-- `alt`: a literal description for `<img alt>` + accessibility.
-- `headline` + `rightsBasis` (which allowed source above) returned to the parent skill for the handoff.
+Fill the frontmatter credit block; the `artists/[slug]` route renders it as a visible linked
+caption under the hero ("Photo: <credit>, <license>, via Wikimedia Commons"):
 
-## Tooling (compose, don't hand-wave)
-- Build the overlay as **SVG** (background/base image + gradient scrim + headline text in a DESIGN.md font +
-  brand mark), then rasterize **SVG → PNG/WebP** (sharp / resvg / `rsvg-convert`; mirrors the henchmen
-  `blog/scripts/house-image.sh` pattern). Or render an HTML card and screenshot it (Playwright) — whichever
-  is available. The **text overlay is fully ours to generate**; only the *base image* is rights-sensitive.
-- Keep file sizes lean (OG < ~300 KB). Use DESIGN.md tokens for color/type — no hex/font literals.
+```yaml
+heroImage: "/spotlights/<slug>-hero.webp"
+ogImage: "/spotlights/<slug>-og.jpg"
+heroAlt: "<literal description of the photo>"
+heroCredit: "<photographer name>"
+heroCreditLicense: "CC BY 2.0"
+heroCreditLicenseUrl: "https://creativecommons.org/licenses/by/2.0/"
+heroCreditSourceUrl: "https://commons.wikimedia.org/wiki/File:<file>"
+```
+
+A stripped or forgotten credit converts a free image into an infringement (CC enforcement firms
+hunt exactly this). OG images carry no on-image credit — the article page's caption covers the
+share card.
+
+## Production (what to output)
+
+- **Hero:** `public/spotlights/<slug>-hero.webp` — 16:9, ~1600px wide (never upscale past the
+  source), quality ~82. Crop the source around the face/action (rule of thirds), NOT a blind
+  center crop — portrait concert shots usually carry the face in the upper third.
+- **OG:** `public/spotlights/<slug>-og.jpg` — 1200×630, < 300 KB.
+- **No text overlays on photos** — DESIGN.md forbidden-pattern #10 (stock-photo hero + overlay
+  text). Clean photo + caption is the house style. ImageMagick (`magick -crop … -resize …`) is on
+  PATH.
+- Also wire the carousel: `SpotlightCarousel` picks the image up automatically from `heroImage`.
 
 ## Handoff
-Return to `artist-profile`: the file paths, `headline`, `alt`, and `rightsBasis`. If no rights-cleared base
-image was available, return the **typographic** version + a note: "needs artist image / coach-thumbnail
-permission for a photo version." The human approves the image (and its rights basis) on the preview before
-the spotlight is promoted.
+
+Return to `artist-profile`: file paths, the full credit frontmatter block, `heroAlt`, and the
+**rights basis** (which sourcing tier + the provenance evidence, e.g. "Commons API license check +
+live Flickr original"). The human approves the image and its rights basis on the preview before
+the spotlight is promoted. Draft-only — never publishes.
