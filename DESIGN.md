@@ -74,29 +74,29 @@ Display sizes scale up by `clamp(40px, 6vw, 64px)` style on web. Native uses fix
 
 ## Color
 
-**Cream is the canvas (the warmth lives there). Brown is a deliberate emphasis-panel surface (used to spotlight a section). Burnt amber is the accent.** This is a critical decision — never use brown as a default canvas. It reads "70s wood-panel" not "warm musical."
+**"Parchment" (2026-07 revamp). Warm parchment is the canvas. The emphasis panel is now a LIGHT parchment band (not a dark bar) — it spotlights a section by lifting one step, not by going dark. Amber-orange is the accent.** This replaced the original cream-canvas / dark-brown-emphasis / burnt-amber system, which read too dark and dated ("70s wood-panel") in the dark chrome. Never reintroduce a dark-brown default surface or emphasis bar.
 
 ### Light tokens (default — primary register)
 
 | Token | Hex | Role |
 |---|---|---|
-| `--bg-canvas` | `#f3ede0` | Warm cream paper. Page background. |
-| `--bg-surface` | `#fbf7ec` | Slightly elevated paper. Cards on canvas. |
+| `--bg-canvas` | `#f6f1e5` | Warm parchment paper. Page background. |
+| `--bg-surface` | `#fdfaf2` | Slightly elevated paper. Cards on canvas. |
 | `--bg-elevated` | `#ffffff` | Modal/popover. Highest layer. |
-| `--bg-emphasis` | `#2c2118` | Deep warm brown. **Use only for spotlight panels** — diagnosis card, contrast playback panel, weekly stat card. |
-| `--bg-emphasis-inset` | `#1f1610` | Darker inset for elements within emphasis panels. |
-| `--text-primary` | `#1d130a` | Deep ink. Body + display. |
-| `--text-secondary` | `#5a4d3d` | Warm gray-brown. Labels, captions. |
-| `--text-tertiary` | `#8a7d70` | Subtle warm gray. Metadata, micro-labels. |
-| `--text-on-emphasis` | `#f5efe4` | Cream text on brown emphasis panels. |
-| `--text-on-emphasis-dim` | `#c4b3a0` | Dimmed cream on brown panels. |
-| `--border-subtle` | `#e8dfca` | Paper-grain divider. |
-| `--border-strong` | `#c8b89a` | Stronger separator. |
-| `--border-on-emphasis` | `#4a3d33` | Border within brown panels. |
-| `--accent` | `#a86a24` | Burnt amber, performer's stage light. Buttons, links, focus highlights. |
-| `--accent-hover` | `#8d5818` | Darker amber. Hover state. |
-| `--accent-on-emphasis` | `#e09238` | Brighter amber when accent is on a brown panel. |
-| `--accent-muted` | `rgba(168, 106, 36, 0.10)` | Tints, accent-colored backgrounds. |
+| `--bg-emphasis` | `#efe6d1` | Light parchment band. **Use only for spotlight panels** — diagnosis card, contrast playback panel, weekly stat card, tab bar. Now LIGHT, not dark. |
+| `--bg-emphasis-inset` | `#e6dabf` | Slightly deeper inset within emphasis panels. |
+| `--text-primary` | `#241a10` | Deep ink. Body + display. |
+| `--text-secondary` | `#5d5040` | Warm gray-brown. Labels, captions. |
+| `--text-tertiary` | `#9c7c55` | Warm orange-tan. Eyebrow labels, metadata — carries a hint of the accent so color travels. |
+| `--text-on-emphasis` | `#2f2415` | Dark ink on the LIGHT emphasis panels. (Was cream when panels were dark.) |
+| `--text-on-emphasis-dim` | `#7d6f5a` | Dimmed ink on emphasis panels. |
+| `--border-subtle` | `#ece3cf` | Paper-grain divider. |
+| `--border-strong` | `#d2c3a6` | Stronger separator. |
+| `--border-on-emphasis` | `#d8c9a8` | Border within emphasis panels. |
+| `--accent` | `#e07d1c` | Amber-orange, performer's stage light. Buttons, links, focus highlights. **Text on accent uses `--bg-canvas`** (near-white), never `--text-on-emphasis`. |
+| `--accent-hover` | `#c26814` | Darker orange. Hover state. |
+| `--accent-on-emphasis` | `#b5610f` | Deeper orange — legible for active states on the light emphasis band. |
+| `--accent-muted` | `rgba(224, 125, 28, 0.14)` | Tints, accent-colored backgrounds, chips, active pills. |
 | `--success` | `#5a8a5a` | Sage. "In tune", positive state. |
 | `--warning` | `#b07020` | Burnt sienna. "Close call." |
 | `--error` | `#a04030` | Rust. "Clearly off." |
@@ -126,12 +126,13 @@ Display sizes scale up by `clamp(40px, 6vw, 64px)` style on web. Native uses fix
 | `--warning` | `#d49a48` | Lifted burnt sienna. |
 | `--error` | `#c2624d` | Lifted rust. |
 
-### When to use the brown emphasis panel
+### When to use the emphasis panel
 
-Brown is **NEVER** the canvas. It's used surgically to spotlight a section, the way a leather binding would set off a single page in a book. Apply `--bg-emphasis` to:
+The emphasis panel (now a **light parchment band**, `--bg-emphasis`) is used surgically to spotlight a section, the way a slightly-lifted page sets off a callout. It carries dark ink (`--text-on-emphasis`), NOT cream. Apply `--bg-emphasis` to:
 - The diagnosis card on the Coaching screen
 - The contrast playback panel ("Listen" with the 4 buttons)
 - The weekly summary card on Progress (when the big stat number should pop)
+- The tab bar
 - A hero stat callout
 - A code/data terminal block
 
@@ -143,10 +144,12 @@ Do NOT use it on:
 
 ### Contrast targets
 
-- Body text on canvas: ≥7:1 (deep ink on cream is ~14:1 — comfortable)
+- Body text on canvas: ≥7:1 (deep ink on parchment is ~13:1 — comfortable)
 - Body text on surface: ≥7:1
-- Text on emphasis (cream on brown): ≥10:1
-- Accent on canvas (amber on cream): ≥4.5:1 — verify in dark mode where amber is brighter
+- Text on emphasis (dark ink on light parchment): ≥10:1
+- Accent on canvas (amber-orange on parchment): ≥4.5:1
+- Text on accent (`--bg-canvas` on `--accent`): light-on-orange, ≥4.5:1 — this is why on-accent labels use `--bg-canvas`, not `--text-on-emphasis`
+- Touch targets: minimum 44 × 44 on native, 36 × 36 on web
 - Touch targets: minimum 44 × 44 on native, 36 × 36 on web
 
 ---
@@ -307,6 +310,7 @@ If any review surfaces one of these, fix it before shipping.
 | 2026-05-09 | Burnt amber accent (`#a86a24` light / `#e09238` dark), not indigo | Prior default was indigo `#4338ca` — overused, generic SaaS. Amber is uncommon in music apps and reads warm + performer's-stage. |
 | 2026-05-09 | Light is the only active theme; dark deferred to opt-in toggle | After the migration shipped, the app inherited OS dark mode via `useColorScheme()` and rendered the dark `bgCanvas` (warm-dark) — the user immediately rejected this as the same brown-canvas mistake the cream-inversion fixed. Decision: hardcode light in `useTheme()`, `useThemeColor()`, `app/_layout.tsx`, `app/(tabs)/_layout.tsx`, `components/parallax-scroll-view.tsx`. Dark tokens stay defined in the palette for a future Theme preference (System / Light / Dark) — not auto-routed via OS. |
 | 2026-06-20 | Added "Step progress dots" to Component Vocabulary | First-run onboarding needed a multi-step position indicator, which wasn't in the vocabulary. Built from existing tokens only (amber `--accent` current, `--accent-muted` done, `--border-strong` upcoming; `radius-pill`); no new color or size. Used by `components/onboarding/OnboardingScaffold.tsx`. |
+| 2026-07-03 | "Parchment" repalette — light throughout, amber-orange accent | User found the cream/dark-brown/amber system too dark and dated (the dark-brown emphasis bar read "70s"). Explored 11 restyle directions + tonal variants via a dev-only `?vhstyle=` harness (`constants/styleVariants*.ts`), screenshot-reviewed in Slack. Chosen: "Amber Pop" parchment — canvas `#f6f1e5`, emphasis flips to a LIGHT band `#efe6d1` (dark ink, not cream), accent brightens to amber-orange `#e07d1c`, and `--text-tertiary` warms to `#9c7c55` so eyebrow labels carry the accent. `--text-on-emphasis` is now dark; on-accent labels must use `--bg-canvas` (fixed the Feedback button, the one component that had leaned on `--text-on-emphasis` for light-on-accent). Palette-only — type scale, spacing, radii, and the Fraunces/General Sans/JetBrains stack are unchanged. |
 
 ---
 

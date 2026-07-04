@@ -34,8 +34,8 @@ export default function FeedbackButton() {
         },
       ]}
     >
-      <MaterialIcons name="chat-bubble-outline" size={16} color={colors.textOnEmphasis} />
-      <Text style={[styles.label, { color: colors.textOnEmphasis }]}>Feedback</Text>
+      <MaterialIcons name="chat-bubble-outline" size={16} color={colors.canvas} />
+      <Text style={[styles.label, { color: colors.canvas }]}>Feedback</Text>
     </Pressable>
   );
 }

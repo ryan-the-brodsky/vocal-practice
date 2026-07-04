@@ -2,8 +2,8 @@
 import { Colors, Fonts, Spacing, Typography } from '../theme';
 
 describe('Colors', () => {
-  test('light canvas is warm cream', () => {
-    expect(Colors.light.canvas).toBe('#f3ede0');
+  test('light canvas is warm parchment', () => {
+    expect(Colors.light.canvas).toBe('#f6f1e5');
   });
 
   test('dark canvas is warm dark', () => {
@@ -18,8 +18,8 @@ describe('Colors', () => {
     expect(typeof Colors.dark.text).toBe('string');
   });
 
-  test('light accent is burnt amber', () => {
-    expect(Colors.light.accent).toBe('#a86a24');
+  test('light accent is amber-orange', () => {
+    expect(Colors.light.accent).toBe('#e07d1c');
   });
 
   test('dark accent is lighter amber', () => {
