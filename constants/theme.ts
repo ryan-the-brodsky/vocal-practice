@@ -3,31 +3,32 @@
 // Back-compat aliases preserved so existing themed primitives keep working.
 export const Colors = {
   light: {
-    // Canvas & surfaces
-    canvas: '#f3ede0',
-    bgCanvas: '#f3ede0',
-    bgSurface: '#fbf7ec',
+    // Canvas & surfaces — "Parchment" (2026-07 revamp). Light throughout; the old
+    // dark-brown emphasis panel is replaced by a light parchment band.
+    canvas: '#f6f1e5',
+    bgCanvas: '#f6f1e5',
+    bgSurface: '#fdfaf2',
     bgElevated: '#ffffff',
-    bgEmphasis: '#2c2118',
-    bgEmphasisInset: '#1f1610',
+    bgEmphasis: '#efe6d1',
+    bgEmphasisInset: '#e6dabf',
 
-    // Text
-    textPrimary: '#1d130a',
-    textSecondary: '#5a4d3d',
-    textTertiary: '#8a7d70',
-    textOnEmphasis: '#f5efe4',
-    textOnEmphasisDim: '#c4b3a0',
+    // Text — dark ink on light emphasis panels (textOnEmphasis is now dark, not cream).
+    textPrimary: '#241a10',
+    textSecondary: '#5d5040',
+    textTertiary: '#9c7c55', // warmed toward orange-tan so eyebrow labels carry accent color
+    textOnEmphasis: '#2f2415',
+    textOnEmphasisDim: '#7d6f5a',
 
     // Borders
-    borderSubtle: '#e8dfca',
-    borderStrong: '#c8b89a',
-    borderOnEmphasis: '#4a3d33',
+    borderSubtle: '#ece3cf',
+    borderStrong: '#d2c3a6',
+    borderOnEmphasis: '#d8c9a8',
 
-    // Accent
-    accent: '#a86a24',
-    accentHover: '#8d5818',
-    accentOnEmphasis: '#e09238',
-    accentMuted: 'rgba(168, 106, 36, 0.10)',
+    // Accent — brighter amber-orange ("Amber Pop"). Text on accent uses `canvas`.
+    accent: '#e07d1c',
+    accentHover: '#c26814',
+    accentOnEmphasis: '#b5610f', // deeper orange, legible on the light parchment band
+    accentMuted: 'rgba(224, 125, 28, 0.14)',
 
     // Semantic
     success: '#5a8a5a',
@@ -35,12 +36,12 @@ export const Colors = {
     error: '#a04030',
 
     // Back-compat keys — map to nearest semantic token
-    text: '#1d130a',
-    background: '#f3ede0',
-    tint: '#a86a24',
-    icon: '#8a7d70',
-    tabIconDefault: '#8a7d70',
-    tabIconSelected: '#a86a24',
+    text: '#241a10',
+    background: '#f6f1e5',
+    tint: '#e07d1c',
+    icon: '#9c7c55',
+    tabIconDefault: '#93867a',
+    tabIconSelected: '#b5610f',
   },
   dark: {
     // Canvas & surfaces
@@ -156,3 +157,12 @@ export const Motion = {
     long: 500,
   },
 } as const;
+
+// DEV-ONLY: the 2026-07 style-revamp exploration harness. On web dev builds a
+// ?vhstyle=<id> query param swaps palette/fonts/flourishes by mutating the token
+// objects above before any consumer reads them. No-op in production and tests.
+if (typeof __DEV__ !== 'undefined' && __DEV__) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { applyStyleVariantFromLocation } = require('./styleVariants');
+  applyStyleVariantFromLocation({ Colors, Fonts, Radii });
+}
