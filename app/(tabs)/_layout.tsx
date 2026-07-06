@@ -1,6 +1,6 @@
 import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { PlatformPressable } from '@react-navigation/elements';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import React from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -38,6 +38,7 @@ function TabBarButton(props: BottomTabBarButtonProps) {
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   // People look for primary nav at the top on desktop/tablet; only mobile expects
   // a bottom bar. ≥768 px (iPad-portrait and up) → top, narrower → bottom.
   const { width } = useWindowDimensions();
@@ -88,6 +89,16 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="library"
+        // The Learn hub lives at the single static route /learn (marketing group,
+        // for SEO). Intercept the tab press and navigate there instead of the
+        // /library stub, so the URL reads /learn — no "Learn tab → /library"
+        // mismatch. Direct /library hits still redirect (see library.tsx).
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.navigate('/learn');
+          },
+        }}
         options={{
           title: 'Learn',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="book.fill" color={color} />,

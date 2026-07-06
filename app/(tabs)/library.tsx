@@ -1,13 +1,10 @@
-import LearnHub from '@/components/learn/LearnHub';
+import { Redirect } from 'expo-router';
 
-// The in-app "Learn" tab (route /library). Its CONTENT is the shared
-// `components/learn/LearnHub.tsx` — the SAME hub the static SEO route
-// `app/(marketing)/learn/index.tsx` (/learn) renders — so the in-app tab and the
-// marketing page can never diverge again (previously this was a separate, poorer
-// list that was missing the artist-spotlight carousel). Edit the hub, not a copy.
-// Route stays /library because /learn is owned by the marketing group; the tab is
-// LABELED "Learn" in app/(tabs)/_layout.tsx.
-
-export default function LibraryScreen() {
-  return <LearnHub />;
+// The Learn hub is the single static route /learn (marketing group, for SEO);
+// its content is `components/learn/LearnHub.tsx`. The in-app "Learn" tab
+// navigates straight there (see the tabPress listener in app/(tabs)/_layout.tsx).
+// This stub only catches direct /library hits — legacy links, bookmarks — and
+// forwards them, so there's no orphaned /library URL.
+export default function LibraryRedirect() {
+  return <Redirect href="/learn" />;
 }

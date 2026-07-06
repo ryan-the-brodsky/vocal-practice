@@ -7,13 +7,13 @@ import { LEARN_ARTICLES } from '@/content/learn/articles.generated';
 import { capabilityMeta, isCapability, type Capability } from '@/lib/exercises/capabilities';
 import SpotlightCarousel from '@/components/artists/SpotlightCarousel';
 
-// SINGLE SOURCE OF TRUTH for the Learn hub content (intro + range-test card +
-// artist-spotlight carousel + search + category chips + article grid). Rendered
-// by BOTH the static SEO route `app/(marketing)/learn/index.tsx` AND the in-app
-// "Learn" tab `app/(tabs)/library.tsx` (route /library). Edit this file — never
-// fork a second copy, or the two surfaces silently diverge (that's the bug that
-// hid the spotlight carousel from the in-app tab). Keep it SSG-safe: no
-// browser-only APIs, system-font fallbacks, `Link` (renders real <a> for SEO).
+// The Learn hub content (intro + range-test card + artist-spotlight carousel +
+// search + category chips + article grid). Rendered by the single static SEO
+// route `app/(marketing)/learn/index.tsx` (/learn). The in-app "Learn" tab has
+// no separate page — it navigates here (see app/(tabs)/_layout.tsx). Don't fork
+// a second in-app copy of this content (that's the bug that once hid the
+// spotlight carousel from the app). Keep it SSG-safe: no browser-only APIs,
+// system-font fallbacks, `Link` (renders real <a> for SEO).
 
 const c = Colors.light;
 

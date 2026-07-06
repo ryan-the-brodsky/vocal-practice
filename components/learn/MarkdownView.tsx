@@ -160,8 +160,8 @@ const styles = StyleSheet.create({
   },
   p: {
     fontFamily: Fonts.body,
-    fontSize: Typography.base.size,
-    lineHeight: Typography.base.lineHeight,
+    fontSize: Typography.md.size,
+    lineHeight: Typography.md.lineHeight,
     color: c.textPrimary,
   },
   bold: { fontFamily: Fonts.bodySemibold },
@@ -177,8 +177,8 @@ const styles = StyleSheet.create({
   },
   quoteText: {
     fontFamily: Fonts.body,
-    fontSize: Typography.base.size,
-    lineHeight: Typography.base.lineHeight,
+    fontSize: Typography.md.size,
+    lineHeight: Typography.md.lineHeight,
     color: c.textSecondary,
     fontStyle: 'italic',
   },
@@ -186,16 +186,16 @@ const styles = StyleSheet.create({
   li: { flexDirection: 'row', gap: Spacing.xs, alignItems: 'flex-start' },
   bullet: {
     fontFamily: Fonts.body,
-    fontSize: Typography.base.size,
-    lineHeight: Typography.base.lineHeight,
+    fontSize: Typography.md.size,
+    lineHeight: Typography.md.lineHeight,
     color: c.textTertiary,
     minWidth: 18,
   },
   liText: {
     flex: 1,
     fontFamily: Fonts.body,
-    fontSize: Typography.base.size,
-    lineHeight: Typography.base.lineHeight,
+    fontSize: Typography.md.size,
+    lineHeight: Typography.md.lineHeight,
     color: c.textPrimary,
   },
 });
