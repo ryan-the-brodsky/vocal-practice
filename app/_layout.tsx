@@ -107,8 +107,11 @@ export default function RootLayout() {
 
   // The homepage "/" (index route). While the app shell is gated (SSG + first
   // paint) we render a static, crawlable intro there so the root ships real
-  // HTML — an <h1> + internal-link hub — instead of an empty shell.
-  const onIndex = !segments[0] || (segments[0] === '(tabs)' && !segments[1]);
+  // HTML — an <h1> + internal-link hub — instead of an empty shell. Widen to
+  // string[] first: typed-routes types `segments` as a length-1 tuple, so a
+  // bare `segments[1]` is a TS2493 out-of-bounds error (caught in CI typegen).
+  const seg = segments as string[];
+  const onIndex = !seg[0] || (seg[0] === '(tabs)' && !seg[1]);
 
   const [loaded] = useFonts({
     Fraunces_300Light,
