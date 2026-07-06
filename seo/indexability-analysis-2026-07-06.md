@@ -67,7 +67,25 @@ Rejected alternatives: **B.** dedicated static landing route + app behind a CTA 
 
 **Known limitation:** the hero helps the **raw-HTML** pass (indexing + link discovery + link flow, which Bing/Ahrefs/LLM crawlers lean on heavily). After hydration the app replaces it, so Google's *rendered-DOM* pass still sees the Practice shell — a future option is to keep a slim crawlable intro/footer persistently in the app chrome if the rendered-DOM signal proves to matter.
 
+## GSC Coverage export (2026-07-06) — the "issues preventing indexing", triaged
+
+Ground truth straight from Google (Coverage → All known pages). It **reframes the picture positively**: indexation is working, not blocked.
+
+- **24 pages indexed** / 13 not indexed (as of 2026-06-29). (Earlier `site:` came up empty only because the WebSearch tool doesn't run a true `site:` — GSC is authoritative.)
+
+The 13 "not indexed" break down as (all benign or minor — none block the content):
+
+| Reason | Pages | What it actually is | Action |
+|---|---|---|---|
+| **Page with redirect** | 9 | Alternate URL variants Google discovered (www→apex, http→https, and trailing-slash: `/learn`→`/learn/`, `/vocal-range-test/`→`/vocal-range-test`, `/learn/x/`→`/learn/x`) that **correctly 301** to the canonical. Largely fueled by the 148 junk backlinks pointing at variant URLs. Verified: **no sitemap URL, canonical tag, or internal link points to a redirecting URL** — every canonical/sitemap entry returns 200. | None — expected hygiene. The canonical version is what gets indexed. |
+| **Duplicate, Google chose different canonical** | 1 | The Netlify default subdomain `vocal-practice.netlify.app` serves a full 200 copy of the site. **Already mitigated** — its pages carry absolute canonicals → `https://vocalhabit.com/...` (verified). | To fully close: Netlify → Domain management → **"Redirect default subdomain to primary domain"** (dashboard toggle; correctly excludes deploy-preview subdomains, so it won't break the artist-spotlight preview/draft workflow). Optional. |
+| **Crawled — currently not indexed** | 2 | Thin, client-only app shells (e.g. `/onboarding`, `/plan`) Google crawled and correctly judged low-value. | None needed; the `?exerciseId=` robots disallow already trims the biggest crawl-waste. |
+| **Discovered — currently not indexed** | 1 | Known from the sitemap, not yet crawled — normal crawl-budget lag for a DR-0 site. | Resolves with authority + time; a GSC "Request indexing" nudge helps. |
+
+**Conclusion: there is no remaining indexation *blocker*.** The content pages are indexed; the not-indexed set is redirect variants + the Netlify-subdomain duplicate + two thin shells. The gap to organic traffic is **ranking/authority (DR 0)**, not indexing — exactly the lever the homepage/internal-link fixes above and off-repo backlinks address.
+
 ## Off-repo (not code) — the authority lever
-- Register/verify in GSC and submit `sitemap.xml` (if not already); use URL Inspection → Request Indexing on the top pages.
+- In GSC: resubmit `sitemap.xml`, and hit **"Validate Fix"** on the redirect/duplicate items so Google re-checks the affected URLs; use URL Inspection → Request Indexing on the top pages.
+- (Optional) flip the Netlify "redirect default subdomain to primary domain" toggle to collapse the `vocal-practice.netlify.app` duplicate.
 - Earn a handful of real links (the artist-spotlight partnership play in `seo/artist-spotlight-partnerships-plan.md`, directories, a Product Hunt / community post).
 - Prune/monitor the 148 junk refdomains only if they grow into a spam-signal problem.
