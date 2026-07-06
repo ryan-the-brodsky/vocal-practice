@@ -57,16 +57,15 @@ So the levers are: (a) **fix the on-site signals we control** (homepage content 
 2. **robots.txt** — `Disallow: /*?exerciseId=` so Googlebot stops spending a young site's tiny crawl budget on ~13 thin, already-canonicalized param URLs.
 3. **Sitemap** — `gen-sitemap.mjs` now includes **published** `/artists/*` spotlights (draft-gated, mirroring the production `EXPO_PUBLIC_INCLUDE_DRAFTS` rule) and refreshes `lastmod`.
 
-## The big one — recommended next, needs a design decision
+## The big one — SHIPPED (root-cause fix)
 
-**Give the homepage real, crawlable content + an internal-link hub.** This is the root cause (#1 and #2) and the highest-leverage fix, but it touches the app's render/boot path (the homepage is the gated Practice screen that renders an empty body at SSG), so it's proposed rather than shipped blind.
+**Gave the homepage real, crawlable content + an internal-link hub** (option A). `components/home/HomeHeroSEO.tsx` is a self-contained, system-font-safe static intro (eyebrow + real `<h1>` + intro paragraph + two `<h2>` sections: an "Explore" card hub → `/vocal-range-test`, `/learn/`, the spotlights, and a "Popular guides" list → 5 top articles). `app/_layout.tsx` renders it during the SSG/first-paint hold **for the index route only** (`onIndex`), so `/` exports with real HTML; the interactive Practice app replaces it on hydration. This converts the site's most-linked URL from a blank liability into its primary relevance + internal-linking asset.
 
-Options, cheapest → most involved:
-- **A. Static SEO band on `/` at SSG.** Render a small static hero (real `<h1>`, one paragraph of what Vocal Habit is) + a link list to `/vocal-range-test`, `/learn/`, and the spotlights — emitted in the homepage's static HTML, then replaced/covered by the app on hydration. Solves the empty-front-door *and* the crawl-island in one move. Needs care with the existing splash/onboarding gate.
-- **B. Dedicated static landing route** (e.g. de-gate `/` via a marketing-style index) with the app living behind a "Start practicing" CTA. Cleaner separation, bigger UX change.
-- **C. Minimum viable:** at least emit a crawlable link hub (nav/footer) to the content in the homepage static HTML, even without a full hero.
+Verified in the export: `dist/index.html` went from **9 words / 0 `<h1>` / 0 content links** → **~638 words / 1 `<h1>` / 2 `<h2>` / 8 internal content links**. In-browser: first-run → onboarding (unchanged), returning user → Practice (unchanged); the hero shows only during the brief font/onboarding hold. `tsc` clean · 702 tests pass.
 
-Recommendation: **A** — it directly converts the site's most-linked URL from a liability into its primary relevance + internal-linking asset, with the least UX disruption.
+Rejected alternatives: **B.** dedicated static landing route + app behind a CTA (cleaner separation, but a big UX change to a daily-use app that should open straight to Practice); **C.** link-hub-only footer via `+html.tsx` (would render on every screen incl. the app, or need hidden-content tricks).
+
+**Known limitation:** the hero helps the **raw-HTML** pass (indexing + link discovery + link flow, which Bing/Ahrefs/LLM crawlers lean on heavily). After hydration the app replaces it, so Google's *rendered-DOM* pass still sees the Practice shell — a future option is to keep a slim crawlable intro/footer persistently in the app chrome if the rendered-DOM signal proves to matter.
 
 ## Off-repo (not code) — the authority lever
 - Register/verify in GSC and submit `sitemap.xml` (if not already); use URL Inspection → Request Indexing on the top pages.

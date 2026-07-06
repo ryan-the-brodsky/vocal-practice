@@ -23,6 +23,7 @@ import 'react-native-reanimated';
 import { Colors } from '@/constants/theme';
 import FeedbackButton from '@/components/FeedbackButton';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import HomeHeroSEO from '@/components/home/HomeHeroSEO';
 import { hasSeenOnboarding } from '@/lib/settings/onboarding';
 import { SITE, socialMetaTags } from '@/lib/seo/socialMeta';
 import { requestPersistentStorage } from '@/lib/storage/persist';
@@ -104,6 +105,11 @@ export default function RootLayout() {
   // they export as indexable HTML. The interactive app keeps its client gate.
   const isStaticRoute = STATIC_SEGMENTS.has(segments[0] as string);
 
+  // The homepage "/" (index route). While the app shell is gated (SSG + first
+  // paint) we render a static, crawlable intro there so the root ships real
+  // HTML — an <h1> + internal-link hub — instead of an empty shell.
+  const onIndex = !segments[0] || (segments[0] === '(tabs)' && !segments[1]);
+
   const [loaded] = useFonts({
     Fraunces_300Light,
     Fraunces_300Light_Italic,
@@ -179,8 +185,21 @@ export default function RootLayout() {
 
   // App routes hold until fonts + onboarding resolve (prevents flash). Static
   // SEO routes never hold — that's what makes them export with real content.
-  // The head still flushes during the hold (SSG + first paint).
-  if (!isStaticRoute && (!loaded || !onboardingChecked)) return appHead;
+  // The head still flushes during the hold (SSG + first paint). On the index
+  // route the hold renders a static SEO intro (crawlable at SSG; the app
+  // replaces it on hydration) instead of an empty shell.
+  if (!isStaticRoute && (!loaded || !onboardingChecked)) {
+    return (
+      <>
+        {appHead}
+        {onIndex && (
+          <View style={{ flex: 1, backgroundColor: c.canvas }}>
+            <HomeHeroSEO />
+          </View>
+        )}
+      </>
+    );
+  }
 
   const navTheme = {
     ...DefaultTheme,
