@@ -177,7 +177,7 @@ export default function VocalRangeTestPage() {
 
       <ScrollView style={styles.page} contentContainerStyle={styles.content}>
         <View style={styles.col}>
-          <Text style={styles.h1}>Vocal Range Test</Text>
+          <Text accessibilityRole="header" aria-level={1} style={styles.h1}>Vocal Range Test</Text>
           <Text style={styles.deck}>
             We play a note, you sing it back — stepping down from middle C and then up — to find your
             range and likely voice type. Free, no signup, and your audio never leaves your device.
@@ -193,7 +193,7 @@ export default function VocalRangeTestPage() {
             </Text>
           ))}
 
-          <Text style={styles.h2}>How the test works</Text>
+          <Text accessibilityRole="header" aria-level={2} style={styles.h2}>How the test works</Text>
           {HOW_IT_WORKS.map((s, i) => (
             <Text key={`how-${i}`} style={styles.li}>
               {i + 1}. {s.text}
@@ -202,7 +202,7 @@ export default function VocalRangeTestPage() {
 
           {SECTIONS.map((sec) => (
             <View key={sec.h2}>
-              <Text style={styles.h2}>{sec.h2}</Text>
+              <Text accessibilityRole="header" aria-level={2} style={styles.h2}>{sec.h2}</Text>
               {sec.paras.map((p, i) => (
                 <Text key={i} style={styles.p}>
                   {p}
@@ -211,7 +211,7 @@ export default function VocalRangeTestPage() {
             </View>
           ))}
 
-          <Text style={styles.h2}>Voice types and their typical ranges</Text>
+          <Text accessibilityRole="header" aria-level={2} style={styles.h2}>Voice types and their typical ranges</Text>
           <Text style={styles.p}>
             These are rough classical and choral conventions, included for orientation. Contemporary
             (CCM) singing uses these labels much more loosely, real voices overlap heavily across the
@@ -233,7 +233,7 @@ export default function VocalRangeTestPage() {
             ))}
           </View>
 
-          <Text style={styles.h2}>Frequently asked questions</Text>
+          <Text accessibilityRole="header" aria-level={2} style={styles.h2}>Frequently asked questions</Text>
           {FAQ.map((f) => (
             <View key={f.q} style={styles.faqItem}>
               <Text style={styles.faqQ}>{f.q}</Text>
@@ -256,7 +256,7 @@ export default function VocalRangeTestPage() {
             New to singing? Read our free guides →
           </Link>
 
-          <Text style={styles.h2}>Sources &amp; further reading</Text>
+          <Text accessibilityRole="header" aria-level={2} style={styles.h2}>Sources &amp; further reading</Text>
           <Text style={styles.p}>
             The guidance on this page was fact-checked against voice-science and pedagogy sources,
             including:

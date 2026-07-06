@@ -1,4 +1,9 @@
 User-agent: *
 Allow: /
 
+# Don't spend crawl budget on the app's exercise deep-links: /?exerciseId=…
+# render a ~9-word client shell and already canonical to "/". Blocking them
+# keeps Googlebot focused on the real content (/learn, /vocal-range-test, /artists).
+Disallow: /*?exerciseId=
+
 Sitemap: https://vocalhabit.com/sitemap.xml

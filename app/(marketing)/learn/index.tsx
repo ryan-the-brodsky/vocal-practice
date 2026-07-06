@@ -58,7 +58,7 @@ export default function LearnIndexPage() {
 
       <ScrollView style={styles.page} contentContainerStyle={styles.content}>
         <View style={styles.col}>
-          <Text style={styles.h1}>Learn to Sing</Text>
+          <Text accessibilityRole="header" aria-level={1} style={styles.h1}>Learn to Sing</Text>
           <Text style={styles.deck}>
             Clear, science-backed guides — no hype, no single-method dogma. Every guide links to a free
             exercise you can practice in your browser with live pitch feedback.
