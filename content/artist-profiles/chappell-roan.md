@@ -63,8 +63,8 @@ matter less for your practice than the part of the range she actually *lives* in
 songs people want to sing — "Pink Pony Club," "Good Luck, Babe!", "Red Wine Supernova" — most of the
 action sits in a chesty middle register pushed surprisingly high, plus quick trips above the break.
 
-The honest takeaway: your **range** is not the same thing as her range, and matching her top note isn't
-the goal. Practicing the *transitions* she uses is far more useful than chasing E♭6.
+Here's what that means for you: your **range** is not the same thing as her range, so matching her top
+note isn't the goal. Practicing the *transitions* she uses is far more useful than chasing E♭6.
 
 ## What voice type is Chappell Roan?
 

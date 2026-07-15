@@ -85,9 +85,11 @@ function Inline({ text }: { text: string }) {
         </Text>,
       );
     } else if (tok.startsWith('**')) {
-      out.push(<Text key={key++} style={styles.bold}>{tok.slice(2, -2)}</Text>);
+      // Recurse so a link (or italic) nested in bold still renders — e.g.
+      // **[vocal agility](/learn/…)** must be a bold link, not raw brackets.
+      out.push(<Text key={key++} style={styles.bold}><Inline text={tok.slice(2, -2)} /></Text>);
     } else {
-      out.push(<Text key={key++} style={styles.italic}>{tok.slice(1, -1)}</Text>);
+      out.push(<Text key={key++} style={styles.italic}><Inline text={tok.slice(1, -1)} /></Text>);
     }
     last = m.index + tok.length;
   }

@@ -56,6 +56,10 @@ Set `heroImage`/`ogImage`/`heroHeadline` + the `heroAlt`/`heroCredit*` block fro
 The **first time** each technique is named in prose, link it inline to its Learn article (the brief's
 `techniqueArticleMap`) with natural anchor text — plus the `## Go deeper` block. This builds topical authority
 + crawl paths. Never leave a technique unlinked on first mention.
+**Write inline links plain:** `[vocal agility](/learn/vocal-agility-exercises)`, NOT `**[vocal agility](…)**`.
+Bold-wrapping a link is the classic way to make it render as literal `[brackets]` (the MarkdownView bold
+token swallowed the link); keep the anchor un-bolded — the accent color already marks it. This is exactly
+the kind of thing the Phase-5 rendered-QA pass catches, but don't author it in to begin with.
 
 ## Output
 Write `content/artist-profiles/<slug>.draft.md`; run `npm run profiles:gen`. Return `{ draftPath, slug }` to

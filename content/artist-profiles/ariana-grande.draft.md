@@ -1,9 +1,12 @@
 <!--
-DRAFT artist-profile (status: draft). Hero/OG image: rights-clean Wikimedia Commons photo (Peter
-Dzubay, CC BY-SA 3.0, own-work, verified via Commons API extmetadata + EXIF + upload log). The route
-renders the visible attribution caption from the heroCredit* frontmatter below. Human should confirm
-the crop/framing on the preview. Coach observations are caption-derived, so confirm the exact wording
-on each video before quoting verbatim (see the sources file's Open Items).
+DRAFT artist-profile (status: draft). Hero/OG image: rights-clean Wikimedia Commons photo, MTV UK's
+CC BY 3.0 "God Is A Woman" VMA-2018 performance still (author "MTV UK"; license verified via Commons
+API extmetadata). Replaces the earlier soft 2013 Peter Dzubay shot, which was inherently low-res. The
+route renders the visible attribution caption from the heroCredit* frontmatter below. Human should
+confirm the crop/framing on the preview. Coach observations are caption-derived, so confirm the exact
+wording on each video before quoting verbatim (see the sources file's Open Items).
+Revision 2026-07-15: cut a manufactured-candor opener flagged by anti-slop, dropped the Honest Vocal
+Coach video embed (creator disabled embedding; kept as a text citation only), swapped in a crisper hero.
 Island render contract (markers the artists/[slug] route maps to hydrated islands):
   [[COACH-VIDEO id=<ytid> by="<channel>" title="…"]] -> YouTube embed card
   [[DRILL exerciseId=<id> key="<key>"]]              -> EmbeddedExercise + "Add to routine" button
@@ -19,7 +22,7 @@ artist: "Ariana Grande"
 targetKeywords: ["ariana grande vocal range", "ariana grande voice type", "how to sing like ariana grande"]
 coachSources:
   - { channel: "New York Vocal Coaching", title: "Ariana Grande Vocal Analysis (NYVC Singer Studies Ep. 32)", url: "https://www.youtube.com/watch?v=w-QsrZk2ZVM", embedUrl: "https://www.youtube.com/embed/w-QsrZk2ZVM", captions: auto, confirmEmbed: true }
-  - { channel: "Honest Vocal Coach", title: "Ariana Grande Vocal Evolution (1998 to 2020), Analysis", url: "https://www.youtube.com/watch?v=QLQuhQxAZoY", embedUrl: "https://www.youtube.com/embed/QLQuhQxAZoY", captions: auto, confirmEmbed: true }
+  - { channel: "Honest Vocal Coach", title: "Ariana Grande Vocal Evolution (1998 to 2020), Analysis", url: "https://www.youtube.com/watch?v=QLQuhQxAZoY", embedUrl: "https://www.youtube.com/embed/QLQuhQxAZoY", captions: auto, embeddable: false }  # creator disabled embedding; cite in prose, do NOT [[COACH-VIDEO]] it
   - { channel: "Ramsey Voice Studio", title: "Does Ariana Grande Have Good Vocal Technique?", url: "https://www.youtube.com/watch?v=a4dP4F12MoI", embedUrl: "https://www.youtube.com/embed/a4dP4F12MoI", captions: auto, confirmEmbed: true }
   - { channel: "Sing It To The World", title: "Vocal Warm Up for Ariana Grande: riffs, runs & high notes", url: "https://www.youtube.com/watch?v=k-AQf29SoPI", embedUrl: "https://www.youtube.com/embed/k-AQf29SoPI", captions: manual, confirmEmbed: true }
 candidateDrills:   # keep-what-fits at approval; all reuse, no bespoke. Menu spans siren, agility, mix, light top, belt.
@@ -40,11 +43,11 @@ relatedArticles:   # our evergreen Learn guides for the techniques in this profi
 heroImage: "/spotlights/ariana-grande-hero.webp"
 ogImage: "/spotlights/ariana-grande-og.jpg"
 heroHeadline: "Ariana Grande's Agility, Decoded"
-heroAlt: "Ariana Grande singing mid-note into a handheld microphone on stage in front of a colorful cartoon-city backdrop at Nickelodeon's Worldwide Day of Play, 2013"
-heroCredit: "Peter Dzubay"
-heroCreditLicense: "CC BY-SA 3.0"
-heroCreditLicenseUrl: "https://creativecommons.org/licenses/by-sa/3.0/"
-heroCreditSourceUrl: "https://commons.wikimedia.org/wiki/File:Ariana_Grande_performs_in_the_World_Wide_Day_of_Play_2013_PETER_DZUBAY.jpg"
+heroAlt: "Ariana Grande singing into a headset microphone during her God Is a Woman performance at the 2018 MTV Video Music Awards"
+heroCredit: "MTV UK"
+heroCreditLicense: "CC BY 3.0"
+heroCreditLicenseUrl: "https://creativecommons.org/licenses/by/3.0/"
+heroCreditSourceUrl: "https://commons.wikimedia.org/wiki/File:Ariana_Grande_-_God_Is_A_Woman_VMA_2018.jpg"
 metaDescription: "Ariana Grande's vocal range and voice type, explained by vocal coaches, plus free in-browser drills for her runs, bright mix, and light top."
 status: draft
 published: 2026-07-07     # date written; drives newest-first carousel order
@@ -73,9 +76,9 @@ tessitura). The very top of that span is **whistle register**: brief, piercing n
 sits on. The very bottom is her *weakest* area, and coaches note her low notes are the first thing to
 go when she's tired. She says the same herself.
 
-The honest takeaway: your **range** is not the same thing as her range, and matching her top note isn't
-the goal. On the songs people actually want to sing, the action sits in a bright, agile upper-middle
-voice. That's what's worth practicing, not E7.
+Two things follow. Your **range** is not the same thing as her range, so matching her top note isn't
+the goal. And on the songs people actually want to sing, the action sits in a bright, agile upper-middle
+voice, which is what's worth practicing, not E7.
 
 ## What voice type is Ariana Grande?
 
@@ -109,8 +112,6 @@ resonance** that eases the load on the vocal folds, which is what lets those hig
 Andy King makes the least glamorous point: her smooth **legato** is a genuine skill worth stealing,
 best trained on SOVT buzzes and hums.
 
-> [[COACH-VIDEO id=QLQuhQxAZoY by="Honest Vocal Coach" title="Ariana Grande Vocal Evolution (1998 to 2020)"]]
-
 Georgina, the **Honest Vocal Coach**, offers a reading of how the voice changed over time. In Ariana's
 early years she hears mostly belting: powerful, but pushed and throat-dominant. Across her career she
 hears a move toward a supported mix and lighter, heady placement, which she calls the smarter long-term
@@ -134,7 +135,7 @@ gentle **siren** to stretch the folds, an exaggerated bright **"N"** to wake up 
 **"now"** pattern to work belt and range, and a **head-voice "gee"** for agility runs, with the same
 "slow the run down, pick your points of emphasis" advice.
 
-Note the honest difference in emphasis. NYVC quietly argues the *unglamorous* foundation, legato and
+Note the difference in emphasis. NYVC argues the *unglamorous* foundation, legato and
 clean resonance, is the real engine, while the how-to coaches spotlight the flashy agility and the
 whistle. Both are right. **The through-line:** the move to practice isn't "sing higher," it's building
 **agility and a bright, forward mix**, then letting the top stay light.
@@ -238,7 +239,7 @@ agile middle she actually lives in. That's the part you can learn from.
 
 ## Sources
 
-- **Coach analyses (embedded, with thanks):** New York Vocal Coaching, *Ariana Grande Vocal Analysis* (NYVC Singer Studies Ep. 32); Honest Vocal Coach, *Ariana Grande Vocal Evolution (1998 to 2020)*; Ramsey Voice Studio, *Does Ariana Grande Have Good Vocal Technique?*; Sing It To The World, *Vocal Warm Up for Ariana Grande.*
+- **Coach analyses (with thanks):** New York Vocal Coaching, *Ariana Grande Vocal Analysis* (NYVC Singer Studies Ep. 32); Ramsey Voice Studio, *Does Ariana Grande Have Good Vocal Technique?*; Sing It To The World, *Vocal Warm Up for Ariana Grande* (all embedded above); and Honest Vocal Coach, *Ariana Grande Vocal Evolution (1998 to 2020)* (cited in the text; the creator has embedding turned off).
 - **Background:** [Ariana Grande on Wikipedia](https://en.wikipedia.org/wiki/Ariana_Grande) (four-octave / whistle-register description, Broadway *13*, self-taught covers of Adele, Whitney Houston, and Mariah Carey).
 - **Range estimate:** [Singing Carrots artist range](https://singingcarrots.com/artist-range?artist=Ariana+Grande) and vocal-profile blogs (crowd-sourced; treat as approximate).
 - **Voice science:** Lydia Kruse (Purdue), ["The science behind Ariana Grande's vocal metamorphosis"](https://theconversation.com/the-science-behind-ariana-grandes-vocal-metamorphosis-233621), *The Conversation* (2024), on the breathy tone (reduced vocal-fold closure) and forward resonance; and the [whistle/flageolet register](https://en.wikipedia.org/wiki/Whistle_register) (highest register, small vibrating portion of the folds).
