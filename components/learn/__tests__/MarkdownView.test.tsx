@@ -35,4 +35,14 @@ describe("<MarkdownView />", () => {
     expect(screen.getByText("step one")).toBeTruthy();
     expect(screen.getByText("a wise quote")).toBeTruthy();
   });
+
+  it("renders a link nested inside bold as the link label, not raw brackets", () => {
+    render(
+      <MarkdownView content={"Built on **[vocal agility](/learn/vocal-agility-exercises)** and more."} />,
+    );
+    // The bold-wrapped link must surface its label…
+    expect(screen.getByText("vocal agility")).toBeTruthy();
+    // …and NEVER leak the raw markdown link syntax to the reader.
+    expect(screen.queryByText(/\[vocal agility\]\(/)).toBeNull();
+  });
 });

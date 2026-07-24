@@ -39,8 +39,39 @@ PHASE 3 · DRAFT  (sequential — barrier; needs all Phase-2 outputs)
 PHASE 4 · EDIT  (sequential, loop-until-pass)
   └─ skill: editorial-critic (anti-slop + voice) — iterate the draft until it passes
 
+PHASE 5 · RENDERED QA  (browser-driven, BLOCKING before staging — see "Rendered QA pass" below)
+  └─ Build the site, open the real /artists/<slug> page, scroll it top to bottom, and fix what only
+     shows up when rendered: raw markers/markdown syntax, dead or disabled embeds, a soft hero image.
+
 → ASSEMBLE: npm run profiles:gen · confirm hero image + sources file exist · STAGE for preview (§3e)
 ```
+
+## Rendered QA pass (Phase 5) — REQUIRED before you stage
+
+A markdown lint and the anti-slop scanner both read the *source*; neither sees what the page actually
+renders. Real defects have shipped past source-only checks (raw `[[…]]`/`[text](url)` leaking as text,
+a coach embed the creator had disabled, a blurry hero). So build the page and scroll the whole thing:
+
+```
+EXPO_PUBLIC_INCLUDE_DRAFTS=1 npx expo export --platform web   # NB: `expo start` SSR-throws on a tone import; export instead
+npx serve dist -l 8080                                         # or any static server
+# then drive claude-in-chrome to /artists/<slug>, scroll top→bottom, screenshot the hero + each embed
+```
+
+Walk this checklist on the RENDERED page (not the .md):
+- **No raw syntax leaking.** Zero `[[…]]` island markers, zero `[text](url)` link source, zero stray
+  `**`/`*`. If any show, a marker or link didn't expand (classic cause: a link nested in **bold**);
+  fix it, never ship brackets.
+- **Every coach embed plays.** A "Video unavailable" / "Watch on YouTube" box means the creator turned
+  embedding off: cut that `[[COACH-VIDEO]]` and keep the coach as a text citation in Sources.
+- **Hero is crisp at full width.** Soft / pixelated / upscaled means go back to `spotlight-hero-image`
+  for a higher-res source before staging. Judge it at hero size on the page, not as a thumbnail.
+- **Every `[[DRILL]]` resolves.** Mini-player + "Add to routine" present; the exercise id maps to a
+  real exercise (no blank card).
+- **Links + structure.** Internal technique links point to real /learn/ slugs; "Go deeper" block is
+  present; exactly one H1; FAQ intact.
+
+Screenshot the hero and each embed into the handoff so the human review starts from evidence.
 
 **How to run the fan-out (interactive):** spawn the three Phase-2 workers in **one message** (parallel
 `Agent` calls), each pointed at its subskill with the research brief as input; await all three before drafting.
