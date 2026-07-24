@@ -1,5 +1,5 @@
 <!--
-DRAFT artist-profile (status: draft). Hero/OG image: rights-clean Wikimedia Commons photo, MTV UK's
+PUBLISHED artist-profile (status: published). Hero/OG image: rights-clean Wikimedia Commons photo, MTV UK's
 CC BY 3.0 "God Is A Woman" VMA-2018 performance still (author "MTV UK"; license verified via Commons
 API extmetadata). Replaces the earlier soft 2013 Peter Dzubay shot, which was inherently low-res. The
 route renders the visible attribution caption from the heroCredit* frontmatter below. Human should
@@ -49,9 +49,9 @@ heroCreditLicense: "CC BY 3.0"
 heroCreditLicenseUrl: "https://creativecommons.org/licenses/by/3.0/"
 heroCreditSourceUrl: "https://commons.wikimedia.org/wiki/File:Ariana_Grande_-_God_Is_A_Woman_VMA_2018.jpg"
 metaDescription: "Ariana Grande's vocal range and voice type, explained by vocal coaches, plus free in-browser drills for her runs, bright mix, and light top."
-status: draft
+status: published
 published: 2026-07-07     # date written; drives newest-first carousel order
-updated: 2026-07-07
+updated: 2026-07-23
 ---
 
 # Ariana Grande's Vocal Range and Voice Type, Explained
