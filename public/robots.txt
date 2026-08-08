@@ -6,4 +6,38 @@ Allow: /
 # keeps Googlebot focused on the real content (/learn, /vocal-range-test, /artists).
 Disallow: /*?exerciseId=
 
+# AI answer engines, allowed explicitly. A named group makes that bot ignore the
+# "*" group entirely, so the exerciseId rule MUST be repeated in each one —
+# otherwise naming a bot here would silently UNBLOCK the app shells for it.
+# Tokens verified against developers.openai.com/api/docs/bots.
+
+# ChatGPT's search index — the one that decides if we're citable in answers.
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /*?exerciseId=
+
+# Live fetch when a ChatGPT user clicks through a citation.
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /*?exerciseId=
+
+# Model training. Allowed deliberately — flip to "Disallow: /" to opt out.
+User-agent: GPTBot
+Allow: /
+Disallow: /*?exerciseId=
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /*?exerciseId=
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /*?exerciseId=
+
+# Gemini / AI Overviews grounding. Separate from Googlebot: removing this does
+# not affect normal Google Search indexing.
+User-agent: Google-Extended
+Allow: /
+Disallow: /*?exerciseId=
+
 Sitemap: https://vocalhabit.com/sitemap.xml
