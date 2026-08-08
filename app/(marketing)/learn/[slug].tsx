@@ -7,6 +7,7 @@ import { LEARN_ARTICLES } from '@/content/learn/articles.generated';
 import MarkdownView from '@/components/learn/MarkdownView';
 import EmbeddedExercise from '@/components/learn/EmbeddedExercise';
 import { SITE, socialMetaTags } from '@/lib/seo/socialMeta';
+import { extractFaq, faqJsonLd } from '@/lib/seo/faq';
 
 const c = Colors.light;
 
@@ -44,8 +45,14 @@ export default function LearnArticlePage() {
     description: article.metaDescription,
     dateModified: article.updated,
     mainEntityOfPage: url,
+    author: { '@type': 'Organization', name: 'Vocal Habit', url: SITE },
     publisher: { '@type': 'Organization', name: 'Vocal Habit', url: SITE },
+    // No datePublished — frontmatter only tracks `updated`, and guessing one
+    // would be fabricated structured data.
   };
+
+  // Only the articles that actually author a "## FAQ" block get FAQPage.
+  const faq = extractFaq(article.body);
 
   // SEO <title> (≤60 chars) can differ from the descriptive on-page H1 / og:title.
   const pageTitle = article.seoTitle?.trim() || `${article.title} | Vocal Habit`;
@@ -63,6 +70,9 @@ export default function LearnArticlePage() {
           type: 'article',
         })}
         <script type="application/ld+json">{JSON.stringify(articleJsonLd)}</script>
+        {faq.length > 0 ? (
+          <script type="application/ld+json">{JSON.stringify(faqJsonLd(faq, url))}</script>
+        ) : null}
       </Head>
 
       <ScrollView style={styles.page} contentContainerStyle={styles.content}>

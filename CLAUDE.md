@@ -178,6 +178,14 @@ ExerciseDescriptor + voicePart → `planExercise()` → `KeyIteration[]` → `fl
 
 **Deploy:** `npx expo export --platform web` → `dist/` → Netlify (static host; vocalhabit.com).
 
+**Indexing & AI-answer distribution (shipped 2026-08-08).** Search Console is readable via the **Ahrefs MCP** (`gsc-pages` / `gsc-keywords`, project_id `10013070`) — no browser scraping needed. Baseline at ship: 4 clicks / 57 impressions in 30 days, all clicks branded. `robots.txt` was audited and found **correct** — do not "fix" it on the assumption that it blocks Google; the sole `Disallow: /*?exerciseId=` is intentional.
+
+- `scripts/indexnow-submit.mjs` + `plugins/indexnow/` — Netlify `onSuccess` plugin, gated to `CONTEXT=production`, never fails the build. Parses `dist/`-then-`public/` `sitemap.xml` → POSTs to IndexNow (Bing/Yandex). Key file `public/19a0f4599c207ac7ae2b368970decb47.txt` **must stay served at the domain root** or submissions 403. `npm run seo:indexnow` (`--dry-run` to inspect). Google does not support IndexNow.
+- `public/robots.txt` — explicit allow groups for `OAI-SearchBot`, `ChatGPT-User`, `GPTBot`, `PerplexityBot`, `ClaudeBot`, `Google-Extended`. **Every named group repeats `Disallow: /*?exerciseId=`**: a named user-agent group makes that bot ignore the `*` group entirely, so a new group without the repeat silently unblocks the app shells for that crawler. Add the line whenever you add a group.
+- `lib/seo/faq.ts` — `extractFaq(body)` pulls `## FAQ` → `### Question` pairs (end-of-input is `(?![\s\S])`, **not** `$`, which under the `m` flag means end-of-line and terminates the lazy capture on the first blank line); `faqJsonLd()` wraps them. `app/(marketing)/learn/[slug].tsx` emits `FAQPage` for the 9 articles that author a block. Google **deprecated FAQ rich results in May 2026** — this exists for non-Google/AI retrieval, not the SERP. `Article` carries `author` but deliberately no `datePublished` (frontmatter has only `updated`).
+- Verifying JSON-LD in the export: the script tag is emitted as `<script data-rh="true" type="application/ld+json">` — a `grep` for `<script type=` finds nothing. Match `<script[^>]*application/ld\+json`.
+- **Spam backlinks:** 379 referring domains, effectively all link-farm spam from launch week. No disavow filed (Google advises against reflexive disavows). First suspect if a manual action or ranking collapse appears.
+
 ## Known limitations / non-yet-done
 
 - **iOS dev build** not yet generated. Needs `npx expo prebuild && npx expo run:ios`. The Salamander player and native pitch detector are coded but unvalidated on real hardware. RMS gate threshold may need per-platform tuning.
