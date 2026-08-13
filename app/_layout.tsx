@@ -24,6 +24,7 @@ import { Colors } from '@/constants/theme';
 import FeedbackButton from '@/components/FeedbackButton';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import HomeHeroSEO from '@/components/home/HomeHeroSEO';
+import { initAnalytics } from '@/lib/analytics';
 import { hasSeenOnboarding } from '@/lib/settings/onboarding';
 import { SITE, socialMetaTags } from '@/lib/seo/socialMeta';
 import { requestPersistentStorage } from '@/lib/storage/persist';
@@ -149,6 +150,13 @@ export default function RootLayout() {
     if (isStaticRoute) return;
     requestPersistentStorage().catch(() => {});
   }, [isStaticRoute]);
+
+  // Product analytics. Unlike the effects above this is NOT gated on route
+  // group — Learn/marketing pages are where most arrivals land. Cookieless, so
+  // it stores nothing on the device and needs no consent banner.
+  useEffect(() => {
+    initAnalytics();
+  }, []);
 
   useEffect(() => {
     if (isStaticRoute) return;
