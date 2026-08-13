@@ -221,8 +221,15 @@ export default function CoachingScreen() {
         // getExerciseAsync resolves built-ins, user exercises, and song chunks.
         const ex = await getExerciseAsync(rec.exerciseId);
         if (cancelled) return;
+        // bpmOverride: replay at the tempo the singer actually practiced, not
+        // the descriptor default (they may have slowed the drill down).
         const iters = ex
-          ? planExercise({ exercise: ex, voicePart: rec.voicePart, octaveShift: rec.octaveShift })
+          ? planExercise({
+              exercise: ex,
+              voicePart: rec.voicePart,
+              octaveShift: rec.octaveShift,
+              bpmOverride: rec.tempo,
+            })
           : [];
         setRecord(rec);
         setIterations(iters);

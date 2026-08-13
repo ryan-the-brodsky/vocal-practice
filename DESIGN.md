@@ -259,6 +259,19 @@ Padding: `space-sm` × `space-md` (10/12 × 18/20). Radius: `radius-md`. Font: G
 - Padding: `space-2xs` × `space-sm`
 - Radius: `radius-pill`
 
+### Stepped slider (tempo)
+
+A notched slider for a small, ordered set of values that has a meaningful "normal" in the middle. Drag the track or tap the flanking steppers; it always lands on a notch.
+
+- Row: `[−] [track] [+]`, gap `space-sm`. Steppers are 44 × 44, `--bg-surface` on `1px --border-strong`, `radius-md`, glyph in JetBrains Mono at `mono-lg`. Spent/at-the-end steppers drop to `opacity: 0.35`.
+- Track: `space-xs` tall, `radius-pill`, `--border-subtle`. Hit area is padded to 44 px tall.
+- Centre tick: 2 × `space-md`, `--border-strong`, marking the default value.
+- Fill: `--accent`, drawn **from the centre tick out to the thumb** — the eye reads distance-from-normal, not an absolute level.
+- Thumb: 22 px circle, `--accent`, `radius-pill`.
+- Readout below: the value in JetBrains Mono at `mono-md` (`--text-primary`) + a plain-language delta at `text-sm` (`--text-secondary`). Never the number alone.
+- Header row carries the eyebrow label and, when off-default, a ghost reset link in `--accent` at `text-xs`.
+- `accessibilityRole="adjustable"` with increment/decrement actions; the steppers are the tab-reachable path.
+
 ### Step progress dots (onboarding / multi-step flows)
 
 A horizontal row of small pills marking position in a short linear flow.
@@ -310,6 +323,7 @@ If any review surfaces one of these, fix it before shipping.
 | 2026-05-09 | Burnt amber accent (`#a86a24` light / `#e09238` dark), not indigo | Prior default was indigo `#4338ca` — overused, generic SaaS. Amber is uncommon in music apps and reads warm + performer's-stage. |
 | 2026-05-09 | Light is the only active theme; dark deferred to opt-in toggle | After the migration shipped, the app inherited OS dark mode via `useColorScheme()` and rendered the dark `bgCanvas` (warm-dark) — the user immediately rejected this as the same brown-canvas mistake the cream-inversion fixed. Decision: hardcode light in `useTheme()`, `useThemeColor()`, `app/_layout.tsx`, `app/(tabs)/_layout.tsx`, `components/parallax-scroll-view.tsx`. Dark tokens stay defined in the palette for a future Theme preference (System / Light / Dark) — not auto-routed via OS. |
 | 2026-06-20 | Added "Step progress dots" to Component Vocabulary | First-run onboarding needed a multi-step position indicator, which wasn't in the vocabulary. Built from existing tokens only (amber `--accent` current, `--accent-muted` done, `--border-strong` upcoming; `radius-pill`); no new color or size. Used by `components/onboarding/OnboardingScaffold.tsx`. |
+| 2026-08-05 | Added "Stepped slider (tempo)" to Component Vocabulary | The practice loop had no tempo control at all, and the vocabulary had no slider. Built from existing tokens only (`--accent` fill + thumb, `--border-subtle` track, `--border-strong` centre tick and stepper borders, `space-xs`/`space-md`, `radius-pill`/`radius-md`, JetBrains Mono for the numerals) — no new color, size, or radius. Notched rather than continuous so it always lands on a musically meaningful value, and the fill runs from the centre outward so "how far from normal" is the thing you read. Used by `components/practice/TempoControl.tsx`. |
 | 2026-07-03 | "Parchment" repalette — light throughout, amber-orange accent | User found the cream/dark-brown/amber system too dark and dated (the dark-brown emphasis bar read "70s"). Explored 11 restyle directions + tonal variants via a dev-only `?vhstyle=` harness (`constants/styleVariants*.ts`), screenshot-reviewed in Slack. Chosen: "Amber Pop" parchment — canvas `#f6f1e5`, emphasis flips to a LIGHT band `#efe6d1` (dark ink, not cream), accent brightens to amber-orange `#e07d1c`, and `--text-tertiary` warms to `#9c7c55` so eyebrow labels carry the accent. `--text-on-emphasis` is now dark; on-accent labels must use `--bg-canvas` (fixed the Feedback button, the one component that had leaned on `--text-on-emphasis` for light-on-accent). Palette-only — type scale, spacing, radii, and the Fraunces/General Sans/JetBrains stack are unchanged. |
 
 ---

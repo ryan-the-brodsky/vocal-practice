@@ -21,6 +21,7 @@ import {
 import { MicStatus, type MicStatusState } from "@/components/practice/MicStatus";
 import { MicErrorState } from "@/components/practice/MicErrorState";
 import { MicLevelMeter } from "@/components/practice/MicLevelMeter";
+import { TempoControl } from "@/components/practice/TempoControl";
 import VexFlowMelodyDisplay from "@/components/practice/VexFlowMelodyDisplay";
 import { PostSessionPanel } from "@/components/practice/PostSessionPanel";
 import { createAudioPlayer, type AudioPlayer, type SequenceHandle } from "@/lib/audio";
@@ -60,6 +61,7 @@ import { currentStreak } from "@/lib/progress/stats";
 import { loadRoutine, todayStatus, type RoutineConfig, type RoutineStatus } from "@/lib/progress/routine";
 import { SessionTracker, type SessionTrackerSnapshot } from "@/lib/session/tracker";
 import { loadVoicePart, saveVoicePart } from "@/lib/settings/voicePart";
+import { DEFAULT_TEMPO_SCALE, effectiveBpm, loadTempoScale, saveTempoScale } from "@/lib/settings/tempo";
 import { TodayRoutineCard } from "@/components/practice/TodayRoutineCard";
 
 const VOICE_PARTS: VoicePart[] = ["soprano", "alto", "tenor", "baritone"];
@@ -110,6 +112,12 @@ export default function PracticeScreen() {
   // Per-exercise tonic memory: key is `${exerciseId}|${voicePart}`, value is tonicMidi.
   const [exerciseTonicMap, setExerciseTonicMap] = useState<Map<string, number>>(new Map());
   const [guidance, setGuidance] = useState<Guidance>("full");
+  // Speed multiplier applied to the exercise's notated tempo; persisted globally.
+  const [tempoScale, setTempoScaleState] = useState<number>(DEFAULT_TEMPO_SCALE);
+  const setTempoScale = useCallback((next: number) => {
+    setTempoScaleState(next);
+    saveTempoScale(next).catch(() => {});
+  }, []);
   const [demoEnabled, setDemoEnabled] = useState(true);
   // Dev-only: capture raw mic audio + sidecar JSON for the offline eval corpus.
   const [rawCaptureEnabled, setRawCaptureEnabled] = useState(false);
@@ -128,6 +136,9 @@ export default function PracticeScreen() {
       .then((vp) => {
         if (vp) setVoicePartState(vp);
       })
+      .catch(() => {});
+    loadTempoScale()
+      .then((s) => setTempoScaleState(s))
       .catch(() => {});
     getAllExercises()
       .then((list) => setAvailableExercises(list))
@@ -273,6 +284,11 @@ export default function PracticeScreen() {
   }, []);
 
   const supportsVoicePart = exercise.voicePartRanges[voicePart] !== undefined;
+
+  // The bpm this exercise actually runs at once the speed multiplier is applied.
+  // Everything tempo-derived (plan, demo, detector tuning, lead-in countdown,
+  // logged record) reads this rather than exercise.tempo.
+  const sessionBpm = effectiveBpm(exercise.tempo, tempoScale);
 
   // Follow-along: exercises that can't be pitch-detected (e.g. lip trills) play
   // as an unscored guide — no mic, no scoring, no Guided mode.
@@ -523,6 +539,7 @@ export default function PracticeScreen() {
       const iterations = planExercise({
         exercise,
         voicePart,
+        bpmOverride: sessionBpm,
         accompanimentPreset,
         guidance,
         clickTrackEnabled: true,
@@ -537,7 +554,7 @@ export default function PracticeScreen() {
       // follow-along (unscored) exercises.
       if (detectionEnabled && detectorRef.current) {
         const noteSec = (() => {
-          try { return noteValueToSeconds(exercise.noteValue, exercise.tempo); }
+          try { return noteValueToSeconds(exercise.noteValue, sessionBpm); }
           catch { return 0.5; }
         })();
         const tuning = resolveDetectorTuning({ noteSec, hints });
@@ -569,6 +586,7 @@ export default function PracticeScreen() {
         const demoIter = planExercise({
           exercise,
           voicePart,
+          bpmOverride: sessionBpm,
           accompanimentPreset,
           guidance: "full",
           // Preview exactly the session's first key, then stop there.
@@ -664,7 +682,7 @@ export default function PracticeScreen() {
 
         // Compute lead-in countdown: beats remaining until melody starts for the current key.
         let countdown: number | null = null;
-        const beatSec = 60 / exercise.tempo;
+        const beatSec = 60 / sessionBpm;
         for (let ki = 0; ki < flat.keyStarts.length; ki++) {
           const ks = flat.keyStarts[ki];
           const iter = iterations[ki];
@@ -792,6 +810,7 @@ export default function PracticeScreen() {
         voicePart,
         audioStartMsRef.current,
         detectorStartMsRef.current,
+        sessionBpm,
       );
     }
 
@@ -809,7 +828,7 @@ export default function PracticeScreen() {
           exerciseId: exercise.id,
           voicePart,
           octaveShift,
-          tempo: exercise.tempo,
+          tempo: sessionBpm,
           keyAttempts: completed,
           totalDurationMs: Date.now() - sessionStartMsRef.current,
         };
@@ -875,7 +894,7 @@ export default function PracticeScreen() {
         exerciseId: exercise.id,
         voicePart,
         octaveShift,
-        tempo: exercise.tempo,
+        tempo: sessionBpm,
         keyAttempts: [],
         totalDurationMs: Date.now() - sessionStartMsRef.current,
       };
@@ -912,6 +931,17 @@ export default function PracticeScreen() {
   };
 
   const rmsGate = rmsGateFor(accompanimentPreset, headphonesConfirmed ?? false);
+
+  // Guided mode is hold-and-match — the singer sets the pace, so tempo only
+  // applies to the timed Standard loop.
+  const tempoControl = (
+    <TempoControl
+      baseTempo={exercise.tempo}
+      scale={tempoScale}
+      onChange={setTempoScale}
+      disabled={status !== "idle"}
+    />
+  );
 
   const practiceControls = (
     <PracticeControls
@@ -1081,6 +1111,7 @@ export default function PracticeScreen() {
           voicePart={voicePart}
           isDesktop={isDesktop}
           controls={practiceControls}
+          tempoControl={tempoControl}
           onNextExercise={handleNextExercise}
           onTryAgain={handleTryAgain}
           nextExerciseName={nextRoutineExerciseName}
@@ -1682,6 +1713,8 @@ interface StandardBodyProps {
   /** Exercise / voice / settings — rendered inside the command console on
    *  desktop, stacked below the staff on smaller screens. */
   controls: React.ReactNode;
+  /** Speed slider — sits directly under Start on both layouts (never in a drawer). */
+  tempoControl: React.ReactNode;
   onNextExercise: () => void;
   onTryAgain: () => void;
   nextExerciseName: string | null;
@@ -1722,6 +1755,7 @@ function StandardModeBody({
   voicePart,
   isDesktop,
   controls,
+  tempoControl,
   onNextExercise,
   onTryAgain,
   nextExerciseName,
@@ -2025,6 +2059,7 @@ function StandardModeBody({
             {status === "idle" ? (
               <>
                 {startInfoLine(false)}
+                {tempoControl}
                 <View style={[styles.consoleDivider, { backgroundColor: colors.borderSubtle }]} />
                 {controls}
                 <View style={[styles.consoleDivider, { backgroundColor: colors.borderSubtle }]} />
@@ -2065,6 +2100,7 @@ function StandardModeBody({
       ) : (
         <View style={styles.actions}>{primaryButton(false)}</View>
       )}
+      {status === "idle" && tempoControl}
       {micMeter}
       {status !== "idle" && liveReadouts}
       {actionBlock}
@@ -2182,6 +2218,7 @@ function exportRawCapture(
   voicePart: VoicePart,
   audioStartMs: number,
   detectorStartMs: number,
+  bpm: number,
 ): void {
   const capture = detector?.getRawCapture?.();
   if (!capture || capture.pcm.length === 0 || iterations.length === 0) return;
@@ -2197,7 +2234,7 @@ function exportRawCapture(
     exerciseId: exercise.id,
     voicePart,
     startTonic: iterations[0].tonic,
-    tempo: exercise.tempo,
+    tempo: bpm,
     sampleRate,
     durationMs: (pcm.length / sampleRate) * 1000,
     capturedAt: new Date().toISOString(),
