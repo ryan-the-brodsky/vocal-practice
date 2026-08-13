@@ -50,6 +50,7 @@ import {
   type PitchSample,
 } from "@/lib/pitch";
 import { classifyMicError, type MicErrorReason } from "@/lib/pitch/micError";
+import { track } from "@/lib/analytics";
 import { sniffMicrophone } from "@/lib/pitch/sniff";
 import type { CaptureSidecar } from "@/lib/capture/types";
 import { encodeWav } from "@/lib/capture/wav";
@@ -494,6 +495,12 @@ export default function PracticeScreen() {
     setPendingSession(null);
     setLoggedMessage(null);
     setStatus("loading");
+    track("practice_started", {
+      exerciseId: exercise.id,
+      voicePart,
+      mode,
+      scored: detectionEnabled,
+    });
 
     try {
       if (!playerRef.current) playerRef.current = createAudioPlayer();
@@ -542,7 +549,9 @@ export default function PracticeScreen() {
         try {
           await detectorRef.current.start();
         } catch (micErr: unknown) {
-          setMicErrorReason(classifyMicError(micErr));
+          const reason = classifyMicError(micErr);
+          setMicErrorReason(reason);
+          track("mic_error_shown", { reason, exerciseId: exercise.id });
           await detectorRef.current.stop().catch(() => {});
           setStatus("idle");
           return;
@@ -807,6 +816,13 @@ export default function PracticeScreen() {
         // Hold in state — user must tap Log to persist.
         setPendingSession(record);
         setLoggedMessage(null);
+        track("pattern_completed", {
+          exerciseId: exercise.id,
+          voicePart,
+          mode,
+          scored: true,
+          keys: completed.length,
+        });
 
         const sessionInput = fromKeyAttempts(completed, iterations);
         const ranked = diagnoseSession(sessionInput);
@@ -865,6 +881,13 @@ export default function PracticeScreen() {
       };
       setPendingSession(record);
       setLoggedMessage(null);
+      track("pattern_completed", {
+        exerciseId: exercise.id,
+        voicePart,
+        mode,
+        scored: false,
+        keys: iterations.length,
+      });
     }
 
     setStatus("idle");

@@ -4,6 +4,14 @@ Personal vocal-warmup app. Pitch detection + accuracy scoring with piano accompa
 
 > **Scope (2026-06-23):** web-only, single-user, local-first static site — no mobile/native app, no accounts, no externally-maintained resources. The iOS/TestFlight milestone (M1) is **dead scope**; native sections below are retained for history only. Focus is usability, delight, and hardening existing web features.
 
+## Cookieless Product Analytics — shipped 2026-08-13
+
+PostHog wired up in `lib/analytics/`, cookieless (`cookieless_mode: 'always'`, no session replay) so the site stays banner-free and consistent with the local-first posture — nothing is stored on the visitor's device. Three events only: `practice_started`, `pattern_completed`, `mic_error_shown`.
+
+Motivated by a measurement surprise: Ahrefs Web Analytics shows **391 visitors / 30 days with LLM referrals (192) as the #1 channel, ahead of search (58)** — while GSC showed ~12 clicks. Roughly half of arrivals come from ChatGPT and land on `/`, and nothing currently tells us whether any of them sing. That's the funnel these three events measure, with the mic-permission wall the prime suspect for the drop-off.
+
+**Open:** confirm cookieless mode is enabled in the PostHog project settings (events are dropped server-side otherwise), set per-product billing limits to $0, and revisit PostHog's self-driving beta ($15/merged PR, 3 free/month) once error-tracking signal accumulates.
+
 ## Capability Taxonomy & Growth Paths — shipped 2026-06-23
 
 From `EXERCISE_TAXONOMY_RESEARCH.md` (deep-research, adversarially verified). Turns the random warm-up collection into a purpose-directed, categorized library.

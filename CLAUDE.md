@@ -178,6 +178,19 @@ ExerciseDescriptor + voicePart → `planExercise()` → `KeyIteration[]` → `fl
 
 **Deploy:** `npx expo export --platform web` → `dist/` → Netlify (static host; vocalhabit.com).
 
+**Traffic reality (measured 2026-08-13, Ahrefs Web Analytics project `10013070`):** 391 visitors / 30 days, and the biggest channel is **LLM referrals (192), not search (58)** — chatgpt.com alone sends 72. GSC shows only ~12 clicks over the same window, almost all on the branded query "vocal habit", so **GSC massively understates this site and is the wrong dashboard to judge it by**. Ahrefs Site Explorer still reports 0 organic keywords / DR 0. Check the Ahrefs Web Analytics channel breakdown before drawing conclusions about content performance, and treat AI-answer retrieval as a first-class content goal rather than a side effect.
+
+## Product analytics (`lib/analytics/`, shipped 2026-08-13)
+
+PostHog via `posthog-js`, **cookieless** (`cookieless_mode: 'always'`) — stores nothing on the device, so the site needs **no consent banner** (matching the cookieless Ahrefs tag in `app/+html.tsx:14`). Session replay is explicitly disabled (`disable_session_recording: true`) because it would require consent-backed storage; that was a deliberate trade, not an oversight.
+
+- `lib/analytics/index.ts` is web; `index.native.ts` is a no-op stub (Metro platform resolution, same pattern as `lib/audio/`).
+- `initAnalytics()` runs from a `useEffect` in `app/_layout.tsx` that is deliberately **not** gated on `isStaticRoute` — Learn/marketing pages are where most arrivals land.
+- posthog-js loads via dynamic `import()`, so it lands in a separate ~254 KB chunk and never enters the SSG render path or the entry bundle. Re-verify after touching this: `grep -c __PosthogExtensions__ dist/_expo/static/js/web/entry-*.js` must be 0.
+- Only three events (`lib/analytics/events.ts`): `practice_started`, `pattern_completed`, `mic_error_shown` — sized to answer "what do the LLM referrals landing on `/` actually do", with `mic_error_shown` the suspected biggest leak.
+- Gated on `EXPO_PUBLIC_POSTHOG_KEY` (see `.env.example`); unset = total no-op, which is the local-dev and deploy-preview default. Production value lives in Netlify env vars.
+- **Cookieless mode must ALSO be enabled in the PostHog project settings or every event is silently dropped server-side.**
+
 ## Known limitations / non-yet-done
 
 - **iOS dev build** not yet generated. Needs `npx expo prebuild && npx expo run:ios`. The Salamander player and native pitch detector are coded but unvalidated on real hardware. RMS gate threshold may need per-platform tuning.
