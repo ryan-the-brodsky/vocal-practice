@@ -12,6 +12,7 @@
     "learn:gen": "node scripts/gen-learn-content.mjs",
     "profiles:gen": "node scripts/gen-artist-profiles.mjs",
     "seo:sitemap": "node scripts/gen-sitemap.mjs",
+    "seo:indexnow": "node scripts/indexnow-submit.mjs",
     "lint": "expo lint",
     "test": "jest",
     "test:coverage": "jest --selectProjects unit --coverage"
