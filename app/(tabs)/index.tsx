@@ -408,6 +408,13 @@ export default function PracticeScreen() {
         setLoggedSessions((prev) => [...prev, record]);
         // Keep coachingCta alive — it becomes visible once pendingSession is cleared.
         setLoggedMessage("Logged");
+        track("session_logged", {
+          kept: true,
+          exerciseId: record.exerciseId,
+          voicePart: record.voicePart,
+          scored: record.keyAttempts.length > 0,
+          hasNote: !!record.notes,
+        });
       } catch (e) {
         setSavedMessage(`Log failed: ${e instanceof Error ? e.message : String(e)}`);
       }
@@ -568,7 +575,7 @@ export default function PracticeScreen() {
         } catch (micErr: unknown) {
           const reason = classifyMicError(micErr);
           setMicErrorReason(reason);
-          track("mic_error_shown", { reason, exerciseId: exercise.id });
+          track("mic_error_shown", { reason, surface: "practice", exerciseId: exercise.id });
           await detectorRef.current.stop().catch(() => {});
           setStatus("idle");
           return;
@@ -835,12 +842,18 @@ export default function PracticeScreen() {
         // Hold in state — user must tap Log to persist.
         setPendingSession(record);
         setLoggedMessage(null);
+        // `keys` is how many keys the singer actually got through, which can be
+        // fewer than planned if they hit Stop. completedAllKeys is the honest
+        // "finished the exercise" signal — without it every partial run looks
+        // like a completion.
         track("pattern_completed", {
           exerciseId: exercise.id,
           voicePart,
           mode,
           scored: true,
           keys: completed.length,
+          plannedKeys: iterations.length,
+          completedAllKeys: completed.length >= iterations.length,
         });
 
         const sessionInput = fromKeyAttempts(completed, iterations);
@@ -900,12 +913,16 @@ export default function PracticeScreen() {
       };
       setPendingSession(record);
       setLoggedMessage(null);
+      // Follow-along only reaches here on a natural finish (wasComplete), so
+      // every key played through.
       track("pattern_completed", {
         exerciseId: exercise.id,
         voicePart,
         mode,
         scored: false,
         keys: iterations.length,
+        plannedKeys: iterations.length,
+        completedAllKeys: true,
       });
     }
 
@@ -917,6 +934,15 @@ export default function PracticeScreen() {
   }
 
   function handleDiscardSession() {
+    if (pendingSession) {
+      track("session_logged", {
+        kept: false,
+        exerciseId: pendingSession.exerciseId,
+        voicePart: pendingSession.voicePart,
+        scored: pendingSession.keyAttempts.length > 0,
+        hasNote: false,
+      });
+    }
     setPendingSession(null);
     setCoachingCta(null);
     setLoggedMessage(null);

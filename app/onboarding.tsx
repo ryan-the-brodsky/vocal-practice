@@ -14,9 +14,15 @@ import ModeIntroStep from "@/components/onboarding/steps/ModeIntroStep";
 import ImportIntroStep from "@/components/onboarding/steps/ImportIntroStep";
 import SongSegmentIntroStep from "@/components/onboarding/steps/SongSegmentIntroStep";
 import { markOnboardingSeen } from "@/lib/settings/onboarding";
+import { track } from "@/lib/analytics";
 import { saveVoicePart } from "@/lib/settings/voicePart";
 import { saveRoutine, DEFAULT_ROUTINE } from "@/lib/progress/routine";
 import type { VoicePart } from "@/lib/exercises/types";
+
+// Stable step names for analytics. Kept module-level (not derived from `steps`
+// below) so the finish callback doesn't take a dependency that changes identity
+// on every render. Must stay in the same order as the `steps` array.
+const stepKeys = ["welcome", "voice", "routine", "mode", "import", "segment"] as const;
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -57,23 +63,37 @@ export default function OnboardingScreen() {
 
   // The ordered step list: welcome → two preference steps → three feature intros.
   const steps = [
-    { key: "welcome", render: () => <WelcomeStep /> },
-    { key: "voice", render: () => <VoiceStep value={voice} onChange={setVoice} /> },
-    { key: "routine", render: () => <RoutineStep selectedIds={routineIds} onToggle={toggleRoutine} /> },
-    { key: "mode", render: () => <ModeIntroStep /> },
-    { key: "import", render: () => <ImportIntroStep /> },
-    { key: "segment", render: () => <SongSegmentIntroStep /> },
+    { key: stepKeys[0], render: () => <WelcomeStep /> },
+    { key: stepKeys[1], render: () => <VoiceStep value={voice} onChange={setVoice} /> },
+    { key: stepKeys[2], render: () => <RoutineStep selectedIds={routineIds} onToggle={toggleRoutine} /> },
+    { key: stepKeys[3], render: () => <ModeIntroStep /> },
+    { key: stepKeys[4], render: () => <ImportIntroStep /> },
+    { key: stepKeys[5], render: () => <SongSegmentIntroStep /> },
   ];
   const isLast = step === steps.length - 1;
 
-  const finish = useCallback(async () => {
-    await markOnboardingSeen();
-    router.replace("/");
-  }, [router]);
+  // One event on the way out rather than one per step: the useful question is
+  // how far people get and whether they skip, and `stepReached` answers both
+  // without six near-duplicate events.
+  const finish = useCallback(
+    async (skipped: boolean) => {
+      track("onboarding_finished", {
+        skipped,
+        stepReached: step,
+        stepKey: stepKeys[step] ?? "unknown",
+        stepCount: stepKeys.length,
+        voicePart: voice,
+        routineSize: routineIds.length,
+      });
+      await markOnboardingSeen();
+      router.replace("/");
+    },
+    [router, step, voice, routineIds.length],
+  );
 
   const handleNext = useCallback(() => {
     if (isLast) {
-      void finish();
+      void finish(false);
     } else {
       setStep((current) => Math.min(current + 1, steps.length - 1));
     }
@@ -83,7 +103,7 @@ export default function OnboardingScreen() {
     <OnboardingScaffold
       step={step}
       stepCount={steps.length}
-      onSkip={() => void finish()}
+      onSkip={() => void finish(true)}
       onBack={step > 0 ? () => setStep((current) => Math.max(current - 1, 0)) : undefined}
       onNext={handleNext}
       nextLabel={isLast ? "Start singing" : "Next"}
