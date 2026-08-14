@@ -41,6 +41,7 @@ import type { MelodyAnalysis } from "@/lib/analyze/types";
 import { createAsyncStorageStore, type SessionRecord } from "@/lib/progress";
 import type { NotePitchTrace } from "@/lib/scoring/types";
 import { useTheme } from "@/hooks/use-theme";
+import { track } from "@/lib/analytics";
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
 
 const sessionStore = createAsyncStorageStore();
@@ -138,6 +139,15 @@ export default function CoachingScreen() {
   const [savedDiagnosisId, setSavedDiagnosisId] = useState<string | null>(null);
   // Track which "Other findings" diagnoses (by index) the user has expanded.
   const [otherOpen, setOtherOpen] = useState(false);
+
+  // One event per arrival at Coaching, split by how they got here: a session
+  // deep-link from Progress, an imported melody, or the bare tab with nothing
+  // loaded (the empty state).
+  useEffect(() => {
+    track("coaching_started", {
+      entry: sessionId ? "session" : exerciseId ? "imported" : "empty",
+    });
+  }, [sessionId, exerciseId]);
 
   // Load + diagnose
   useEffect(() => {

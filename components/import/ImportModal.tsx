@@ -25,6 +25,7 @@ import { saveSong } from "@/lib/songs/store";
 import { autoChunk } from "@/lib/songs/chunker";
 import { buildChunkId, type StoredSong } from "@/lib/songs/types";
 import { useTheme } from "@/hooks/use-theme";
+import { track } from "@/lib/analytics";
 import { Spacing, Radii, Typography, Fonts } from "@/constants/theme";
 
 import GlaringHeadline from "./GlaringHeadline";
@@ -110,6 +111,7 @@ export default function ImportModal({
 
   // Reset internal state whenever the modal closes — no orphaned state.
   useEffect(() => {
+    if (visible) track("import_opened");
     if (!visible) {
       setPhase("picking");
       setPickMode("upload");
@@ -174,6 +176,12 @@ export default function ImportModal({
             },
           };
           await saveSong(song);
+          track("song_saved", {
+            source: "import",
+            segments: chunks.length,
+            notes: review.analysis.notes.length,
+            hasLyrics: false,
+          });
           // First-chunk synthetic id powers the "Coach this melody" CTA + the
           // onSaved callback (Practice screen re-reads available exercises).
           const firstChunkSyntheticId = chunks[0] ? buildChunkId(songId, chunks[0].id) : songId;

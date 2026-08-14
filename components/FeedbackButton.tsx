@@ -5,6 +5,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import { useTheme } from '@/hooks/use-theme';
 import { Radii, Spacing, Typography } from '@/constants/theme';
+import { track } from '@/lib/analytics';
 
 const FEEDBACK_URL = 'https://forms.gle/ZKmozH8Koyq84i9J8';
 const TAB_BAR_HEIGHT = 60; // mirrors app/(tabs)/_layout.tsx content height
@@ -24,7 +25,10 @@ export default function FeedbackButton() {
     <Pressable
       accessibilityRole="link"
       accessibilityLabel="Send feedback"
-      onPress={() => Linking.openURL(FEEDBACK_URL)}
+      onPress={() => {
+        track('feedback_opened');
+        Linking.openURL(FEEDBACK_URL);
+      }}
       style={({ pressed }) => [
         styles.pill,
         {
