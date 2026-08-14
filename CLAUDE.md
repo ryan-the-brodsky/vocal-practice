@@ -194,7 +194,11 @@ PostHog via `posthog-js`, **cookieless** (`cookieless_mode: 'always'`) — store
 - `lib/analytics/index.ts` is web; `index.native.ts` is a no-op stub (Metro platform resolution, same pattern as `lib/audio/`).
 - `initAnalytics()` runs from a `useEffect` in `app/_layout.tsx` that is deliberately **not** gated on `isStaticRoute` — Learn/marketing pages are where most arrivals land.
 - posthog-js loads via dynamic `import()`, so it lands in a separate ~254 KB chunk and never enters the SSG render path or the entry bundle. Re-verify after touching this: `grep -c __PosthogExtensions__ dist/_expo/static/js/web/entry-*.js` must be 0.
-- Only three events (`lib/analytics/events.ts`): `practice_started`, `pattern_completed`, `mic_error_shown` — sized to answer "what do the LLM referrals landing on `/` actually do", with `mic_error_shown` the suspected biggest leak.
+- Seven events (`lib/analytics/events.ts`), all sized to answer "what do the LLM referrals landing on `/` actually do":
+  - Practice loop — `practice_started`, `pattern_completed`, `mic_error_shown`, `session_logged`.
+  - First run — `onboarding_finished` (one event on exit carrying `skipped` + `stepReached`, not one per step). `app/onboarding.tsx` keeps a module-level `stepKeys` array that the `steps` array indexes into, so the analytics name and the rendered step can't drift apart.
+  - `/vocal-range-test` — `range_test_started`, `range_test_completed`. `mic_error_shown` fires here too, discriminated by the `surface` property (`practice` | `range_test`).
+- **`pattern_completed` fires when at least one key was scored, NOT when the exercise finished.** Read `completedAllKeys` (against `plannedKeys`) for real completion — the raw event count treats a one-key-then-Stop run as a completion. Follow-along sessions only reach the event on a natural finish, so they always set it true.
 - Gated on `EXPO_PUBLIC_POSTHOG_KEY` (see `.env.example`); unset = total no-op, which is the local-dev and deploy-preview default. Production value lives in Netlify env vars.
 - **Cookieless mode must ALSO be enabled in the PostHog project settings or every event is silently dropped server-side.**
 

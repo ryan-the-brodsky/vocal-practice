@@ -10,7 +10,11 @@ PostHog wired up in `lib/analytics/`, cookieless (`cookieless_mode: 'always'`, n
 
 Motivated by a measurement surprise: Ahrefs Web Analytics shows **391 visitors / 30 days with LLM referrals (192) as the #1 channel, ahead of search (58)** — while GSC showed ~12 clicks. Roughly half of arrivals come from ChatGPT and land on `/`, and nothing currently tells us whether any of them sing. That's the funnel these three events measure, with the mic-permission wall the prime suspect for the drop-off.
 
-**Open:** confirm cookieless mode is enabled in the PostHog project settings (events are dropped server-side otherwise), set per-product billing limits to $0, and revisit PostHog's self-driving beta ($15/merged PR, 3 free/month) once error-tracking signal accumulates.
+**Verified live 2026-08-13** (PostHog project 556732, via the PostHog MCP): 52/52 events ingested in cookieless mode, so the no-banner decision holds in practice and not just in config. First 7 hours: 34 `$pageview` / 11 people, 9 `practice_started` / 6 people, 9 `pattern_completed` / 6 people, 0 `mic_error_shown`. Both ChatGPT-referred visitors in that window started *and* completed a pattern. Sample far too small to conclude anything; the pipeline is what's proven.
+
+**Event coverage expanded (2026-08-13, same day):** 3 events → 7. Added `session_logged` (log-vs-discard), `onboarding_finished` (`skipped` + `stepReached` — nearly every arrival is a first-run user, so onboarding is the widest funnel step), and `range_test_started` / `range_test_completed` on the `/vocal-range-test` tool page. `mic_error_shown` now fires on the range tester too, discriminated by `surface`. **Fixed:** `pattern_completed` counted a one-key-then-Stop run as a completion, which made starts and completions both read exactly 9 and look like perfect conversion; it now carries `completedAllKeys` + `plannedKeys`. Caught before the data was a day old.
+
+**Open:** set per-product billing limits to $0, and revisit PostHog's self-driving beta ($15/merged PR, 3 free/month) once error-tracking signal accumulates.
 ## Search & AI-Answer Distribution — shipped 2026-08-08
 
 First look at real Search Console data (via the Ahrefs MCP) plus the plumbing to get indexed faster. `tsc` clean, 681 tests, JSON-LD verified in the actual `dist/` export.

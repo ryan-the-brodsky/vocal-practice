@@ -20,6 +20,7 @@ import { Colors, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
 import { midiToNote } from '@/lib/exercises/music';
 import { createPitchDetector } from '@/lib/pitch';
 import { classifyMicError, micErrorCopy, type MicErrorReason } from '@/lib/pitch/micError';
+import { track } from '@/lib/analytics';
 import type { PitchDetector, PitchSample } from '@/lib/pitch/detector';
 import type { AudioPlayer } from '@/lib/audio';
 import {
@@ -190,12 +191,25 @@ export default function RangeTesterIsland() {
 
     teardown();
     if (state.lowMidi != null && state.highMidi != null) {
-      setResult(classifyVoice(state.lowMidi, state.highMidi));
+      const classified = classifyVoice(state.lowMidi, state.highMidi);
+      setResult(classified);
+      track('range_test_completed', {
+        voiceType: classified.label,
+        appVoicePart: classified.appVoicePart,
+        lowMidi: state.lowMidi,
+        highMidi: state.highMidi,
+        semitoneSpan: state.highMidi - state.lowMidi,
+      });
+    } else {
+      // Reached the result screen without a usable range — they tapped out
+      // before the walk found both ends.
+      track('range_test_completed', { voiceType: null, semitoneSpan: null });
     }
     setPhase('result');
   }, [applyWalk, playReference, waitForOutcome, teardown]);
 
   const handleStart = useCallback(async () => {
+    track('range_test_started');
     setPhase('requesting');
     setErrReason(null);
     setResult(null);
@@ -215,7 +229,9 @@ export default function RangeTesterIsland() {
       if (abortRef.current.aborted) return;
       runWalk();
     } catch (err) {
-      setErrReason(classifyMicError(err));
+      const reason = classifyMicError(err);
+      setErrReason(reason);
+      track('mic_error_shown', { reason, surface: 'range_test' });
       setPhase('error');
     }
   }, [loadPlayer, runWalk]);
