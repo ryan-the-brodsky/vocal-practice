@@ -8,6 +8,7 @@ import { chunkToDescriptor } from "@/lib/songs/toDescriptor";
 import type { StoredSong } from "@/lib/songs/types";
 import { useTheme } from "@/hooks/use-theme";
 import { Spacing, Radii, Typography, Fonts } from "@/constants/theme";
+import { track } from "@/lib/analytics";
 
 export interface RoutineItem {
   id: string;
@@ -64,6 +65,15 @@ export function RoutineEditModal({
   }
 
   function handleDone() {
+    // Instrumented here rather than at each onSave call site (Plan, Progress,
+    // Practice deep-link) so every routine edit is counted exactly once.
+    // Onboarding's routine step writes via saveRoutine directly and is
+    // deliberately excluded — that's first-run setup, not feature discovery.
+    track("routine_edited", {
+      exerciseCount: selectedIds.length,
+      changed: selectedIds.length !== routine.exerciseIds.length
+        || selectedIds.some((id) => !routine.exerciseIds.includes(id)),
+    });
     onSave({ exerciseIds: selectedIds });
     onClose();
   }

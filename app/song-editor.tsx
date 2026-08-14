@@ -7,6 +7,7 @@ import ChunkNameField from "@/components/songs/ChunkNameField";
 import SongScoreView, { CHUNK_PALETTE } from "@/components/songs/SongScoreView";
 import VexFlowScore from "@/components/songs/VexFlowScore";
 import { useTheme } from "@/hooks/use-theme";
+import { track } from "@/lib/analytics";
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
 import { createAudioPlayer, type AudioPlayer, type SequenceHandle } from "@/lib/audio";
 import { noteToMidi } from "@/lib/exercises/music";
@@ -200,6 +201,14 @@ export default function SongEditorScreen() {
         ...(lyrics.trim() ? { lyrics } : { lyrics: undefined }),
       };
       await saveSong(next);
+      track("song_saved", {
+        source: "editor",
+        segments: final.length,
+        notes: song.allNotes.length,
+        // Post-migration `lyrics` stays empty and syllables live per-note, so
+        // reading the textarea here would always report false.
+        hasLyrics: song.allNotes.some((n) => n.syllable?.trim()),
+      });
       setSong(next);
       setChunks(final);
       setDirty(false);

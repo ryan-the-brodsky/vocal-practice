@@ -1,4 +1,5 @@
 import type { AnalyticsEvent, AnalyticsProps } from './events';
+import { recordVisit } from './visits';
 
 export type { AnalyticsEvent, AnalyticsProps };
 
@@ -12,7 +13,10 @@ const HOST = process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com';
 // misconfigured build can't grow the array without limit.
 const MAX_QUEUE = 50;
 
-type PostHogClient = { capture: (event: string, props?: AnalyticsProps) => unknown };
+type PostHogClient = {
+  capture: (event: string, props?: AnalyticsProps) => unknown;
+  register: (props: AnalyticsProps) => unknown;
+};
 
 let client: PostHogClient | null = null;
 let loading = false;
@@ -49,6 +53,10 @@ export function initAnalytics(): void {
         // default load-only pageview would miss almost everything.
         capture_pageview: 'history_change',
       });
+      // Visit context rides on every event as a super property, which is the
+      // only way to get cross-session cohorts while staying cookieless.
+      // Registered before the queue flush so the queued events carry it too.
+      posthog.register({ ...recordVisit() });
       client = posthog;
       for (const q of queue) posthog.capture(q.event, q.props);
       queue.length = 0;
