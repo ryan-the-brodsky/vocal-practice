@@ -842,10 +842,16 @@ export default function PracticeScreen() {
         // Hold in state — user must tap Log to persist.
         setPendingSession(record);
         setLoggedMessage(null);
-        // `keys` is how many keys the singer actually got through, which can be
-        // fewer than planned if they hit Stop. completedAllKeys is the honest
-        // "finished the exercise" signal — without it every partial run looks
-        // like a completion.
+        // `keys` counts keys whose time elapsed, which is NOT the same as keys
+        // the singer sang: getSnapshot pushes an elapsed key whether or not any
+        // pitch was detected. `sungKeys` is the honest signal — it separates
+        // someone practising from someone who pressed Start to see what happens.
+        const sungKeys = completed.filter((k) =>
+          k.notes.some((n) => n.framesAboveClarity > 0),
+        ).length;
+        const scoredNotes = completed.flatMap((k) =>
+          k.notes.filter((n) => n.framesAboveClarity > 0),
+        );
         track("pattern_completed", {
           exerciseId: exercise.id,
           voicePart,
@@ -854,6 +860,13 @@ export default function PracticeScreen() {
           keys: completed.length,
           plannedKeys: iterations.length,
           completedAllKeys: completed.length >= iterations.length,
+          sungKeys,
+          sangAnything: sungKeys > 0,
+          meanAccuracyPct: scoredNotes.length
+            ? Math.round(
+                scoredNotes.reduce((s, n) => s + n.accuracyPct, 0) / scoredNotes.length,
+              )
+            : null,
         });
 
         const sessionInput = fromKeyAttempts(completed, iterations);

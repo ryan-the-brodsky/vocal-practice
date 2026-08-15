@@ -17,6 +17,9 @@ interface Props {
   onBack?: () => void;
   onNext: () => void;
   nextLabel?: string;
+  // Blocks Next on a step that needs a real answer (currently only Voice).
+  // "Skip to singing" stays live regardless — it is the escape hatch.
+  nextDisabled?: boolean;
   footnote?: string;
   children: ReactNode;
 }
@@ -31,6 +34,7 @@ export default function OnboardingScaffold({
   onBack,
   onNext,
   nextLabel = "Next",
+  nextDisabled = false,
   footnote,
   children,
 }: Props) {
@@ -117,9 +121,17 @@ export default function OnboardingScaffold({
         )}
         <Pressable
           onPress={onNext}
+          disabled={nextDisabled}
           accessibilityRole="button"
           accessibilityLabel={nextLabel}
-          style={({ pressed }) => [s.nextBtn, { backgroundColor: colors.accent, opacity: pressed ? 0.85 : 1 }]}
+          accessibilityState={{ disabled: nextDisabled }}
+          style={({ pressed }) => [
+            s.nextBtn,
+            {
+              backgroundColor: colors.accent,
+              opacity: nextDisabled ? 0.4 : pressed ? 0.85 : 1,
+            },
+          ]}
         >
           <Text style={[s.nextText, { color: colors.canvas, fontFamily: Fonts.bodySemibold }]}>{nextLabel}</Text>
         </Pressable>
