@@ -13,7 +13,11 @@ const PARTS: { part: VoicePart; hint: string }[] = [
 ];
 
 interface Props {
-  value: VoicePart;
+  // null = not chosen yet. Nothing renders as selected, so the singer has to
+  // make an actual choice instead of accepting a highlighted default. Analytics
+  // showed ~10 of 14 first-run users landing on tenor, which is simply the
+  // seeded value, not a decision.
+  value: VoicePart | null;
   onChange: (part: VoicePart) => void;
 }
 
@@ -25,8 +29,9 @@ export default function VoiceStep({ value, onChange }: Props) {
         <Text style={[s.eyebrow, { color: colors.textTertiary, fontFamily: Fonts.bodyMedium }]}>YOUR VOICE</Text>
         <Text style={[s.headline, { color: colors.textPrimary, fontFamily: Fonts.display }]}>What's your range?</Text>
         <Text style={[s.body, { color: colors.textSecondary, fontFamily: Fonts.body }]}>
-          This sets the key each exercise starts in. Not sure? Pick the closest — you can change it
-          anytime on the Practice screen.
+          This sets the key each exercise starts in, so it matters more than it sounds: the wrong
+          one puts every note out of reach. Not sure? Pick the closest — you can change it anytime
+          on the Practice screen, or take the free range test to find out.
         </Text>
       </View>
 

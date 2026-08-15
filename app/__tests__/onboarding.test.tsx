@@ -55,6 +55,7 @@ describe("<OnboardingScreen />", () => {
   it("a routine toggle writes to the routine store", async () => {
     render(<OnboardingScreen />);
     await clickLabel("Next"); // → voice
+    await clickLabel("tenor, Lower-middle range"); // voice gates Next
     await clickLabel("Next"); // → routine
     await clickLabel("Ng Siren"); // not in DEFAULT_ROUTINE → adds it
 
@@ -78,8 +79,10 @@ describe("<OnboardingScreen />", () => {
 
   it("the final step's 'Start singing' completes onboarding", async () => {
     render(<OnboardingScreen />);
-    // welcome → voice → routine → mode → import → segment (5 Nexts)
-    for (let i = 0; i < 5; i++) {
+    await clickLabel("Next"); // welcome → voice
+    await clickLabel("tenor, Lower-middle range"); // voice gates Next
+    // voice → routine → mode → import → segment
+    for (let i = 0; i < 4; i++) {
       await clickLabel("Next");
     }
     await clickLabel("Start singing");
@@ -88,5 +91,33 @@ describe("<OnboardingScreen />", () => {
       expect(await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY)).toBe("done");
     });
     expect(getMockRouter().replace).toHaveBeenCalledWith("/");
+  });
+
+  // Nothing is pre-selected on the voice step: a seeded "tenor" was being
+  // accepted silently by most first-run users, handing sopranos an exercise
+  // pitched out of their range.
+  it("blocks Next on the voice step until a part is picked", async () => {
+    render(<OnboardingScreen />);
+    await clickLabel("Next"); // → voice
+    expect(screen.getByText("What's your range?")).toBeTruthy();
+
+    await clickLabel("Next"); // blocked — no pick yet
+    expect(screen.getByText("What's your range?")).toBeTruthy();
+
+    await clickLabel("alto, Upper-middle range");
+    await clickLabel("Next"); // now advances
+    expect(screen.queryByText("What's your range?")).toBeNull();
+  });
+
+  it("writes no voice part when the singer skips past the voice step", async () => {
+    render(<OnboardingScreen />);
+    await clickLabel("Next"); // → voice
+    await clickLabel(SKIP);
+
+    await waitFor(async () => {
+      expect(await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY)).toBe("done");
+    });
+    // Practice applies its own default rather than a choice we invented here.
+    expect(await loadVoicePart()).toBeNull();
   });
 });

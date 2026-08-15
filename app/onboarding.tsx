@@ -31,17 +31,19 @@ export default function OnboardingScreen() {
   // Preferences seed from the app's existing defaults, so "Next" without touching
   // anything is a no-op (Practice already defaults to tenor + DEFAULT_ROUTINE).
   // Each is persisted through the real store on change — never a parallel store.
-  const [voice, setVoice] = useState<VoicePart>("tenor");
+  // null until the singer actually picks. Seeding "tenor" here rendered it as
+  // pre-selected, and analytics showed most first-run users simply pressing
+  // Next through it — a soprano then gets a tenor-range exercise she can't sing.
+  const [voice, setVoice] = useState<VoicePart | null>(null);
   const [routineIds, setRoutineIds] = useState<string[]>(DEFAULT_ROUTINE.exerciseIds);
 
   // Persist on change (skipping the seeded mount value) so any exit — Next, Back,
   // or Skip — keeps whatever the user last chose.
-  const firstVoice = useRef(true);
+  // Persist only a real choice. The mount value is now null, so there's no
+  // seeded value to skip past — writing anything before the user picks would
+  // re-introduce the silent default this change exists to remove.
   useEffect(() => {
-    if (firstVoice.current) {
-      firstVoice.current = false;
-      return;
-    }
+    if (voice === null) return;
     saveVoicePart(voice).catch(() => {});
   }, [voice]);
 
@@ -82,7 +84,11 @@ export default function OnboardingScreen() {
         stepReached: step,
         stepKey: stepKeys[step] ?? "unknown",
         stepCount: stepKeys.length,
+        // null means they skipped past the voice step, so Practice will fall
+        // back to its own default. Distinguishing that from a deliberate
+        // "tenor" is the whole point of the change.
         voicePart: voice,
+        voicePartChosen: voice !== null,
         routineSize: routineIds.length,
       });
       await markOnboardingSeen();
@@ -106,6 +112,9 @@ export default function OnboardingScreen() {
       onSkip={() => void finish(true)}
       onBack={step > 0 ? () => setStep((current) => Math.max(current - 1, 0)) : undefined}
       onNext={handleNext}
+      // The voice step is the only one that blocks: every later exercise is
+      // transposed from this answer. "Skip to singing" is still available.
+      nextDisabled={stepKeys[step] === "voice" && voice === null}
       nextLabel={isLast ? "Start singing" : "Next"}
       footnote={
         isLast ? "Pop in headphones if you've got them — we'll ask for mic access the first time you start." : undefined
