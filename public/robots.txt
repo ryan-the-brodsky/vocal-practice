@@ -30,6 +30,22 @@ User-agent: PerplexityBot
 Allow: /
 Disallow: /*?exerciseId=
 
+# --- Anthropic / Claude ---
+# Claude's web search reads from Brave's index (Brave is covered by the "*" group
+# above). These are Anthropic's own fetchers, verified against Anthropic's crawler
+# support doc (support.claude.com, "Does Anthropic crawl data from the web").
+
+# Indexes pages to improve Claude search-result quality — the citation-eligibility bot.
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /*?exerciseId=
+
+# Live fetch when a Claude user's question pulls in a page.
+User-agent: Claude-User
+Allow: /
+Disallow: /*?exerciseId=
+
+# Model training. Allowed deliberately — flip to "Disallow: /" to opt out.
 User-agent: ClaudeBot
 Allow: /
 Disallow: /*?exerciseId=
