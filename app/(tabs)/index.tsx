@@ -99,7 +99,9 @@ export default function PracticeScreen() {
   const [routine, setRoutine] = useState<RoutineConfig | null>(null);
   const [loggedSessions, setLoggedSessions] = useState<SessionRecord[]>([]);
   const [importModalVisible, setImportModalVisible] = useState(false);
-  const [voicePart, setVoicePartState] = useState<VoicePart>("tenor");
+  // Default when the voice step was skipped: alto — the plurality onboarding pick and the safest fallback
+  // (an alto handed the old tenor default sings an octave off). loadVoicePart() overrides this on mount.
+  const [voicePart, setVoicePartState] = useState<VoicePart>("alto");
   const setVoicePart = useCallback((next: VoicePart) => {
     setVoicePartState(next);
     saveVoicePart(next).catch(() => {});

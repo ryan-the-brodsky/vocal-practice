@@ -13,7 +13,7 @@ import ExerciseStaff, { type StaffNote } from '@/components/learn/ExerciseStaff'
 
 const c = Colors.light;
 // Learn visitors haven't picked a voice part; play a sensible mid default.
-const DEFAULT_VOICE: VoicePart = 'tenor';
+const DEFAULT_VOICE: VoicePart = 'alto';
 
 type Phase = 'idle' | 'loading' | 'playing';
 
