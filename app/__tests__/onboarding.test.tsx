@@ -44,8 +44,7 @@ describe("<OnboardingScreen />", () => {
 
   it("a voice pick writes to the voice-part store", async () => {
     render(<OnboardingScreen />);
-    await clickLabel("Next"); // welcome → voice
-    await clickLabel("alto, Upper-middle range");
+    await clickLabel("alto, Upper-middle range"); // voice is the first step
 
     await waitFor(async () => {
       expect(await loadVoicePart()).toBe("alto");
@@ -54,8 +53,8 @@ describe("<OnboardingScreen />", () => {
 
   it("a routine toggle writes to the routine store", async () => {
     render(<OnboardingScreen />);
-    await clickLabel("Next"); // → voice
-    await clickLabel("tenor, Lower-middle range"); // voice gates Next
+    await clickLabel("tenor, Lower-middle range"); // voice is first + gates Next
+    await clickLabel("Next"); // → welcome
     await clickLabel("Next"); // → routine
     await clickLabel("Ng Siren"); // not in DEFAULT_ROUTINE → adds it
 
@@ -67,8 +66,7 @@ describe("<OnboardingScreen />", () => {
 
   it("a mid-flow Skip keeps an already-made voice choice", async () => {
     render(<OnboardingScreen />);
-    await clickLabel("Next"); // → voice
-    await clickLabel("soprano, Highest range");
+    await clickLabel("soprano, Highest range"); // voice is the first step
     await clickLabel(SKIP);
 
     await waitFor(async () => {
@@ -79,10 +77,9 @@ describe("<OnboardingScreen />", () => {
 
   it("the final step's 'Start singing' completes onboarding", async () => {
     render(<OnboardingScreen />);
-    await clickLabel("Next"); // welcome → voice
-    await clickLabel("tenor, Lower-middle range"); // voice gates Next
-    // voice → routine → mode → import → segment
-    for (let i = 0; i < 4; i++) {
+    await clickLabel("tenor, Lower-middle range"); // voice is first + gates Next
+    // voice → welcome → routine → mode → import → segment
+    for (let i = 0; i < 5; i++) {
       await clickLabel("Next");
     }
     await clickLabel("Start singing");
@@ -98,8 +95,7 @@ describe("<OnboardingScreen />", () => {
   // pitched out of their range.
   it("blocks Next on the voice step until a part is picked", async () => {
     render(<OnboardingScreen />);
-    await clickLabel("Next"); // → voice
-    expect(screen.getByText("What's your range?")).toBeTruthy();
+    expect(screen.getByText("What's your range?")).toBeTruthy(); // voice is the first screen
 
     await clickLabel("Next"); // blocked — no pick yet
     expect(screen.getByText("What's your range?")).toBeTruthy();
@@ -111,13 +107,13 @@ describe("<OnboardingScreen />", () => {
 
   it("writes no voice part when the singer skips past the voice step", async () => {
     render(<OnboardingScreen />);
-    await clickLabel("Next"); // → voice
+    // voice is the first screen; skip straight past it
     await clickLabel(SKIP);
 
     await waitFor(async () => {
       expect(await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY)).toBe("done");
     });
-    // Practice applies its own default rather than a choice we invented here.
+    // Practice applies its own default (alto) rather than a choice we invented here.
     expect(await loadVoicePart()).toBeNull();
   });
 });

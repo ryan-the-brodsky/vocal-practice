@@ -22,18 +22,18 @@ import type { VoicePart } from "@/lib/exercises/types";
 // Stable step names for analytics. Kept module-level (not derived from `steps`
 // below) so the finish callback doesn't take a dependency that changes identity
 // on every render. Must stay in the same order as the `steps` array.
-const stepKeys = ["welcome", "voice", "routine", "mode", "import", "segment"] as const;
+const stepKeys = ["voice", "welcome", "routine", "mode", "import", "segment"] as const;
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const [step, setStep] = useState(0);
 
   // Preferences seed from the app's existing defaults, so "Next" without touching
-  // anything is a no-op (Practice already defaults to tenor + DEFAULT_ROUTINE).
+  // anything is a no-op (Practice defaults to alto + DEFAULT_ROUTINE).
   // Each is persisted through the real store on change — never a parallel store.
-  // null until the singer actually picks. Seeding "tenor" here rendered it as
+  // null until the singer actually picks. Seeding a value here rendered it as
   // pre-selected, and analytics showed most first-run users simply pressing
-  // Next through it — a soprano then gets a tenor-range exercise she can't sing.
+  // Next through it — a soprano then gets a mismatched-range exercise she can't sing.
   const [voice, setVoice] = useState<VoicePart | null>(null);
   const [routineIds, setRoutineIds] = useState<string[]>(DEFAULT_ROUTINE.exerciseIds);
 
@@ -63,10 +63,12 @@ export default function OnboardingScreen() {
     setRoutineIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }, []);
 
-  // The ordered step list: welcome → two preference steps → three feature intros.
+  // The ordered step list: voice FIRST — it's load-bearing (every exercise is
+  // transposed from it, and analytics show ~3 in 4 pickers choose a non-default
+  // part), then welcome, the routine preference, and three feature intros.
   const steps = [
-    { key: stepKeys[0], render: () => <WelcomeStep /> },
-    { key: stepKeys[1], render: () => <VoiceStep value={voice} onChange={setVoice} /> },
+    { key: stepKeys[0], render: () => <VoiceStep value={voice} onChange={setVoice} /> },
+    { key: stepKeys[1], render: () => <WelcomeStep /> },
     { key: stepKeys[2], render: () => <RoutineStep selectedIds={routineIds} onToggle={toggleRoutine} /> },
     { key: stepKeys[3], render: () => <ModeIntroStep /> },
     { key: stepKeys[4], render: () => <ImportIntroStep /> },
