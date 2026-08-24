@@ -54,7 +54,12 @@ Load deferred tools first: `mcp__posthog__exec`; and
 - **A3 Entry pages** — `web-analytics-entry-pages` (`limit 15`). Landing distribution + dwell (`avg_session_duration_sec`). Flag any page breaking out.
 - **A4 Citations** — `site-explorer-ai-responses-count` (`target vocalhabit.com`, `mode subdomains`,
   `select "chatgpt,copilot,perplexity,gemini,google_ai_overviews,google_ai_mode,grok"`, `date` = today).
-  **No Claude coverage** — say so.
+  **No Claude coverage** — say so. Report **citations-per-page** as an inflow-lever gauge.
+- **A5 Branded search (WoM + inflow gauge)** — `gsc-keywords` (project 10013070) filtered to "vocal habit" /
+  "vocalhabit": clicks + impressions + position. Rising branded search = awareness spreading (word-of-mouth).
+  Baseline Aug 22: 14 clicks / 15 impr / pos 2 (Google — understates vs Bing, where ChatGPT/Copilot resolve).
+- §A is **co-primary hypothesis 1A (inflow)** — verdict it each run alongside 1B retention (§B4): are the levers
+  we're trying (new content → citations-per-page, authority → DR, branded search) moving the inflow rate?
 
 ## §B Activity (PostHog)
 
@@ -94,6 +99,12 @@ Load deferred tools first: `mcp__posthog__exec`; and
   ```
   Report: returning **share** of tagged pageviews, **pages/visit** new-vs-returning, **practice-starts per
   visitor-day** new-vs-returning, the **visit-# distribution**, and the **untagged** share (data-quality gauge).
+  **This is co-primary hypothesis 1B**, paired with **1A inflow** (citations/referrals, §A) — report a verdict on
+  BOTH every run; neither is "the" one. With inflow flat, retention decides whether the trickle compounds. The 1B
+  health bar is explicit: **we're good iff BOTH (a) returning-session volume/week and (b) depth per returning
+  visit (practice-starts/visit) are rising.** Report both as per-week rates and state plainly whether each is up, flat, or down —
+  that verdict leads the activity section. (Prefer practice-starts/visit over logged/visit for depth: logging is
+  opt-in and regulars skip it.) Standing companion metric: branded-search ("vocal habit") growth as a WoM proxy.
 
 ## §C Citation engine / crawler hits (PostHog)
 
@@ -116,6 +127,12 @@ crawled for search. **Anthropic hits are the headline signal.** Caveat: ~5 spoof
 - **Ahrefs session-duration / dwell is unreliable** — inflated by left-open idle tabs (sovt-exercises read 27min
   on Ahrefs vs ~12s median on PostHog). Treat "avg session" as noise, not engagement; cross-check real dwell
   against PostHog event-span (`dateDiff('second', min, max)` per `$session_id`) before reporting any dwell claim.
+- **Cumulative ≠ growth.** Totals (visitors-since-launch, citations, cumulative crawler hits) rise purely because
+  days accumulate — **never present a rising total as growth.** Every trend/growth claim MUST be a **per-day or
+  per-week rate** (from the 7-day buckets), and cumulative figures must be labelled "totals since launch." When a
+  rate is flat but the total climbs, say so plainly (e.g. "cited at a steady ~16/day; the total only grows because
+  days add up"). Corollary: separate *retrieval/consultation* (crawler `ChatGPT-User` hits) from *human referrals*
+  (Ahrefs LLM visitors) — the former can rise while the latter stays flat (zero-click).
 - LLM ≈ ChatGPT; Copilot via Bing; Claude via Brave (not in A4). GSC/Bing search massively understate this site.
 
 ---
@@ -162,6 +179,8 @@ URL back into the log's frontmatter. Favicon 📈, title "Vocal Habit Analytics"
 After a FULL run: a short synthesis (headline + 3–5 insights + what changed since last run), the **dashboard
 link**, and a one-line note of what was added to the findings log. After a QUICK run: just the section's tables
 + insights + caveats, and offer the other half. Use markdown tables — never the Ahrefs `render-*` widgets.
+**Growth is a rate, not a total** — phrase every "up / down / growing / flat" claim as a per-day or per-week
+rate, and call cumulative figures "totals since launch," so accumulation is never dressed up as growth.
 
 ## Deeper cuts (on request)
 - **Page-level AI citations** → browser: Bing Webmaster Tools → vocalhabit.com → AI Performance → Pages/Grounding Queries.
