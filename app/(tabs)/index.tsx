@@ -52,6 +52,11 @@ import {
 } from "@/lib/pitch";
 import { classifyMicError, type MicErrorReason } from "@/lib/pitch/micError";
 import { track } from "@/lib/analytics";
+import {
+  readPracticeContext,
+  recordFinish,
+  recordPracticeStart,
+} from "@/lib/analytics/practiceCounters";
 import { sniffMicrophone } from "@/lib/pitch/sniff";
 import type { CaptureSidecar } from "@/lib/capture/types";
 import { encodeWav } from "@/lib/capture/wav";
@@ -525,6 +530,7 @@ export default function PracticeScreen() {
       voicePart,
       mode,
       scored: detectionEnabled,
+      ...recordPracticeStart(),
     });
 
     try {
@@ -854,6 +860,7 @@ export default function PracticeScreen() {
         const scoredNotes = completed.flatMap((k) =>
           k.notes.filter((n) => n.framesAboveClarity > 0),
         );
+        const completedAllKeys = completed.length >= iterations.length;
         track("pattern_completed", {
           exerciseId: exercise.id,
           voicePart,
@@ -861,7 +868,7 @@ export default function PracticeScreen() {
           scored: true,
           keys: completed.length,
           plannedKeys: iterations.length,
-          completedAllKeys: completed.length >= iterations.length,
+          completedAllKeys,
           sungKeys,
           sangAnything: sungKeys > 0,
           meanAccuracyPct: scoredNotes.length
@@ -869,6 +876,10 @@ export default function PracticeScreen() {
                 scoredNotes.reduce((s, n) => s + n.accuracyPct, 0) / scoredNotes.length,
               )
             : null,
+          // Stamp practice context so completion can be sliced by tool-returner
+          // status; count a finish only on a real full-pattern completion.
+          ...readPracticeContext(),
+          ...(completedAllKeys ? recordFinish() : {}),
         });
 
         const sessionInput = fromKeyAttempts(completed, iterations);
@@ -938,6 +949,8 @@ export default function PracticeScreen() {
         keys: iterations.length,
         plannedKeys: iterations.length,
         completedAllKeys: true,
+        ...readPracticeContext(),
+        ...recordFinish(),
       });
     }
 
