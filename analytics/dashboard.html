@@ -227,7 +227,7 @@ function render(){
   // week over week
   h += `<section><p class="sk">Week over week — pace, not totals</p><div class="card">
     <h3>7-day buckets since launch <span class="r">per-day compare · *partial</span></h3>
-    <div class="wow whead">${D.wow.head.map(x=>`<span>${x}</span>`).join("")}</div>
+    <div class="wrow whead">${D.wow.head.map(x=>`<span>${x}</span>`).join("")}</div>
     ${D.wow.rows.map(r=>`<div class="wrow">${r.c.map((x,i)=>`<span${(r.up&&i>2)?' style="color:var(--accent)"':''}>${x}</span>`).join("")}</div>`).join("")}
     <div class="sub" style="margin-top:10px;font-size:12.5px;color:var(--muted)">${D.wow.note}</div></div></section>`;
 
