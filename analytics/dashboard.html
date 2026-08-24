@@ -1,0 +1,311 @@
+<title>Vocal Habit Analytics</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  DATA-DRIVEN DASHBOARD. To update: edit the D object below and re-publish.
+  Everything on the page renders from D — no hand-editing of markup needed.
+  Source lives in the repo (analytics/dashboard.html) so it can't be lost to scratch.
+-->
+<style>
+  :root{
+    --ground:#F3F6F4;--surface:#FFFFFF;--surface-2:#EDF1EF;--sunken:#F7FAF8;
+    --ink:#0F1F1A;--muted:#54635E;--faint:#84928C;--hairline:#E0E6E2;--hairline-2:#D2DAD5;
+    --accent:#0A8A5F;--accent-bright:#0E9E6E;--accent-wash:#E4F1EB;
+    --amber:#CB5E1B;--amber-wash:#F6E9DD;--slate:#64748B;--slate-wash:#EAEDF1;--zero:#A9B4AF;
+    --shadow:0 1px 2px rgba(16,32,27,.04),0 8px 24px -12px rgba(16,32,27,.10);
+    --font-mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --font-sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#0A120F;--surface:#111C17;--surface-2:#0D1712;--sunken:#0C1511;
+    --ink:#E7EEEA;--muted:#93A39C;--faint:#68786F;--hairline:#20302A;--hairline-2:#2A3C34;
+    --accent:#2FD39B;--accent-bright:#4ADEAC;--accent-wash:#122A21;
+    --amber:#E8944A;--amber-wash:#2C2013;--slate:#9AA8B8;--slate-wash:#1B2530;--zero:#5B6A63;
+    --shadow:0 1px 2px rgba(0,0,0,.30),0 12px 32px -14px rgba(0,0,0,.55);
+  }}
+  :root[data-theme="dark"]{
+    --ground:#0A120F;--surface:#111C17;--surface-2:#0D1712;--sunken:#0C1511;
+    --ink:#E7EEEA;--muted:#93A39C;--faint:#68786F;--hairline:#20302A;--hairline-2:#2A3C34;
+    --accent:#2FD39B;--accent-bright:#4ADEAC;--accent-wash:#122A21;
+    --amber:#E8944A;--amber-wash:#2C2013;--slate:#9AA8B8;--slate-wash:#1B2530;--zero:#5B6A63;
+    --shadow:0 1px 2px rgba(0,0,0,.30),0 12px 32px -14px rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font-sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px 64px}
+  .mono{font-family:var(--font-mono)} .tnum{font-variant-numeric:tabular-nums}
+  header.top{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--ground) 88%,transparent);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--hairline)}
+  .top-in{max-width:1180px;margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:9px;font-family:var(--font-mono);font-size:14px;font-weight:600}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
+  .top .meta{font-family:var(--font-mono);font-size:12px;color:var(--muted)} .spacer{flex:1}
+  .toggle{font-family:var(--font-mono);font-size:12px;color:var(--muted);cursor:pointer;background:var(--surface);border:1px solid var(--hairline);border-radius:999px;padding:6px 12px}
+  .toggle:hover{color:var(--ink);border-color:var(--hairline-2)} .toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .headline{margin:26px 0 18px}
+  .headline h1{font-family:var(--font-mono);font-weight:600;font-size:clamp(20px,2.6vw,26px);letter-spacing:-.015em;margin:0 0 10px;text-wrap:balance}
+  .headline p{margin:0;color:var(--muted);max-width:74ch;font-size:15px}
+  .badges{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 0}
+  .badge{font-family:var(--font-mono);font-size:12.5px;padding:7px 12px;border-radius:9px;border:1px solid var(--hairline);display:flex;align-items:center;gap:8px}
+  .badge b{font-weight:600}
+  .badge.pass{background:var(--accent-wash);border-color:color-mix(in srgb,var(--accent) 30%,transparent);color:var(--accent)}
+  .badge.flat{background:var(--amber-wash);border-color:color-mix(in srgb,var(--amber) 28%,transparent);color:var(--amber)}
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:18px 0 0}
+  @media (max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}} @media (max-width:460px){.kpis{grid-template-columns:1fr}}
+  .kpi{background:var(--surface);border:1px solid var(--hairline);border-radius:13px;padding:15px 16px;box-shadow:var(--shadow);position:relative}
+  .kpi.accent{border-color:color-mix(in srgb,var(--accent) 40%,var(--hairline))}
+  .kpi.accent::before{content:"";position:absolute;left:0;top:13px;bottom:13px;width:3px;border-radius:3px;background:var(--accent)}
+  .kpi .num{font-family:var(--font-mono);font-weight:600;font-size:29px;line-height:1;letter-spacing:-.02em}
+  .kpi .num small{font-size:15px;color:var(--muted);font-weight:500}
+  .kpi .lbl{margin-top:8px;font-size:12.5px;color:var(--muted);line-height:1.35}
+  .ratenote{font-family:var(--font-mono);font-size:12.5px;line-height:1.5;color:var(--muted);margin:14px 0 0;padding:11px 14px;border:1px solid var(--hairline);border-left:3px solid var(--amber);border-radius:9px;background:var(--surface)}
+  .ratenote b{color:var(--ink)}
+  section{margin-top:30px}
+  .sk{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 12px;display:flex;align-items:center;gap:10px}
+  .sk::after{content:"";flex:1;height:1px;background:var(--hairline)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px} .grid3{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:16px}
+  @media (max-width:900px){.grid2,.grid3{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:16px 17px;box-shadow:var(--shadow)}
+  .card h3{font-family:var(--font-mono);font-size:13px;margin:0 0 14px;letter-spacing:.01em} .card h3 .r{float:right;color:var(--faint);font-weight:400}
+  .betcard{position:relative}
+  .betcard.bet-pass{border-color:color-mix(in srgb,var(--accent) 34%,var(--hairline))}
+  .bethead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+  .bethead .t{font-family:var(--font-mono);font-size:15px;font-weight:600} .bethead .t small{color:var(--faint);font-weight:400;font-size:12px}
+  .bet-metric{display:grid;grid-template-columns:1fr auto;gap:8px;padding:9px 0;border-top:1px solid var(--hairline);font-size:13.5px}
+  .bet-metric:first-of-type{border-top:none} .bet-metric .v{font-family:var(--font-mono);font-weight:600}
+  .bet-metric .up{color:var(--accent)} .bet-metric .flat{color:var(--muted)}
+  .betnote{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.5}
+  .barrow{display:grid;grid-template-columns:104px 1fr 46px;align-items:center;gap:10px;padding:6px 0}
+  .barrow .nm{font-family:var(--font-mono);font-size:12.5px;display:flex;align-items:center;gap:7px}
+  .sw{width:10px;height:10px;border-radius:3px;flex:none}
+  .track{background:var(--surface-2);border-radius:6px;height:22px;overflow:hidden}
+  .fill{height:100%;border-radius:6px;min-width:2px} .barrow .v{font-family:var(--font-mono);font-size:12.5px;font-weight:600;text-align:right}
+  .sub{font-family:var(--font-mono);font-size:11.5px;color:var(--faint);margin-top:2px}
+  .wrow{display:grid;grid-template-columns:1.4fr 1fr .7fr 1fr 1fr 1fr;gap:8px;padding:9px 0;border-top:1px solid var(--hairline);font-family:var(--font-mono);font-size:12.5px}
+  .wrow:first-child{border-top:none} .wrow span:not(:first-child){text-align:right} .wrow span:first-child{color:var(--ink)}
+  .wrow.whead{color:var(--faint);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase} .wrow.whead span:first-child{color:var(--faint)}
+  @media (max-width:640px){.wrow{grid-template-columns:1.2fr 1fr 1fr 1fr}.wrow span:nth-child(2),.wrow span:nth-child(3){display:none}}
+  .chart{width:100%;height:auto;display:block;overflow:visible} .chart text{font-family:var(--font-mono);fill:var(--faint);font-size:10px}
+  .legend{display:flex;gap:14px;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);margin-bottom:8px}
+  .legend i{width:13px;height:3px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:middle}
+  .fn{display:flex;flex-direction:column;gap:7px}
+  .fn .lab{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:12px;margin-bottom:3px} .fn .lab .pc{color:var(--muted)}
+  .ftr{height:26px;background:var(--surface-2);border-radius:7px;overflow:hidden}
+  .ffl{height:100%;border-radius:7px;display:flex;align-items:center;padding:0 9px;min-width:34px} .ffl .n{font-family:var(--font-mono);font-size:12px;font-weight:600;color:#fff}
+  .cb{display:grid;grid-template-columns:74px 1fr 44px;align-items:center;gap:9px;padding:3px 0} .cb .k{font-family:var(--font-mono);font-size:12px} .cb .v{font-family:var(--font-mono);font-size:12.5px;font-weight:600;text-align:right}
+  .scrow{display:grid;grid-template-columns:96px 1fr 40px;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--hairline)} .scrow:first-child{border-top:none}
+  .scrow.z .pl,.scrow.z .n{color:var(--zero)} .pl{font-family:var(--font-mono);font-size:12.5px}
+  .ct{height:16px;background:var(--surface-2);border-radius:5px;overflow:hidden} .cf{height:100%;background:var(--accent);border-radius:5px} .scrow .n{font-family:var(--font-mono);font-size:13px;font-weight:600;text-align:right}
+  .cr{display:grid;grid-template-columns:1fr auto 42px;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--hairline)} .cr:first-child{border-top:none}
+  .cr .bot{font-family:var(--font-mono);font-size:12px} .cr .bot b{font-weight:600} .cr .h{font-family:var(--font-mono);font-size:12.5px;font-weight:600;text-align:right}
+  .kind{font-family:var(--font-mono);font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:5px;border:1px solid var(--hairline-2)}
+  .kind.user{color:var(--accent);background:var(--accent-wash);border-color:color-mix(in srgb,var(--accent) 26%,transparent)} .kind.index{color:var(--slate);background:var(--slate-wash)} .kind.training{color:var(--faint);background:var(--surface-2)}
+  .anth{background:var(--accent-wash);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:6px}
+  .iv{display:grid;grid-template-columns:auto 1fr;gap:11px;align-items:start;padding:9px 0;border-top:1px solid var(--hairline)} .iv:first-child{border-top:none}
+  .tag{font-family:var(--font-mono);font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:5px;white-space:nowrap;height:fit-content}
+  .tag.open{color:var(--amber);background:var(--amber-wash)} .tag.watch{color:var(--slate);background:var(--slate-wash)} .tag.pass{color:var(--accent);background:var(--accent-wash)}
+  .iv .txt{font-size:13px;color:var(--muted);line-height:1.45} .iv .txt b{color:var(--ink);font-weight:600}
+  .find{font-size:13px;color:var(--muted);line-height:1.6} .find li{margin-bottom:5px} .find b{color:var(--ink)}
+  .find .dt{font-family:var(--font-mono);font-size:11px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px}
+  footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--hairline);color:var(--faint);font-size:12px;line-height:1.6} footer b{color:var(--muted)}
+  .tip{position:fixed;z-index:80;background:var(--ink);color:var(--ground);font-family:var(--font-mono);font-size:11px;padding:6px 8px;border-radius:6px;pointer-events:none;opacity:0;transform:translate(-50%,-120%);transition:opacity .1s;white-space:nowrap;box-shadow:var(--shadow)} .tip b{color:var(--accent-bright)}
+</style>
+
+<header class="top"><div class="top-in">
+  <span class="brand"><span class="dot"></span>Vocal Habit Analytics</span>
+  <span class="meta" id="meta"></span>
+  <span class="spacer"></span>
+  <button class="toggle" id="tt">◐ Theme</button>
+</div></header>
+
+<div class="wrap"><div id="app"></div></div>
+<div class="tip" id="tip"></div>
+
+<script>
+// ============================================================================
+//  D — the single source of truth. Update this each run; the page renders it.
+// ============================================================================
+const D = {
+  window: "Aug 13–24, 2026", updated: "Aug 24", days: 12,
+  headline: "Retention (1B) is passing its bar; inflow (1A) is flat.",
+  dek: "Returning-visit volume (+40%/wk) and depth are both rising — the retention win condition is being met. Inflow sits flat (citations ~32, ~16 ChatGPT referrals/day) with no lever shipped yet. The funnel keeps deepening: per day, practice +22% and scoring +31% vs week 1. Anthropic still hasn't recommended us; a high-bounce direct surge is under investigation.",
+  badges: [ {cls:"pass", label:"1B Retention", val:"PASSING"}, {cls:"flat", label:"1A Inflow", val:"FLAT"} ],
+  kpis: [
+    {num:"373", accent:true, lbl:"visitors since launch (12 days)"},
+    {num:"49", unit:"%", lbl:"from AI assistants — #1 channel"},
+    {num:"≥24", unit:"%", lbl:"ChatGPT arrivals start practice"},
+    {num:"22", unit:"%", lbl:"pageviews from returning visitors"},
+    {num:"37", lbl:"AI citations (ChatGPT 32 · Copilot 5)"},
+  ],
+  // The two co-equal bets.
+  bets: {
+    retention: { pass:true, sub:"1B · the health bar", metrics:[
+      {k:"Returning volume / day", v:"7.75 → 10.9", up:true, note:"+40% wk/wk"},
+      {k:"Depth (practice-starts / returning visit)", v:"1.89 → 2.14", up:true, note:"rising"},
+      {k:"Returning share of tagged pageviews", v:"21% → 22.5%", up:true, note:""},
+    ], note:"Good iff BOTH volume and depth rise. Both are — two runs running. Caveat: localStorage proxy, a per-device floor." },
+    inflow: { pass:false, sub:"1A · lever gauges (flat)", metrics:[
+      {k:"AI citations (ChatGPT / Copilot)", v:"32 / 5", up:false, note:"flat"},
+      {k:"ChatGPT referrals / day", v:"~16", up:false, note:"flat"},
+      {k:'Branded search "vocal habit"', v:"14 clicks", up:false, note:"flat · pos 2"},
+      {k:"Domain Rating", v:"0", up:false, note:""},
+    ], note:"Flat because no inflow experiment has shipped yet — this is the baseline to beat as content/authority work begins. Not a failure, just no lever pulled." },
+  },
+  channels: [
+    {nm:"AI / LLM", v:184, color:"var(--accent)", sub:"ChatGPT ≈ all of LLM · bounce 61% · flat ~16/day"},
+    {nm:"Direct", v:119, color:"var(--slate)", sub:"bounce 90% — high-bounce W2 surge (likely bots), under investigation"},
+    {nm:"Search", v:59, color:"var(--amber)", sub:"Google-led · bounce 66%"},
+  ],
+  daily: { days:["13","14","15","16","17","18","19","20","21","22","23"],
+           pv:[6,96,174,42,25,97,86,80,74,63,115], ps:[2,34,93,16,14,41,44,49,46,28,47], maxY:180 },
+  wow: {
+    head:["Bucket","Visitors","LLM%","Practice/day","Scoring/day","Logged/day"],
+    rows:[ {c:["W1 · Aug 13–19","207","53%","34.9","23.1","6.4"]},
+           {c:["W2 · Aug 20–26*","166→","45%","42.5 ▲","30.25 ▲","12.0 ▲"], up:true} ],
+    note:"Per day W1→W2: practice <b>+22%</b>, scoring <b>+31%</b>, logged <b>+88%</b> vs pageviews +11% (75→83/day) — engagement outpacing traffic (4 of 7 days). W2's 45% LLM is the direct surge diluting the mix, not an LLM decline.",
+  },
+  practiceFunnel: [ {l:"Started practice", n:"417", pct:100}, {l:"Reached scoring", n:"285", pct:68}, {l:"Logged a session", n:"93", pct:21} ],
+  practiceNote:'"Reached scoring" = ≥1 scored key, not full completion.',
+  chatgptFunnel: [ {l:"ChatGPT visitors", n:"184", pct:100}, {l:"Started practice", n:"45", pct:24, floor:true}, {l:"Reached scoring", n:"40", pct:22, floor:true} ],
+  chatgptNote:"Floors vs Ahrefs' 184 ChatGPT visitors (PostHog referrer-tagged = subset). Activation holding ~24%.",
+  returning: {
+    pagesPerVisit:{ret:3.5, new:2.49}, depth:{ret:2.14, new:1.12}, shareNote:"22.5% of tagged pageviews are returns · returns span up to 6 visits · untagged now 0 (early-days artifact, resolved).",
+  },
+  citations: [ {p:"ChatGPT", c:32, pg:4}, {p:"Copilot", c:5, pg:3}, {p:"Perplexity", c:0}, {p:"Gemini", c:0}, {p:"Google AI", c:0} ],
+  crawlers: [
+    {vendor:"OpenAI", bot:"ChatGPT-User", kind:"user", h:350},
+    {vendor:"OpenAI", bot:"OAI-SearchBot", kind:"index", h:75},
+    {vendor:"Anthropic", bot:"ClaudeBot", kind:"training", h:71, anth:true},
+    {vendor:"Perplexity", bot:"PerplexityBot", kind:"index", h:69},
+    {vendor:"OpenAI", bot:"GPTBot", kind:"training", h:67},
+    {vendor:"Anthropic", bot:"Claude-SearchBot", kind:"index", h:3, anth:true},
+    {vendor:"Anthropic", bot:"Claude-User", kind:"user", h:1, anth:true},
+  ],
+  crawlerNote:'Anthropic <b>scraped, not recommended</b>: Claude-SearchBot flat at test level 4 days on, while ChatGPT-User climbs (retrieval up, referrals flat — zero-click). Branded search "vocal habit": 14 clicks · pos 2 (Google; WoM gauge, understates vs Bing).',
+  investigations: [
+    {tag:"pass", t:"1B Retention — PASSING", x:"Both bar metrics rising (volume +40%/wk, depth 2.10→2.14). The retention bet is working; keep watching as W2 fills."},
+    {tag:"open", t:"1A Inflow — grow citations & referrals", x:"Flat; no lever shipped. Levers to try + measure: more indexed answer-content (query coverage), real authority (DR is 0), primary-source assets. Gauges: citations-per-page, referral rate, branded search."},
+    {tag:"open", t:"Claude citations", x:"Still scraped-not-recommended — Claude-SearchBot hasn't crawled since the Aug 20 test despite robots allow + Brave submit. Verify Brave has actually indexed us."},
+    {tag:"open", t:"Direct-traffic surge", x:"119 visitors at 90% bounce / ~0s sessions — likely bots/junk; dilutes LLM share to 49%. Break down by UA / bot flag before counting it."},
+    {tag:"watch", t:"Funnel deepening", x:"Per-day practice/scoring/logged all up W1→W2 while pageviews barely move. Confirm as W2 fills."},
+  ],
+  findings: { date:"Aug 24, 2026", items:[
+    "<b>1B retention passing</b> — returning practice-starts ~7.75→10.9/day (+40%) and depth 2.10→2.14/visit; share 21→22.5%.",
+    "<b>1A inflow flat</b> — citations ~32, ~16 ChatGPT ref/day, branded search unchanged (14 clicks), DR 0. No lever shipped yet.",
+    "<b>Still scraped, not recommended</b> — ChatGPT-User 310→350 (retrieval); Claude citation path flat 4 days on.",
+    "<b>Funnel deepening continues</b> — per-day practice +22% / scoring +31% / logged +88% vs W1.",
+    "<b>Aug 23 was the biggest day yet</b> (115 pageviews, 47 practice starts). Direct surge persists (119 @ 90% bounce).",
+  ]},
+  method: "Window Aug 13–24, 2026 (Aug 24 barely started; real data through Aug 23); analytics live since Aug 13. Channels from Ahrefs Web Analytics (10013070); events from PostHog (cookieless, 556732, UTC); citations from Ahrefs Site Explorer; crawler hits from the Netlify edge tap; branded search from GSC. <b>Cumulative ≠ growth</b> — totals rise by construction; read growth from the per-day / per-week rates. Retention is a localStorage per-device floor (true person-level retention isn't available cookieless). Ahrefs dwell is idle-tab inflated — ignored. Dashboard is data-driven; source in analytics/dashboard.html.",
+};
+
+// ============================================================================
+//  Render — builds the page from D. No need to touch below for daily updates.
+// ============================================================================
+const el = (h) => { const t=document.createElement('template'); t.innerHTML=h.trim(); return t.content; };
+const pct = (v, max) => Math.max(0, Math.min(100, 100*v/max));
+
+function render(){
+  document.getElementById('meta').textContent = `${D.window} · updated ${D.updated} · ${D.days} days since launch`;
+  const app = document.getElementById('app');
+  let h = "";
+
+  // headline + badges
+  h += `<div class="headline"><h1>${D.headline}</h1><p>${D.dek}</p>
+    <div class="badges">${D.badges.map(b=>`<span class="badge ${b.cls}">${b.label} · <b>${b.val}</b></span>`).join("")}</div></div>`;
+
+  // kpis
+  h += `<div class="kpis">${D.kpis.map(k=>`<div class="kpi${k.accent?' accent':''}"><div class="num tnum">${k.num}${k.unit?`<small>${k.unit}</small>`:''}</div><div class="lbl">${k.lbl}</div></div>`).join("")}</div>`;
+  h += `<p class="ratenote">⚠ The KPIs above are <b>totals since launch</b> — they rise by construction. Judge <b>growth</b> from the per-day rates below, never from a total getting bigger.</p>`;
+
+  // the two bets
+  const bet = (b, title) => `<div class="card betcard ${b.pass?'bet-pass':''}">
+    <div class="bethead"><span class="t">${title} <small>${b.sub}</small></span><span class="badge ${b.pass?'pass':'flat'}"><b>${b.pass?'PASSING':'FLAT'}</b></span></div>
+    ${b.metrics.map(m=>`<div class="bet-metric"><span>${m.k}</span><span class="v ${m.up?'up':'flat'}">${m.v}${m.note?` <span style="font-weight:400;font-size:11px">${m.note}</span>`:''}</span></div>`).join("")}
+    <div class="betnote">${b.note}</div></div>`;
+  h += `<section><p class="sk">The two bets — inflow (1A) &amp; retention (1B), co-equal</p>
+    <div class="grid2">${bet(D.bets.retention,"Retention")}${bet(D.bets.inflow,"Inflow")}</div></section>`;
+
+  // week over week
+  h += `<section><p class="sk">Week over week — pace, not totals</p><div class="card">
+    <h3>7-day buckets since launch <span class="r">per-day compare · *partial</span></h3>
+    <div class="wow whead">${D.wow.head.map(x=>`<span>${x}</span>`).join("")}</div>
+    ${D.wow.rows.map(r=>`<div class="wrow">${r.c.map((x,i)=>`<span${(r.up&&i>2)?' style="color:var(--accent)"':''}>${x}</span>`).join("")}</div>`).join("")}
+    <div class="sub" style="margin-top:10px;font-size:12.5px;color:var(--muted)">${D.wow.note}</div></div></section>`;
+
+  // activity: trend + funnels
+  h += `<section><p class="sk">Activity — volume &amp; funnels</p><div class="grid3">
+    <div class="card"><h3>Daily volume</h3>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Pageviews</span><span><i style="background:var(--amber)"></i>Practice started</span></div>
+      <svg class="chart" id="trend" viewBox="0 0 380 150" preserveAspectRatio="none"></svg></div>
+    <div class="card"><h3>Practice funnel <span class="r">all traffic</span></h3><div class="fn">
+      ${D.practiceFunnel.map((f,i)=>`<div><div class="lab"><span>${f.l}</span><span class="pc">${i==0?f.n:f.pct+'%'}</span></div><div class="ftr"><div class="ffl" style="width:${f.pct}%;background:color-mix(in srgb,var(--accent) ${100-i*22}%,var(--ground))"><span class="n">${f.n}</span></div></div></div>`).join("")}
+      </div><div class="sub" style="margin-top:10px">${D.practiceNote}</div></div>
+    <div class="card"><h3>ChatGPT activation <span class="r">floors</span></h3><div class="fn">
+      ${D.chatgptFunnel.map((f,i)=>`<div><div class="lab"><span>${f.l}</span><span class="pc">${i==0?'100%':(f.floor?'≥':'')+f.pct+'%'}</span></div><div class="ftr"><div class="ffl" style="width:${f.pct}%;background:color-mix(in srgb,var(--accent) ${100-i*20}%,var(--ground))"><span class="n">${f.n}</span></div></div></div>`).join("")}
+      </div><div class="sub" style="margin-top:10px">${D.chatgptNote}</div></div></div></section>`;
+
+  // traffic channels + returning detail
+  const maxCh = Math.max(...D.channels.map(c=>c.v));
+  h += `<section><p class="sk">Traffic &amp; returning detail</p><div class="grid2">
+    <div class="card"><h3>Source channels <span class="r">${D.channels.reduce((a,c)=>a+c.v,0)}+ visitors</span></h3>
+      ${D.channels.map(c=>`<div class="barrow"><span class="nm"><span class="sw" style="background:${c.color}"></span>${c.nm}</span><div class="track"><div class="fill" style="width:${pct(c.v,maxCh)}%;background:${c.color}"></div></div><span class="v tnum">${c.v}</span></div><div class="sub" style="padding-left:114px">${c.sub}</div>`).join("")}</div>
+    <div class="card"><h3>Returning vs new <span class="r">1B depth</span></h3>
+      <div style="font-family:var(--font-mono);font-size:11.5px;color:var(--faint);margin-bottom:6px">PAGES / VISIT</div>
+      <div class="cb"><span class="k">Returning</span><div class="track" style="height:16px"><div class="fill" style="width:100%;background:var(--accent)"></div></div><span class="v">${D.returning.pagesPerVisit.ret}</span></div>
+      <div class="cb"><span class="k">New</span><div class="track" style="height:16px"><div class="fill" style="width:${pct(D.returning.pagesPerVisit.new,D.returning.pagesPerVisit.ret)}%;background:var(--slate)"></div></div><span class="v">${D.returning.pagesPerVisit.new}</span></div>
+      <div style="font-family:var(--font-mono);font-size:11.5px;color:var(--faint);margin:12px 0 6px">PRACTICE STARTS / VISIT (depth)</div>
+      <div class="cb"><span class="k">Returning</span><div class="track" style="height:16px"><div class="fill" style="width:100%;background:var(--accent)"></div></div><span class="v">${D.returning.depth.ret}</span></div>
+      <div class="cb"><span class="k">New</span><div class="track" style="height:16px"><div class="fill" style="width:${pct(D.returning.depth.new,D.returning.depth.ret)}%;background:var(--slate)"></div></div><span class="v">${D.returning.depth.new}</span></div>
+      <div class="sub" style="margin-top:12px">${D.returning.shareNote}</div></div></div></section>`;
+
+  // inflow: citations + crawlers
+  const maxC = Math.max(...D.citations.map(c=>c.c),1);
+  h += `<section><p class="sk">Inflow (1A) — citations, crawlers &amp; word-of-mouth</p><div class="grid2">
+    <div class="card"><h3>AI citations <span class="r">Ahrefs</span></h3>
+      ${D.citations.map(c=>`<div class="scrow${c.c==0?' z':''}"><span class="pl">${c.p}</span><div class="ct">${c.c>0?`<div class="cf" style="width:${pct(c.c,maxC)}%"></div>`:''}</div><span class="n tnum">${c.c}</span></div>`).join("")}
+      <div class="sub" style="margin-top:8px">No Claude coverage here — Claude rides Brave.</div></div>
+    <div class="card"><h3>AI-crawler hits <span class="r">cumulative</span></h3>
+      ${D.crawlers.map(c=>`<div class="cr${c.anth?' anth':''}"><span class="bot">${c.vendor} · <b>${c.bot}</b></span><span class="kind ${c.kind}">${c.kind}</span><span class="h tnum">${c.h}</span></div>`).join("")}
+      <div class="sub" style="margin-top:8px">${D.crawlerNote}</div></div></div></section>`;
+
+  // investigations + findings
+  h += `<section><p class="sk">Investigations &amp; findings — the running log</p><div class="grid2">
+    <div class="card"><h3>Active investigations</h3>${D.investigations.map(i=>`<div class="iv"><span class="tag ${i.tag}">${i.tag==='pass'?'Passing':i.tag[0].toUpperCase()+i.tag.slice(1)}</span><span class="txt"><b>${i.t}.</b> ${i.x}</span></div>`).join("")}</div>
+    <div class="card"><h3>Recent findings</h3><div class="find"><p class="dt">${D.findings.date}</p><ul>${D.findings.items.map(x=>`<li>${x}</li>`).join("")}</ul></div></div></div></section>`;
+
+  h += `<footer><b>Method.</b> ${D.method} · Generated by the <span class="mono">analytics-report</span> skill.</footer>`;
+
+  app.innerHTML = h;
+  drawTrend();
+}
+
+function drawTrend(){
+  const svg=document.getElementById('trend'); if(!svg) return;
+  const {days,pv,ps,maxY}=D.daily, NS='http://www.w3.org/2000/svg';
+  const W=380,H=150,pL=22,pR=8,pT=10,pB=20,iw=W-pL-pR,ih=H-pT-pB;
+  const X=i=>pL+iw*i/(days.length-1), Y=v=>pT+ih*(1-v/maxY);
+  const e=(n,a)=>{const x=document.createElementNS(NS,n);for(const k in a)x.setAttribute(k,a[k]);return x;};
+  [0,90,180].forEach(g=>{svg.appendChild(e('line',{x1:pL,y1:Y(g),x2:W-pR,y2:Y(g),stroke:'var(--hairline)','stroke-width':1}));const t=e('text',{x:pL-5,y:Y(g)+3,'text-anchor':'end'});t.textContent=g;svg.appendChild(t);});
+  let ap='M'+X(0)+' '+Y(pv[0]); for(let i=1;i<pv.length;i++) ap+=' L'+X(i)+' '+Y(pv[i]);
+  svg.appendChild(e('path',{d:ap+' L'+X(pv.length-1)+' '+Y(0)+' L'+X(0)+' '+Y(0)+' Z',fill:'var(--accent)','fill-opacity':'.10'}));
+  svg.appendChild(e('path',{d:ap,fill:'none',stroke:'var(--accent)','stroke-width':2,'stroke-linejoin':'round'}));
+  let lp='M'+X(0)+' '+Y(ps[0]); for(let j=1;j<ps.length;j++) lp+=' L'+X(j)+' '+Y(ps[j]);
+  svg.appendChild(e('path',{d:lp,fill:'none',stroke:'var(--amber)','stroke-width':2,'stroke-linejoin':'round'}));
+  const tip=document.getElementById('tip');
+  for(let k=0;k<days.length;k++){
+    const tx=e('text',{x:X(k),y:H-7,'text-anchor':'middle'});tx.textContent=days[k];svg.appendChild(tx);
+    svg.appendChild(e('circle',{cx:X(k),cy:Y(pv[k]),r:2.5,fill:'var(--accent)'}));
+    svg.appendChild(e('circle',{cx:X(k),cy:Y(ps[k]),r:2.5,fill:'var(--amber)'}));
+    const hit=e('rect',{x:X(k)-iw/(days.length*2),y:pT,width:iw/days.length,height:ih,fill:'transparent'});hit.style.cursor='crosshair';
+    hit.addEventListener('mousemove',ev=>{tip.style.opacity='1';tip.style.left=ev.clientX+'px';tip.style.top=ev.clientY+'px';tip.innerHTML=`Aug ${days[k]} &middot; <b>${pv[k]}</b> views &middot; <b>${ps[k]}</b> starts`;});
+    hit.addEventListener('mouseleave',()=>tip.style.opacity='0');svg.appendChild(hit);
+  }
+}
+
+// theme toggle
+(function(){const r=document.documentElement,b=document.getElementById('tt');
+  const sysDark=()=>matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches;
+  const cur=()=>{const t=r.getAttribute('data-theme');return t?t:(sysDark()?'dark':'light');};
+  b.addEventListener('click',()=>r.setAttribute('data-theme',cur()==='dark'?'light':'dark'));})();
+
+render();
+</script>
