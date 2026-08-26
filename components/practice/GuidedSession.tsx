@@ -68,11 +68,14 @@ export default function GuidedSession({
   voicePart,
   octaveShift = 0,
   onPatternComplete,
+  onStart,
 }: {
   exercise: ExerciseDescriptor;
   voicePart: VoicePart;
   // Transpose the exercise by this many octaves (e.g. -1 for a lower register).
   octaveShift?: number;
+  /** Fires once when the singer actually starts a guided pattern (analytics). */
+  onStart?: () => void;
   /** Fires when a pattern finishes and bestPerNote has been finalized. The
    *  Practice screen routes the resulting record through the existing
    *  Log/Discard + Coaching CTA flow. iterations is a synthesized stub the
@@ -188,6 +191,7 @@ export default function GuidedSession({
     setBestPerNoteArr([]);
     setCurrentTonicMidi(startTonicMidi);
     abortRef.current = { aborted: false };
+    onStart?.();
 
     try {
       if (!playerRef.current) playerRef.current = createAudioPlayer();

@@ -480,10 +480,41 @@ export default function PracticeScreen() {
   // Guided patterns deliver a fully-formed SessionRecord + synthesized
   // iterations on completion. Reuse the Standard mode's Log/Discard +
   // Coaching CTA wiring so Guided gets the same coaching payoff.
+  const handleGuidedStart = useCallback(() => {
+    track("practice_started", {
+      exerciseId: exercise.id,
+      voicePart,
+      mode: "guided",
+      scored: true,
+      ...recordPracticeStart(),
+    });
+  }, [exercise, voicePart]);
+
   const handleGuidedPatternComplete = useCallback(
     (record: SessionRecord, iterations: KeyIteration[]) => {
       setPendingSession(record);
       setLoggedMessage(null);
+
+      const keys = record.keyAttempts.length;
+      const plannedKeys = iterations.length;
+      const completedAllKeys = keys > 0 && keys >= plannedKeys;
+      const meanAccuracyPct = keys
+        ? Math.round(record.keyAttempts.reduce((a, k) => a + k.meanAccuracyPct, 0) / keys)
+        : null;
+      track("pattern_completed", {
+        exerciseId: exercise.id,
+        voicePart,
+        mode: "guided",
+        scored: true,
+        keys,
+        plannedKeys,
+        completedAllKeys,
+        sungKeys: keys,
+        sangAnything: keys > 0,
+        meanAccuracyPct,
+        ...readPracticeContext(),
+        ...(completedAllKeys ? recordFinish() : {}),
+      });
 
       const sessionInput = fromKeyAttempts(record.keyAttempts, iterations);
       const ranked = diagnoseSession(sessionInput);
@@ -500,7 +531,7 @@ export default function PracticeScreen() {
         });
       }
     },
-    [],
+    [exercise, voicePart],
   );
 
   // Once an active session is producing samples, mic state can stick to
@@ -1105,6 +1136,7 @@ export default function PracticeScreen() {
                   voicePart={voicePart}
                   octaveShift={octaveShift}
                   onPatternComplete={handleGuidedPatternComplete}
+                  onStart={handleGuidedStart}
                 />
               </View>
             </View>
@@ -1115,6 +1147,7 @@ export default function PracticeScreen() {
                 voicePart={voicePart}
                 octaveShift={octaveShift}
                 onPatternComplete={handleGuidedPatternComplete}
+                onStart={handleGuidedStart}
               />
               {practiceControls}
             </>

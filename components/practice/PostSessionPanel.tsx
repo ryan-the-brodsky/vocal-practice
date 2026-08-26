@@ -61,11 +61,20 @@ export function PostSessionPanel({
       ? isPersonalBest(allSessions, pendingSession)
       : null;
 
-  // Octave-below hint — true if any note in any key attempt was matched an octave low.
-  const hasOctaveBelow =
-    pendingSession?.keyAttempts.some((ka) =>
-      ka.notes.some((n) => (n as { octaveBelow?: boolean }).octaveBelow === true)
-    ) ?? false;
+  // Average distance off pitch, in cents — a tuning measurement, deliberately
+  // NOT a percent (a "57%" reads like an academic F when it's really a fine
+  // beginner result). Lower is better; ±50¢ is the width of a half-semitone.
+  const avgCentsOff = pendingSession
+    ? (() => {
+        const notes = pendingSession.keyAttempts
+          .flatMap((k) => k.notes)
+          .filter((n) => (n.framesAboveClarity ?? 0) > 0);
+        if (notes.length === 0) return null;
+        return Math.round(
+          notes.reduce((a, n) => a + Math.abs(n.meanCentsDeviation), 0) / notes.length,
+        );
+      })()
+    : null;
 
   return (
     <>
@@ -78,14 +87,8 @@ export function PostSessionPanel({
             <View style={[styles.bestBadge, { backgroundColor: colors.accentMuted, borderColor: colors.accent }]}>
               <Text style={[styles.bestBadgeText, { color: colors.accent, fontFamily: Fonts.bodySemibold }]}>
                 {personalBest.previousBest === null
-                  ? `★ First time through — ${Math.round(
-                      (pendingSession!.keyAttempts.reduce((a, k) => a + k.meanAccuracyPct, 0) /
-                        Math.max(1, pendingSession!.keyAttempts.length))
-                    )}%`
-                  : `★ Personal best on this exercise — ${Math.round(
-                      pendingSession!.keyAttempts.reduce((a, k) => a + k.meanAccuracyPct, 0) /
-                        Math.max(1, pendingSession!.keyAttempts.length)
-                    )}% (was ${Math.round(personalBest.previousBest)}%)`}
+                  ? `★ First time through${avgCentsOff != null ? ` · avg ±${avgCentsOff}¢ off pitch` : ""}`
+                  : `★ New personal best on this exercise${avgCentsOff != null ? ` · avg ±${avgCentsOff}¢ off pitch` : ""}`}
               </Text>
             </View>
           )}
@@ -151,17 +154,6 @@ export function PostSessionPanel({
                 This won't count toward your history unless you log it.
               </Text>
             </>
-          )}
-
-          {/* Octave-below hint — calm, non-alarming; surfaces the register mismatch.
-              Scoring is octave-honest, so this is informational only. */}
-          {hasOctaveBelow && (
-            <View style={[styles.octaveBanner, { backgroundColor: colors.bgSurface, borderColor: colors.warning }]}>
-              <Text style={[styles.octaveBannerText, { color: colors.textSecondary, fontFamily: Fonts.body }]}>
-                You sang this an octave below the notation — your score is still accurate. That&apos;s
-                completely fine; many singers are most comfortable an octave down.
-              </Text>
-            </View>
           )}
         </View>
       )}
@@ -260,22 +252,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
   },
   bestBadgeText: {
-    fontSize: Typography.sm.size,
-    lineHeight: Typography.sm.lineHeight,
-  },
-  octaveBanner: {
-    borderRadius: Radii.md,
-    borderLeftWidth: 3,
-    borderWidth: 1,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    gap: Spacing["2xs"],
-  },
-  octaveBannerText: {
-    fontSize: Typography.sm.size,
-    lineHeight: Typography.sm.lineHeight,
-  },
-  octaveBannerSwitch: {
     fontSize: Typography.sm.size,
     lineHeight: Typography.sm.lineHeight,
   },

@@ -86,19 +86,22 @@ export function coachingFor(
   const dev = (sample.midi - targetMidi) * 100 + (sample.cents ?? 0);
   const abs = Math.abs(dev);
 
+  // Bands (generous, beginner-encouraging, honest — DESIGN.md: green "in tune",
+  // yellow "close call", red "clearly off"). Within a half-semitone you sang the
+  // nearest note → green. Within a full semitone → yellow. A semitone+ off → red.
   if (abs < 15) return { text: "On pitch ✓", tone: "good", cents: dev, pegged: false };
-  if (abs < 50) {
+  if (abs <= 50) {
     return {
-      text: `Slightly ${dev > 0 ? "sharp" : "flat"} (${formatDelta(dev)})`,
-      tone: "warn",
+      text: `Almost there · slightly ${dev > 0 ? "sharp" : "flat"} (${formatDelta(dev)})`,
+      tone: "good",
       cents: dev,
       pegged: false,
     };
   }
-  if (abs < 100) {
+  if (abs <= 100) {
     return {
-      text: `${dev > 0 ? "Sharp" : "Flat"} by ${Math.round(abs)}¢`,
-      tone: "bad",
+      text: `Close · ${dev > 0 ? "sharp" : "flat"} by ${Math.round(abs)}¢`,
+      tone: "warn",
       cents: dev,
       pegged: false,
     };
@@ -117,7 +120,10 @@ export function coachingFor(
 export function noteChipTone(scored: boolean, meanCents: number): Tone {
   if (!scored) return "idle";
   const abs = Math.abs(meanCents);
-  if (abs < 25) return "good";
-  if (abs < 60) return "warn";
+  // Generous bands, unified with NoteResultsStrip: within a half-semitone = the
+  // nearest note = green ("in tune"); within a full semitone = yellow ("close");
+  // a semitone+ off = red ("clearly off"). Encouraging without being dishonest.
+  if (abs <= 50) return "good";
+  if (abs <= 100) return "warn";
   return "bad";
 }
