@@ -80,7 +80,7 @@ export default function LearnArticlePage() {
           <Link href="/learn/" style={styles.backLink}>← All guides</Link>
 
           <MarkdownView content={intro} />
-          <EmbeddedExercise exerciseId={article.embeddedExerciseId} />
+          <EmbeddedExercise exerciseId={article.embeddedExerciseId} slug={article.slug} surface="learn" />
           {rest ? <MarkdownView content={rest} /> : null}
 
           {related.length > 0 && (

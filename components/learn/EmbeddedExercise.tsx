@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link, type Href } from 'expo-router';
 
 import { Colors, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
+import { track } from '@/lib/analytics';
 import { exerciseName } from '@/lib/exercises/names';
 import { getExercise } from '@/lib/exercises/library';
 import { flattenIterations, planExercise } from '@/lib/exercises/engine';
@@ -22,8 +23,17 @@ type Phase = 'idle' | 'loading' | 'playing';
 // engine (Tone.js stays out of SSG) and plays the first key iteration. The
 // "Open full version" link opens Practice (with the exercise preselected) in a
 // NEW TAB so the reader keeps their place. See seo/learning-library-plan.md.
-export default function EmbeddedExercise({ exerciseId }: { exerciseId: string }) {
+export default function EmbeddedExercise({
+  exerciseId,
+  slug,
+  surface = 'learn',
+}: {
+  exerciseId: string;
+  slug?: string;
+  surface?: 'learn' | 'spotlight';
+}) {
   const name = exerciseName(exerciseId) || 'this exercise';
+  const evtProps = { exerciseId, slug: slug ?? null, surface };
   const exercise = getExercise(exerciseId);
 
   const iters = useMemo(() => {
@@ -63,6 +73,7 @@ export default function EmbeddedExercise({ exerciseId }: { exerciseId: string })
   }, []);
 
   const play = useCallback(async () => {
+    track('embed_exercise_played', evtProps);
     setPhase('loading');
     try {
       if (!playerRef.current) {
@@ -104,7 +115,8 @@ export default function EmbeddedExercise({ exerciseId }: { exerciseId: string })
             <Text style={styles.btnText}>{phase === 'loading' ? 'Loading…' : '▶ Play'}</Text>
           </Pressable>
         )}
-        <Link href={fullHref} target="_blank" style={styles.fullLink}>
+        <Link href={fullHref} target="_blank" style={styles.fullLink}
+          onPress={() => track('embed_exercise_open_full', evtProps)}>
           Open full version with scoring →
         </Link>
       </View>

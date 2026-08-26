@@ -13,7 +13,7 @@ type State = 'idle' | 'added' | 'already';
 // the "Add to routine" conversion hook. Add writes the exercise id into the
 // app's routine (vocal-training:routine:v1, same-origin localStorage) so a cold
 // lander arrives in the app with the drill already queued.
-export default function SpotlightDrill({ exerciseId }: { exerciseId: string }) {
+export default function SpotlightDrill({ exerciseId, slug }: { exerciseId: string; slug?: string }) {
   const [state, setState] = useState<State>('idle');
 
   const add = useCallback(async () => {
@@ -37,7 +37,7 @@ export default function SpotlightDrill({ exerciseId }: { exerciseId: string }) {
 
   return (
     <View style={styles.wrap}>
-      <EmbeddedExercise exerciseId={exerciseId} />
+      <EmbeddedExercise exerciseId={exerciseId} slug={slug} surface="spotlight" />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Add this drill to your practice routine"

@@ -21,6 +21,12 @@ export type AnalyticsEvent =
   | 'song_saved'
   | 'routine_edited'
   | 'coaching_started'
-  | 'feedback_opened';
+  | 'feedback_opened'
+  // In-article embedded exercise (Learn articles + artist spotlights). Answers
+  // whether the mini-players do anything, and whether they convert a reader into
+  // the app: `_played` = pressed Play in-article; `_open_full` = clicked through
+  // to the full scored exercise in Practice. Discriminated by `surface` + `slug`.
+  | 'embed_exercise_played'
+  | 'embed_exercise_open_full';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null | undefined>;
