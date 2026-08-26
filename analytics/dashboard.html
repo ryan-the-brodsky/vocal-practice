@@ -124,77 +124,87 @@
 //  D — the single source of truth. Update this each run; the page renders it.
 // ============================================================================
 const D = {
-  window: "Aug 13–24, 2026", updated: "Aug 24", days: 12,
-  headline: "Retention (1B) is passing its bar; inflow (1A) is flat.",
-  dek: "Returning-visit volume (+40%/wk) and depth are both rising — the retention win condition is being met. Inflow sits flat (citations ~32, ~16 ChatGPT referrals/day) with no lever shipped yet. The funnel keeps deepening: per day, practice +22% and scoring +31% vs week 1. Anthropic still hasn't recommended us; a high-bounce direct surge is under investigation.",
+  window: "Aug 13–26, 2026", updated: "Aug 26 · run 2", days: 14,
+  headline: "Retention holds; ChatGPT is the only real citation engine — and the crawler tap is being spoofed.",
+  dek: "Two corrections this run. (1) The AI-crawler tap is heavily polluted by a credential-scanner spoofing crawler user-agents (hitting /.env, /.ssh, /aws/credentials): splitting real content pages from probe paths shows ChatGPT-User is the ONLY bot genuinely retrieving our pages (277 content hits — matching Bing's 277 citations exactly), while Claude stays test-level (3 content hits) — its path never went live, and the old 446/72/70 counts were spoof-inflated. (2) Bing Webmaster Tools AI Performance (now a standing sweep step) is the real citation picture: 277 citations across ~4 pages, driven by free/beginner 'learn-to-sing' intent. Retention (1B) still passing; inflow (1A) still flat. Three pain-point articles shipped + Request-Indexed today; their in-article exercise is now instrumented (awaiting first data).",
   badges: [ {cls:"pass", label:"1B Retention", val:"PASSING"}, {cls:"flat", label:"1A Inflow", val:"FLAT"} ],
   kpis: [
-    {num:"373", accent:true, lbl:"visitors since launch (12 days)"},
-    {num:"49", unit:"%", lbl:"from AI assistants — #1 channel"},
-    {num:"≥24", unit:"%", lbl:"ChatGPT arrivals start practice"},
-    {num:"22", unit:"%", lbl:"pageviews from returning visitors"},
-    {num:"37", lbl:"AI citations (ChatGPT 32 · Copilot 5)"},
+    {num:"426", accent:true, lbl:"visitors since launch (14 days)"},
+    {num:"52", unit:"%", lbl:"from AI assistants — #1 channel"},
+    {num:"≥22", unit:"%", lbl:"ChatGPT arrivals start practice"},
+    {num:"24", unit:"%", lbl:"pageviews from returning visitors"},
+    {num:"277", accent:true, lbl:"real Bing AI citations (Ahrefs samples 38)"},
   ],
   // The two co-equal bets.
   bets: {
     retention: { pass:true, sub:"1B · the health bar", metrics:[
-      {k:"Returning volume / day", v:"7.75 → 10.9", up:true, note:"+40% wk/wk"},
-      {k:"Depth (practice-starts / returning visit)", v:"1.89 → 2.14", up:true, note:"rising"},
-      {k:"Returning share of tagged pageviews", v:"21% → 22.5%", up:true, note:""},
-    ], note:"Good iff BOTH volume and depth rise. Both are — two runs running. Caveat: localStorage proxy, a per-device floor." },
+      {k:"Returning volume / day", v:"12.3 → 13.9", up:true, note:"+13% wk/wk"},
+      {k:"Depth (practice-starts / returning visit)", v:"2.32 → 2.49", up:true, note:"rising"},
+      {k:"Returning share of tagged pageviews", v:"20.2% → 23.0%", up:true, note:"recovered"},
+    ], note:"Good iff BOTH volume and depth rise. Both are — four runs running, and the share dip reversed. Genuine practice-returners are now visible: the practiceNumber counter (shipped Aug 24) shows repeat-practice starts already outnumbering first-timers in its tagged window (27 vs 9), tail reaching practice #11 — directional (n small) but the honest metric is finally reading." },
     inflow: { pass:false, sub:"1A · lever gauges (flat)", metrics:[
-      {k:"AI citations (ChatGPT / Copilot)", v:"32 / 5", up:false, note:"flat"},
-      {k:"ChatGPT referrals / day", v:"~16", up:false, note:"flat"},
-      {k:'Branded search "vocal habit"', v:"14 clicks", up:false, note:"flat · pos 2"},
+      {k:"AI citations (ChatGPT / Copilot)", v:"33 / 5", up:false, note:"flat"},
+      {k:"ChatGPT referrals / day", v:"~18", up:false, note:"flat"},
+      {k:'Branded search "vocal habit"', v:"pos 2", up:false, note:"flat"},
       {k:"Domain Rating", v:"0", up:false, note:""},
     ], note:"Flat because no inflow experiment has shipped yet — this is the baseline to beat as content/authority work begins. Not a failure, just no lever pulled." },
   },
   channels: [
-    {nm:"AI / LLM", v:184, color:"var(--accent)", sub:"ChatGPT ≈ all of LLM · bounce 61% · flat ~16/day"},
-    {nm:"Direct", v:119, color:"var(--slate)", sub:"bounce 90% — high-bounce W2 surge (likely bots), under investigation"},
-    {nm:"Search", v:59, color:"var(--amber)", sub:"Google-led · bounce 66%"},
+    {nm:"AI / LLM", v:216, color:"var(--accent)", sub:"ChatGPT ≈ all of LLM · bounce 63% · ~18/day · cumulative share 52%"},
+    {nm:"Direct", v:130, color:"var(--slate)", sub:"bounce 90% — surge persists (W2 81 @ 93%); still uncharacterized, don't count as growth"},
+    {nm:"Search", v:67, color:"var(--amber)", sub:"Google-led · bounce 70%"},
   ],
-  daily: { days:["13","14","15","16","17","18","19","20","21","22","23"],
-           pv:[6,96,174,42,25,97,86,80,74,63,115], ps:[2,34,93,16,14,41,44,49,46,28,47], maxY:180 },
+  daily: { days:["13","14","15","16","17","18","19","20","21","22","23","24","25"],
+           pv:[6,96,174,42,25,97,86,80,74,63,115,79,39], ps:[2,34,93,16,14,41,44,49,46,28,47,45,23], maxY:180 },
   wow: {
     head:["Bucket","Visitors","LLM%","Practice/day","Scoring/day","Logged/day"],
     rows:[ {c:["W1 · Aug 13–19","207","53%","34.9","23.1","6.4"]},
-           {c:["W2 · Aug 20–26*","166→","45%","42.5 ▲","30.25 ▲","12.0 ▲"], up:true} ],
-    note:"Per day W1→W2: practice <b>+22%</b>, scoring <b>+31%</b>, logged <b>+88%</b> vs pageviews +11% (75→83/day) — engagement outpacing traffic (4 of 7 days). W2's 45% LLM is the direct surge diluting the mix, not an LLM decline.",
+           {c:["W2 · Aug 20–26*","219","50%","39.7 ▲","28.3 ▲","12.8 ▲"], up:true} ],
+    note:"Per day W1→W2: practice <b>+14%</b>, scoring <b>+23%</b>, logged <b>+100%</b> vs pageviews flat (75→75/day) — engagement still outpacing traffic (6 of 7 days; deepening softened as W2 filled but logging doubled). W2's 50% LLM reflects the persistent high-bounce direct surge diluting the mix, not an LLM decline.",
   },
-  practiceFunnel: [ {l:"Started practice", n:"417", pct:100}, {l:"Reached scoring", n:"285", pct:68}, {l:"Logged a session", n:"93", pct:21} ],
-  practiceNote:'"Reached scoring" = ≥1 scored key, not full completion.',
-  chatgptFunnel: [ {l:"ChatGPT visitors", n:"184", pct:100}, {l:"Started practice", n:"45", pct:24, floor:true}, {l:"Reached scoring", n:"40", pct:22, floor:true} ],
-  chatgptNote:"Floors vs Ahrefs' 184 ChatGPT visitors (PostHog referrer-tagged = subset). Activation holding ~24%.",
+  practiceFunnel: [ {l:"Started practice", n:"484", pct:100}, {l:"Reached scoring", n:"333", pct:69}, {l:"Logged a session", n:"123", pct:25} ],
+  practiceNote:'"Reached scoring" = ≥1 scored key, not full completion. Totals since launch.',
+  chatgptFunnel: [ {l:"ChatGPT visitors", n:"216", pct:100}, {l:"Started practice", n:"48", pct:22, floor:true}, {l:"Reached scoring", n:"41", pct:19, floor:true} ],
+  chatgptNote:"Floors vs Ahrefs' 216 cumulative ChatGPT visitors (PostHog referrer-tagged = subset). Activation holding ~22%.",
   returning: {
-    pagesPerVisit:{ret:3.5, new:2.49}, depth:{ret:2.14, new:1.12}, shareNote:"22.5% of tagged pageviews are returns · returns span up to 6 visits · untagged now 0 (early-days artifact, resolved).",
+    pagesPerVisit:{ret:3.05, new:2.13}, depth:{ret:2.49, new:0.98}, shareNote:"24% of tagged pageviews are returns · returning browse ~43% deeper (3.05 vs 2.13 pv) · returns span up to 6 visits · untagged 0 (resolved). 7-day window.",
   },
-  citations: [ {p:"ChatGPT", c:32, pg:4}, {p:"Copilot", c:5, pg:3}, {p:"Perplexity", c:0}, {p:"Gemini", c:0}, {p:"Google AI", c:0} ],
+  citations: [ {p:"ChatGPT", c:33, pg:4}, {p:"Copilot", c:5, pg:3}, {p:"Perplexity", c:0}, {p:"Gemini", c:0}, {p:"Google AI", c:0} ],
+  citationsNote:"Ahrefs SAMPLES the answer side across all assistants — it undercounts hard (Copilot 5 here vs Bing's 277) and has no grounding-query view. The real picture is the Bing panel below. No Claude coverage (Claude rides Brave).",
+  bing: {
+    total: 277, avgPages: 4,
+    queries: [ {q:"learn to sing online free", c:44, share:"23.7%"}, {q:"best free online singing course", c:20, share:"18.5%"}, {q:"free singing lessons for beginners", c:19, share:"17.9%"}, {q:"learn to sing", c:8, share:"10.4%"} ],
+    pages: [ {p:"/learn/ (hub)", c:124}, {p:"/learn/sovt-exercises", c:40}, {p:"/ (home)", c:21}, {p:"/artists/freddie-mercury", c:19}, {p:"/artists/chappell-roan", c:10} ],
+    note:"Bing Webmaster Tools AI Performance — first-party ground truth for ChatGPT + Copilot (both Bing-backed), 3-mo. 277 real citations (vs Ahrefs' sampled 38), avg ~4 cited pages. Citations are driven by <b>free/beginner “learn-to-sing” intent</b>, not technique or pain-point queries yet. Blind to Perplexity/Gemini/Grok (non-Bing).",
+  },
+  // Content-path hits only (real retrieval). Raw UA counts are inflated by a
+  // credential-scanner spoofing crawler UAs — the probe column is that noise.
   crawlers: [
-    {vendor:"OpenAI", bot:"ChatGPT-User", kind:"user", h:350},
-    {vendor:"OpenAI", bot:"OAI-SearchBot", kind:"index", h:75},
-    {vendor:"Anthropic", bot:"ClaudeBot", kind:"training", h:71, anth:true},
-    {vendor:"Perplexity", bot:"PerplexityBot", kind:"index", h:69},
-    {vendor:"OpenAI", bot:"GPTBot", kind:"training", h:67},
-    {vendor:"Anthropic", bot:"Claude-SearchBot", kind:"index", h:3, anth:true},
-    {vendor:"Anthropic", bot:"Claude-User", kind:"user", h:1, anth:true},
+    {vendor:"OpenAI", bot:"ChatGPT-User", kind:"user", h:277, probe:209},
+    {vendor:"OpenAI", bot:"OAI-SearchBot", kind:"index", h:25, probe:96},
+    {vendor:"Anthropic", bot:"ClaudeBot", kind:"training", h:6, probe:80, anth:true},
+    {vendor:"Anthropic", bot:"Claude-User", kind:"user", h:3, probe:37, anth:true},
+    {vendor:"Anthropic", bot:"Claude-SearchBot", kind:"index", h:3, probe:16, anth:true},
+    {vendor:"Perplexity", bot:"PerplexityBot", kind:"index", h:1, probe:81},
+    {vendor:"OpenAI", bot:"GPTBot", kind:"training", h:0, probe:93},
   ],
-  crawlerNote:'Anthropic <b>scraped, not recommended</b>: Claude-SearchBot flat at test level 4 days on, while ChatGPT-User climbs (retrieval up, referrals flat — zero-click). Branded search "vocal habit": 14 clicks · pos 2 (Google; WoM gauge, understates vs Bing).',
+  crawlerNote:'<b>Content hits = real retrieval; probe = spoofed.</b> A credential-scanner is spraying secret paths (/.env, /.ssh/id_dsa, /aws/credentials) while spoofing crawler UAs, so raw-UA counts are junk (the Aug-26 “Claude 40/19 surge” was 37+16 spoof, 3+3 real). Filtered to content paths: <b>ChatGPT-User 277 is the only genuine retrieval</b> (and matches Bing’s 277); Claude stays test-level 3/3 — its cite-path never went live. The static export leaks nothing, but the scan is worth a security note.',
   investigations: [
-    {tag:"pass", t:"1B Retention — PASSING", x:"Both bar metrics rising (volume +40%/wk, depth 2.10→2.14). The retention bet is working; keep watching as W2 fills."},
-    {tag:"open", t:"1A Inflow — grow citations & referrals", x:"Flat; no lever shipped. Levers to try + measure: more indexed answer-content (query coverage), real authority (DR is 0), primary-source assets. Gauges: citations-per-page, referral rate, branded search."},
-    {tag:"open", t:"Claude citations", x:"Still scraped-not-recommended — Claude-SearchBot hasn't crawled since the Aug 20 test despite robots allow + Brave submit. Verify Brave has actually indexed us."},
-    {tag:"open", t:"Direct-traffic surge", x:"119 visitors at 90% bounce / ~0s sessions — likely bots/junk; dilutes LLM share to 49%. Break down by UA / bot flag before counting it."},
-    {tag:"watch", t:"Funnel deepening", x:"Per-day practice/scoring/logged all up W1→W2 while pageviews barely move. Confirm as W2 fills."},
+    {tag:"open", t:"Crawler tap is being spoofed (NEW)", x:"A credential-scanner sprays secret paths (/.env, /.ssh/id_dsa, /aws/credentials, /Dockerfile) while faking crawler UAs — so raw ai_crawler_hit counts by UA are junk. Content-path filter is now mandatory: real retrieval = ChatGPT-User 277, everything else near-zero. Static export leaks nothing (probes 404), but flag the active scan. Fix the sweep + tap to content-filter."},
+    {tag:"pass", t:"1B Retention — PASSING", x:"Both bar metrics positive (returning browse ~43% deeper: 3.05 vs 2.13 pv; start far more practice/visit), share 24%. practiceNumber counter reading (repeat starts outnumber first-timers in its window); clean cut ~a week out. Steady since AM run (same-day)."},
+    {tag:"open", t:"1A Inflow — grow citations & referrals", x:"Flat; no lever shipped. 3 pain-point articles shipped + Request-Indexed today (first content lever). Gauges: Bing citations 277, citations-per-page (widen the 4-page surface), branded search pos 2, DR 0."},
+    {tag:"open", t:"Claude citations — never went live", x:"Content-filtered: Claude-SearchBot 3 / Claude-User 3, still test-level 6 days after robots allow + Brave submit. The Aug-26 UA spike was the spoof-scanner, not Anthropic. Brave-index verification still the blocking action."},
+    {tag:"watch", t:"New pain-point articles + embed analytics", x:"3 articles (high-notes/recorded-voice/sing-flat) live + Request-Indexed today. In-article exercise now fires embed_exercise_played / _open_full (article→app conversion) — no data yet (just deployed). Watch first plays + whether they enter Bing's cited pool."},
+    {tag:"open", t:"Direct-traffic surge", x:"Persists — cumulative direct 130 @ 90% bounce; W2 81 @ 93%. Likely related to the same bot noise. Still uncharacterized; don't count as growth."},
   ],
-  findings: { date:"Aug 24, 2026", items:[
-    "<b>1B retention passing</b> — returning practice-starts ~7.75→10.9/day (+40%) and depth 2.10→2.14/visit; share 21→22.5%.",
-    "<b>1A inflow flat</b> — citations ~32, ~16 ChatGPT ref/day, branded search unchanged (14 clicks), DR 0. No lever shipped yet.",
-    "<b>Still scraped, not recommended</b> — ChatGPT-User 310→350 (retrieval); Claude citation path flat 4 days on.",
-    "<b>Funnel deepening continues</b> — per-day practice +22% / scoring +31% / logged +88% vs W1.",
-    "<b>Aug 23 was the biggest day yet</b> (115 pageviews, 47 practice starts). Direct surge persists (119 @ 90% bounce).",
+  findings: { date:"Aug 26, 2026 · run 2", items:[
+    "<b>Crawler tap is spoofed — big correction.</b> A credential-scanner faking crawler UAs hits /.env, /.ssh, /aws/credentials. Content-path filter shows <b>ChatGPT-User 277 is the ONLY real retrieval</b> (matches Bing’s 277); Claude 3/3, GPTBot 0, Perplexity 1 — the old 446/72/70 counts were spoof-inflated. Crawler signal must be content-filtered from now on.",
+    "<b>Bing AI Performance is now a standing sweep step</b> — 277 real citations across ~4 pages; grounding driven by free/beginner “learn to sing free/online/course” intent; top page the /learn/ hub (124). Ahrefs’ 38 is a sample of the same thing.",
+    "<b>Claude never went live</b> — the Aug-26 “Claude surge” was the spoof-scanner, not Anthropic. Genuine Claude retrieval is still 3/3 content hits. Three sources agree: ChatGPT is the engine, Claude isn’t citing us.",
+    "<b>3 pain-point articles shipped + Request-Indexed today</b> (high-notes, recorded-voice, sing-flat) — first content inflow lever. In-article exercise instrumented (embed_exercise_played / _open_full); awaiting first data.",
+    "<b>Retention steady, inflow flat</b> — same-day since the AM run: 1B still passing (returning ~43% deeper), 1A flat pending the new content landing in Bing’s index. Ahrefs traffic byte-identical (its own refresh lag).",
   ]},
-  method: "Window Aug 13–24, 2026 (Aug 24 barely started; real data through Aug 23); analytics live since Aug 13. Channels from Ahrefs Web Analytics (10013070); events from PostHog (cookieless, 556732, UTC); citations from Ahrefs Site Explorer; crawler hits from the Netlify edge tap; branded search from GSC. <b>Cumulative ≠ growth</b> — totals rise by construction; read growth from the per-day / per-week rates. Retention is a localStorage per-device floor (true person-level retention isn't available cookieless). Ahrefs dwell is idle-tab inflated — ignored. Dashboard is data-driven; source in analytics/dashboard.html.",
+  method: "Window Aug 13–26, 2026 (Aug 26 partial; trend line through Aug 25); second run of the day. Channels/citations from Ahrefs (10013070, refreshes on a lag — identical to the AM run); events + crawler hits from PostHog (cookieless, 556732, UTC); <b>Bing AI Performance</b> from Bing Webmaster Tools (browser, first-party — the real citation picture); branded search from GSC. <b>Crawler hits are content-path-filtered</b> to strip UA-spoofing scanner probes. <b>Cumulative ≠ growth</b> — read rates, not totals. Retention is a localStorage per-device floor. Ahrefs dwell is idle-tab inflated — ignored. Source in analytics/dashboard.html.",
 };
 
 // ============================================================================
@@ -257,14 +267,25 @@ function render(){
       <div class="cb"><span class="k">New</span><div class="track" style="height:16px"><div class="fill" style="width:${pct(D.returning.depth.new,D.returning.depth.ret)}%;background:var(--slate)"></div></div><span class="v">${D.returning.depth.new}</span></div>
       <div class="sub" style="margin-top:12px">${D.returning.shareNote}</div></div></div></section>`;
 
-  // inflow: citations + crawlers
-  const maxC = Math.max(...D.citations.map(c=>c.c),1);
-  h += `<section><p class="sk">Inflow (1A) — citations, crawlers &amp; word-of-mouth</p><div class="grid2">
-    <div class="card"><h3>AI citations <span class="r">Ahrefs</span></h3>
-      ${D.citations.map(c=>`<div class="scrow${c.c==0?' z':''}"><span class="pl">${c.p}</span><div class="ct">${c.c>0?`<div class="cf" style="width:${pct(c.c,maxC)}%"></div>`:''}</div><span class="n tnum">${c.c}</span></div>`).join("")}
-      <div class="sub" style="margin-top:8px">No Claude coverage here — Claude rides Brave.</div></div>
-    <div class="card"><h3>AI-crawler hits <span class="r">cumulative</span></h3>
-      ${D.crawlers.map(c=>`<div class="cr${c.anth?' anth':''}"><span class="bot">${c.vendor} · <b>${c.bot}</b></span><span class="kind ${c.kind}">${c.kind}</span><span class="h tnum">${c.h}</span></div>`).join("")}
+  // inflow: Bing AI Performance (the real picture) + Ahrefs sample + crawlers
+  const maxQ = Math.max(...D.bing.queries.map(q=>q.c),1);
+  const maxP = Math.max(...D.bing.pages.map(p=>p.c),1);
+  h += `<section><p class="sk">Inflow (1A) — the real citation picture (Bing)</p>
+    <div class="card" style="margin-bottom:16px">
+      <h3>Bing AI Performance <span class="r">${D.bing.total} citations · ~${D.bing.avgPages} pages · 3-mo, first-party</span></h3>
+      <div class="grid2" style="margin-top:4px">
+        <div><div style="font-family:var(--font-mono);font-size:11.5px;color:var(--faint);margin-bottom:6px">TOP GROUNDING QUERIES (what gets us cited)</div>
+          ${D.bing.queries.map(q=>`<div style="display:flex;align-items:center;gap:9px;padding:4px 0"><span style="flex:1;font-size:12.5px;min-width:0">${q.q}</span><div class="track" style="height:15px;flex:0 0 70px"><div class="fill" style="width:${pct(q.c,maxQ)}%;background:var(--accent)"></div></div><span style="font-family:var(--font-mono);font-size:12px;font-weight:600;white-space:nowrap">${q.c} <span style="color:var(--faint);font-weight:400">${q.share}</span></span></div>`).join("")}</div>
+        <div><div style="font-family:var(--font-mono);font-size:11.5px;color:var(--faint);margin-bottom:6px">TOP CITED PAGES</div>
+          ${D.bing.pages.map(p=>`<div class="scrow"><span class="pl">${p.p}</span><div class="ct"><div class="cf" style="width:${pct(p.c,maxP)}%"></div></div><span class="n tnum">${p.c}</span></div>`).join("")}</div>
+      </div>
+      <div class="sub" style="margin-top:12px">${D.bing.note}</div></div>
+    <div class="grid2">
+    <div class="card"><h3>Ahrefs AI citations <span class="r">a SAMPLE — undercounts</span></h3>
+      ${D.citations.map(c=>`<div class="scrow${c.c==0?' z':''}"><span class="pl">${c.p}</span><div class="ct">${c.c>0?`<div class="cf" style="width:${pct(c.c,Math.max(...D.citations.map(x=>x.c),1))}%"></div>`:''}</div><span class="n tnum">${c.c}</span></div>`).join("")}
+      <div class="sub" style="margin-top:8px">${D.citationsNote}</div></div>
+    <div class="card"><h3>AI-crawler hits <span class="r">content / spoofed</span></h3>
+      ${D.crawlers.map(c=>`<div class="cr${c.anth?' anth':''}"><span class="bot">${c.vendor} · <b>${c.bot}</b></span><span class="kind ${c.kind}">${c.kind}</span><span class="h tnum">${c.h}<span style="color:var(--zero);font-weight:400"> /${c.probe}</span></span></div>`).join("")}
       <div class="sub" style="margin-top:8px">${D.crawlerNote}</div></div></div></section>`;
 
   // investigations + findings

@@ -9,7 +9,7 @@ description: >-
   Always reconciles the two data sources and states the standard caveats — never raw dumps. Read-only on
   PostHog/Ahrefs; writes only the findings log + the dashboard artifact.
 metadata:
-  version: 2.0.0
+  version: 2.1.0
 ---
 
 # Analytics Report — Vocal Habit
@@ -35,8 +35,8 @@ is a **partial** UTC day; flag it. Honor an explicit window when given.
 | PostHog project | **556732** ("Vocal Habit"), UTC |
 | Ahrefs Web Analytics `project_id` | **10013070** |
 | Ahrefs Site Explorer target | **vocalhabit.com** (`mode: subdomains`) |
-| Findings log | `analytics/findings-log.md` (persistent memory + stored `dashboard_url`) |
-| Bing AI Performance | browser-only, no MCP; defaults to wrong site (gradical.app) |
+| Findings log | `analytics/findings-log.md` (persistent memory + dated `dashboards:` URL history) |
+| Bing AI Performance | **the real citation picture** (§A4b) — browser-only, no MCP; needs user login; switch property to vocalhabit.com (defaults to gradical.app) |
 
 **⚠️ ALWAYS `switch-project {"projectId": 556732}` before every PostHog query** — the active project is
 account-global and silently drifts to Gradical (558041). Idempotent; do it every run.
@@ -52,14 +52,43 @@ Load deferred tools first: `mcp__posthog__exec`; and
   LLM/direct/search/social + bounce + avg session. Compute **LLM share** and **LLM:search ratio**. LLM leading is the thesis.
 - **A2 Sources** — `web-analytics-sources` (`limit 12`). Which assistant (ChatGPT ≈ all LLM), which engines.
 - **A3 Entry pages** — `web-analytics-entry-pages` (`limit 15`). Landing distribution + dwell (`avg_session_duration_sec`). Flag any page breaking out.
-- **A4 Citations** — `site-explorer-ai-responses-count` (`target vocalhabit.com`, `mode subdomains`,
-  `select "chatgpt,copilot,perplexity,gemini,google_ai_overviews,google_ai_mode,grok"`, `date` = today).
-  **No Claude coverage** — say so. Report **citations-per-page** as an inflow-lever gauge.
+- **A4 Citations (Ahrefs — a SAMPLE, undercounts hard)** — `site-explorer-ai-responses-count` (`target
+  vocalhabit.com`, `mode subdomains`, `select "chatgpt,copilot,perplexity,gemini,google_ai_overviews,
+  google_ai_mode,grok"`, `date` = today). **No Claude coverage** — say so. Report **citations-per-page** as an
+  inflow-lever gauge. Treat these counts as a floor/trend only: on Aug 26 Ahrefs showed Copilot 5 cites while
+  Bing's own tool showed 277 — Ahrefs samples, and has **no grounding-query or per-page view at all**. The real
+  citation picture comes from A4b.
+- **A4b Bing AI Performance (BROWSER — the real citation picture; FULL runs MUST do this).** Bing Webmaster Tools
+  is the ground truth for ChatGPT + Copilot (both resolve through Bing's index) and the ONLY source of **grounding
+  queries** (what phrasing triggers a citation) and the **per-page cited breakdown** — Ahrefs surfaces neither.
+  It is **browser-only, no MCP**, and needs the user's BWT login. Drive it:
+  1. Load the claude-in-chrome core tools (ToolSearch), `navigate` to `https://www.bing.com/webmasters`. If signed
+     out, click Sign In and **hand off to the user** (auth is theirs — never enter credentials).
+  2. **Switch the property to `vocalhabit.com`** — the account also holds `gradical.app`, which is the wrong
+     default (the property dropbox, top-left). Confirm the header reads vocalhabit.com before reading anything.
+  3. Open **AI Performance** (set the range to match the run, e.g. 30 D or 3 M). Capture **Total Citations** +
+     **Avg Cited Pages** + the trend direction.
+  4. **List By → Grounding Queries**: top queries with Citations + Citation Share + Intent/Topic (this is what
+     actually gets us cited — the money view). **List By → Pages**: top cited pages + counts.
+  5. Also glance at **Search Performance** (Bing impressions/clicks — GSC massively understates Bing) and, for any
+     brand-new URL, **URL Inspection** → if "Discovered but not crawled", **Request Indexing** (quota ~100/day).
+  Snapshot the Bing citation total + top grounding queries + top cited pages into the findings log / weekly
+  snapshots (they're **point-in-time**, like the Ahrefs citation counts — can't be recomputed for a past date).
+  Baseline (Aug 26, 3-mo): **277 citations / ~4 cited pages**; top grounding "learn to sing online free" 44
+  (23.7% share), "best free online singing course" 20, "free singing lessons for beginners" 19; top cited page
+  `/learn/` **124**, then `/learn/sovt-exercises` 40, `/` 21, artist spotlights ~10–19. Lesson banked: citations
+  are driven by **free/beginner "learn-to-sing" intent**, not technique/pain-point queries (yet).
 - **A5 Branded search (WoM + inflow gauge)** — `gsc-keywords` (project 10013070) filtered to "vocal habit" /
   "vocalhabit": clicks + impressions + position. Rising branded search = awareness spreading (word-of-mouth).
   Baseline Aug 22: 14 clicks / 15 impr / pos 2 (Google — understates vs Bing, where ChatGPT/Copilot resolve).
+- **A6 Community mentions (public WoM)** — (a) Ahrefs `web-analytics-referrers` for reddit.com / community /
+  forum domains (someone linked us + people clicked); (b) a mention sweep via WebSearch: `site:reddit.com "vocal
+  habit"` and `"vocalhabit.com"`. Baseline Aug 24: **0 Reddit mentions**. Rising community mentions = organic
+  word-of-mouth starting — the retention→growth bridge. (A dedicated social-listening tool would do this better;
+  candidate for a metered tool-gateway budget.)
 - §A is **co-primary hypothesis 1A (inflow)** — verdict it each run alongside 1B retention (§B4): are the levers
-  we're trying (new content → citations-per-page, authority → DR, branded search) moving the inflow rate?
+  we're trying (new content → citations-per-page, authority → DR, branded search, community mentions) moving the
+  inflow rate?
 
 ## §B Activity (PostHog)
 
@@ -108,14 +137,28 @@ Load deferred tools first: `mcp__posthog__exec`; and
 
 ## §C Citation engine / crawler hits (PostHog)
 
+**⚠️ The tap is heavily SPOOFED — crawler-hit counts by UA are junk unless content-path-filtered.** A
+credential-scanner sprays secret paths (`/.env`, `/.ssh/id_dsa`, `/aws/credentials`, `/Dockerfile`, `/jenkins/.env`,
+`/proxy`, `/api/*`) while **faking crawler user-agents** (Claude-User, Perplexity-User, GPTBot, …), so raw UA counts
+massively overstate real AI crawling. **ALWAYS split content pages from probe paths** — real retrieval only hits our
+content (`/`, `/learn/*`, `/artists/*`, `/vocal-range-test`, `/onboarding`, `/progress`):
 ```sql
-SELECT properties.vendor AS vendor, properties.bot AS bot, properties.kind AS kind, count() AS hits
-FROM events WHERE event='ai_crawler_hit' AND timestamp > now() - INTERVAL 7 DAY
-GROUP BY vendor, bot, kind ORDER BY hits DESC
+SELECT properties.bot AS bot,
+  countIf(properties.path='/' OR properties.path LIKE '/learn%' OR properties.path LIKE '/artists%'
+          OR properties.path LIKE '/vocal-range-test%' OR properties.path='/onboarding'
+          OR properties.path LIKE '/progress%') AS content_hits,
+  countIf(NOT (properties.path='/' OR properties.path LIKE '/learn%' OR properties.path LIKE '/artists%'
+          OR properties.path LIKE '/vocal-range-test%' OR properties.path='/onboarding'
+          OR properties.path LIKE '/progress%')) AS probe_hits
+FROM events WHERE event='ai_crawler_hit' AND timestamp >= '2026-08-13'
+GROUP BY bot ORDER BY content_hits DESC
 ```
-From `netlify/edge-functions/ai-crawler-tap.ts`. `kind:user` = a user's question pulled the page; `kind:index` =
-crawled for search. **Anthropic hits are the headline signal.** Caveat: ~5 spoofed setup tests exist (Aug 20
-~04:00 UTC, `Claude-SearchBot`/`Claude-User`); discount them. Crawler data only spans since the tap deployed.
+Report **content_hits** as the real signal (probe_hits are the spoof). From `netlify/edge-functions/ai-crawler-tap.ts`.
+`kind:user` = a user's question pulled the page; `kind:index` = crawled for search. **Corrected baseline (Aug 26):
+ChatGPT-User is the ONLY genuine retrieval — 277 content hits (matches Bing's 277 citations); everything else is
+near-zero real** (OAI-SearchBot 25, ClaudeBot 6, Claude-User/SearchBot 3/3 = still test-level, GPTBot 0, Perplexity 1).
+**Claude's cite-path never went live** — the raw 446/72/70 counts earlier were spoof-inflated; do not read them as
+crawling. Corollary: cross-check any "surge" against the paths before headlining it. Crawler data spans since the tap deployed.
 
 ## Caveats to always state
 
@@ -144,7 +187,7 @@ Read `analytics/findings-log.md` first. Then edit it:
    and change status (`OPEN`→`RESOLVED` when answered, add `WATCH` items as trends emerge).
 2. **Append** a dated `### <today>` block under "Findings (newest first)" with only what's *new or changed* —
    don't restate yesterday. 2–5 crisp bullets.
-3. Bump `last_run`. Keep `dashboard_url` intact.
+3. Bump `last_run`. Prepend today's dashboard URL to the frontmatter `dashboards:` list (§E) — keep the history.
 Treat the user's "that's interesting" / "let's dig into X" as instructions to open/annotate investigations here.
 
 ## §D2 Refresh the weekly snapshots (FULL runs only)
@@ -170,9 +213,14 @@ style; load `artifact-design` + `dataviz` if not already in context). Sections, 
 6. **Citation engine** — citation scoreboard + crawler-hit table (Anthropic highlighted).
 7. **Active investigations** + **Recent findings** — rendered from `analytics/findings-log.md`.
 
-Publish with the **stored `dashboard_url`** from the log's frontmatter (pass it as `url` so it updates in place,
-one evolving dashboard). On the **first** run `dashboard_url` is empty → publish fresh, then write the returned
-URL back into the log's frontmatter. Favicon 📈, title "Vocal Habit Analytics" (keep stable across runs).
+**Publish a NEW artifact every run — do NOT update one in place.** Each day's dashboard is its own
+date-stamped, pseudo-historical snapshot, so the archive of daily boards accumulates in the gallery. Publish
+**without** a `url` param (a fresh artifact each time); favicon 📈; **title = `Vocal Habit Analytics — <Mon D>`**
+(e.g. "Vocal Habit Analytics — Aug 26") so each run is distinguishable in the gallery. Then **prepend** the
+returned URL to the log's frontmatter `dashboards:` list as a `YYYY-MM-DD: <url>` entry (newest first).
+*Rationale:* republishing to the same URL as `url` reliably hits a false "identical content already refused"
+conflict on this skill's data-object edits — a recurring papercut — and a fresh artifact per day is a better
+historical record anyway. **Never** pass `url`/`force` to try to reuse a prior day's board.
 
 ## Output shape
 
