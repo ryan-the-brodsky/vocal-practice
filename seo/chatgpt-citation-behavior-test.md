@@ -208,3 +208,62 @@ focus; a second tab cannot be typed into in parallel; batches over ~60 s time ou
 Chat modal (click Continue once). Afterwards, `batch-analysis` on the cited domains for DR.
 Path 1 (Responses API + web_search) is still the right way to get n = 3 per cell cheaply; use this recipe to
 validate it on ~15 cells.
+
+## 8. Claude pilot (2026-08-27, same day): 9 prompts on claude.ai, Opus 5 High
+
+Run in Chrome on Ryan's Max account. First prompt ran in a normal chat and Claude "read a memory" and
+personalized the answer (it referenced Ryan's own songwriting), so every later prompt ran in a fresh
+**incognito** chat (no memory, not saved). Raw rows: `seo/data/claude-citation-pilot-2026-08-27.jsonl`.
+Model tier differs from the ChatGPT pilot (Opus 5 High vs GPT-5 Instant), so compare behavior, not latency.
+n = 1 per cell.
+
+| prompt | searched | cited (DR where known) | named in prose |
+|---|---|---|---|
+| How do I learn to sing? | **no** (thought 11 s) | | Vocal Pitch Monitor, Cheryl Porter, NYVC |
+| Why does my voice crack when I sing? | **no** (thought 9 s) | | |
+| What's the best free way to learn to sing online? (normal chat, memory on) | yes | musicindustryhowto, musicianwave, preply blog | NYVC, Dr Dan, Singing Carrots, VoCo, Vanido |
+| same, incognito | yes | musicindustryhowto, musicianwave x2, greentestprep, Google Play | NYVC, Dr Dan, Cheryl Porter, Madeleine Harvey, Nail the Pitch |
+| best free online singing course | yes | **coursesity.com** (aggregator), interkultur listicle | Berklee/Coursera, Dr Dan, NYVC, Madeleine Harvey, Ramsey Voice |
+| free singing lessons for beginners | yes | musicindustryhowto, **classcentral report**, greentestprep, **cursa.app** (aggregator) | Dr Dan, Healthy Vocal Technique, Ken Tamplin, Madeleine Harvey, Vocal Nebula, 30 Day Singer |
+| best free way to get better at public speaking online | **no** (thought 15 s) | | Toastmasters guest, Meetup/Discord, Coursera UW; offers itself: "paste a transcript here" |
+| best free way to learn hand lettering online | yes | **loveleighloops x3, howtohandletter, calligraphyjoburg, mashaplans** (small creator sites, cited directly) | |
+| best free way to learn to do a pull-up online | yes, **zero citations attached** | | r/bodyweightfitness wiki, Calisthenicmovement, Kboges |
+
+### Findings
+
+1. **Same phrasing switch as ChatGPT.** "How do I" and "why does my" never searched; every "best free way /
+   free lessons / best free course" singing prompt searched. Claude is not "more confident self-answering"
+   for singing; it searched 4 of 4 resource-shaped singing prompts.
+2. **Where Claude differs: it self-answers public speaking.** ChatGPT searched and cited Toastmasters + Yoodli
+   on the identical prompt; Claude thought for 15 s, answered from memory, and offered itself as the tool
+   ("paste a transcript here and I'll tell you what's working"). For the speaking-voice candidate this means
+   Claude is a weaker citation channel than ChatGPT, and the free tool has to be something Claude can't do
+   in chat (mic-based pitch/pace/loudness), not transcript critique.
+3. **For singing, Claude cites listicles and aggregators, not the resources.** Every singing citation was a
+   "best singing lessons on YouTube" post (Music Industry How To, Musician Wave, Greentestprep, Interkultur)
+   or an aggregator (Class Central report, Coursesity, Cursa, Preply's blog). The resources it recommends
+   (NYVC, Dr Dan, Cheryl Porter, Madeleine Harvey, Ken Tamplin, Vocal Nebula, Singing Carrots, 30 Day Singer)
+   are named in prose without links. It even says the "best free course" lists are affiliate pages, then
+   cites them anyway. For hand lettering it did the opposite and cited small creator sites directly, so this
+   is a property of what the singing SERP looks like on Claude's search backend (Brave), not a Claude rule.
+4. **Vocal Habit was cited 0 times in 6 singing prompts** (normal + incognito). VoSci 0 as well. Neither of
+   us is on the listicles Claude reads, and Claude does not surface our pages directly.
+5. **Claude sometimes searches and attaches nothing** (pull-up), so "searched" and "cited" have to be logged
+   separately for Claude.
+
+### What this means for cracking Claude
+
+- **Get onto the pages Claude cites.** For singing that is a short list: Class Central's "best singing
+  courses" report (already the ChatGPT broker too), Coursesity and Cursa (course aggregators with singing
+  sections), and the "best free singing lessons on YouTube" listicles (Music Industry How To, Musician Wave,
+  Greentestprep, Interkultur, Preply blog). Outreach to the listicle authors is the direct lever; Coursesity
+  and Cursa appear to index free course pages, so the "package the library as a named free course" step for
+  Class Central serves all three.
+- **Become the listicle.** Claude cites roundup pages, so an honest "Best free ways to learn to sing online
+  (2026)" page on vocalhabit.com that lists NYVC, Dr Dan, Singing Carrots, VoSci and us, with real
+  trade-offs, is the page type Claude's retrieval rewards. The style guide's non-tribal rule makes this
+  natural; it also targets the exact grounding query Bing already cites us for.
+- **Brave index inclusion is still the blocking check** (findings log, Aug 20): Claude's retrieval rides
+  Brave, and we have never confirmed vocalhabit.com pages are in Brave's index. Verify before anything else.
+- Repeat each cell 3 times before trusting it; the pull-up "searched, no citations" case shows single draws
+  can look like different behaviors.
