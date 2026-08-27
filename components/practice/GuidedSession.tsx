@@ -12,6 +12,7 @@ import {
   type PitchDetector,
   type PitchSample,
 } from "@/lib/pitch";
+import { track } from "@/lib/analytics";
 import { snapOctave } from "@/lib/scoring/align";
 import type { SessionRecord } from "@/lib/progress";
 import {
@@ -131,6 +132,7 @@ export default function GuidedSession({
   }, []);
 
   function handleSetTolerance(next: ToleranceLevel) {
+    track("setting_changed", { setting: "guided_threshold", value: next });
     setTolerance(next);
     AsyncStorage.setItem(TOLERANCE_STORAGE_KEY, next).catch(() => {});
   }
@@ -213,6 +215,7 @@ export default function GuidedSession({
 
   async function handleNextTonic() {
     if (!canAdvanceTonic || nextTonicMidi == null) return;
+    track("guided_next_tonic", { exerciseId: exercise.id, toMidi: nextTonicMidi });
     setError(null);
     setNoteIndex(0);
     setMatchProgress(0);
@@ -233,6 +236,19 @@ export default function GuidedSession({
   }
 
   async function handleStop() {
+    // Only a mid-pattern Stop counts; the same handler backs "Done" at the end
+    // of a completed pattern, which is a finish, not an abandon.
+    if (phase !== "idle" && phase !== "complete") {
+      track("practice_stopped", {
+        exerciseId: exercise.id,
+        mode: "guided",
+        keysScored: 0,
+        plannedKeys: 1,
+        elapsedMs: patternStartedAtRef.current
+          ? Date.now() - patternStartedAtRef.current
+          : 0,
+      });
+    }
     abortRef.current.aborted = true;
     noteHandleRef.current?.release();
     noteHandleRef.current = null;
@@ -500,7 +516,7 @@ export default function GuidedSession({
               return (
                 <Pressable
                   key={m}
-                  onPress={() => { setRepeatMode(m); setModeOpen(false); }}
+                  onPress={() => { setRepeatMode(m); setModeOpen(false); track("setting_changed", { setting: "guided_repeat_mode", value: m }); }}
                   style={[
                     styles.repeatChip,
                     {

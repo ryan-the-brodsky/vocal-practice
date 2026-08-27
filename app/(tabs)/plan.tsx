@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { CAPABILITIES, isComingSoon } from "@/lib/exercises/capabilities";
+import type { Capability } from "@/lib/exercises/capabilities";
 import { getAllExercises, groupByCapability, getExercise } from "@/lib/exercises/library";
 import type { ExerciseDescriptor } from "@/lib/exercises/types";
 import { exerciseName } from "@/lib/exercises/names";
@@ -14,6 +15,7 @@ import { listSongs } from "@/lib/songs/store";
 import type { StoredSong } from "@/lib/songs/types";
 import { RoutineEditModal, buildRoutineItems } from "@/components/practice/RoutineEditModal";
 import ImportModal from "@/components/import/ImportModal";
+import { track } from "@/lib/analytics";
 import { useTheme } from "@/hooks/use-theme";
 import { Spacing, Radii, Typography, Fonts } from "@/constants/theme";
 
@@ -100,6 +102,7 @@ export default function PlanScreen() {
   }, [refresh]);
 
   function handlePracticeExercise(id: string) {
+    track("plan_practice_pressed", { exerciseId: id });
     router.push({ pathname: "/", params: { exerciseId: id } });
   }
 
@@ -108,9 +111,12 @@ export default function PlanScreen() {
     setRoutine(config);
   }
 
-  function handleToggleRoutine(id: string) {
+  function handleToggleRoutine(id: string, capability?: Capability) {
     const ids = (routine ?? { exerciseIds: [] }).exerciseIds;
-    const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
+    const added = !ids.includes(id);
+    const next = added ? [...ids, id] : ids.filter((x) => x !== id);
+    // Imports and song segments carry no capability; send null rather than dropping the prop.
+    track("plan_exercise_toggled", { exerciseId: id, added, capability: capability ?? null });
     void handleSaveRoutine({ exerciseIds: next });
   }
 
@@ -151,7 +157,7 @@ export default function PlanScreen() {
                         key={ex.id}
                         exercise={ex}
                         inRoutine={routineSet.has(ex.id)}
-                        onToggleRoutine={() => handleToggleRoutine(ex.id)}
+                        onToggleRoutine={() => handleToggleRoutine(ex.id, ex.capability)}
                         onPractice={() => handlePracticeExercise(ex.id)}
                       />
                     ))}
@@ -180,7 +186,7 @@ export default function PlanScreen() {
                     key={ex.id}
                     exercise={ex}
                     inRoutine={routineSet.has(ex.id)}
-                    onToggleRoutine={() => handleToggleRoutine(ex.id)}
+                    onToggleRoutine={() => handleToggleRoutine(ex.id, ex.capability)}
                     onPractice={() => handlePracticeExercise(ex.id)}
                   />
                 ))}
@@ -210,7 +216,11 @@ export default function PlanScreen() {
               </View>
             )}
             <Pressable
-              onPress={() => setEditModalVisible(true)}
+              onPress={() => {
+                track("plan_cta_pressed", { cta: "edit_routine" });
+                track("routine_edit_opened", { surface: "plan" });
+                setEditModalVisible(true);
+              }}
               style={[styles.editBtn, { backgroundColor: colors.accent, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, marginTop: Spacing['2xs'] }]}
               accessibilityLabel="Edit routine"
             >
@@ -229,7 +239,10 @@ export default function PlanScreen() {
               Upload or record a melody and practice it like a built-in exercise.
             </Text>
             <Pressable
-              onPress={() => setImportModalVisible(true)}
+              onPress={() => {
+                track("plan_cta_pressed", { cta: "import" });
+                setImportModalVisible(true);
+              }}
               style={[styles.editBtn, { backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, marginTop: Spacing['2xs'] }]}
               accessibilityLabel="Import a melody or song"
             >
@@ -248,7 +261,10 @@ export default function PlanScreen() {
               Not sure which voice part to pick? Take the free vocal range test — sing your lowest and highest notes to find your range and voice type.
             </Text>
             <Pressable
-              onPress={() => router.push("/vocal-range-test")}
+              onPress={() => {
+                track("plan_cta_pressed", { cta: "range_test" });
+                router.push("/vocal-range-test");
+              }}
               style={[styles.editBtn, { backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, marginTop: Spacing['2xs'] }]}
               accessibilityLabel="Take the vocal range test"
             >
@@ -267,7 +283,10 @@ export default function PlanScreen() {
               Science-backed guides on technique, registers, warm-ups, and practice — each linked to an exercise you can try.
             </Text>
             <Pressable
-              onPress={() => router.push("/learn")}
+              onPress={() => {
+                track("plan_cta_pressed", { cta: "learn" });
+                router.push("/learn");
+              }}
               style={[styles.editBtn, { backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, marginTop: Spacing['2xs'] }]}
               accessibilityLabel="Browse the Learn guides"
             >

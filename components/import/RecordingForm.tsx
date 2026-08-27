@@ -4,6 +4,8 @@ import type { AnalysisMode, DecodeInput, TimeSignature } from "@/lib/analyze";
 import type { VoicePart } from "@/lib/exercises/types";
 import { createPitchDetector } from "@/lib/pitch";
 import type { PitchDetector } from "@/lib/pitch/detector";
+import { classifyMicError } from "@/lib/pitch/micError";
+import { track } from "@/lib/analytics";
 import { encodeWav } from "@/lib/capture/wav";
 import { downloadBlob, captureTimestamp } from "@/lib/capture/download";
 import type { SongSidecar } from "@/lib/capture/songTypes";
@@ -94,6 +96,7 @@ export default function RecordingForm({
   async function handleStartRecording() {
     setError(null);
     if (!songName.trim()) { setError("Give the song a name first."); return; }
+    track("import_recording_started", { kind, voicePart });
     setRecState("starting");
     try {
       const detector = createPitchDetector();
@@ -108,6 +111,7 @@ export default function RecordingForm({
       setRecState("recording");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
+      track("mic_error_shown", { reason: classifyMicError(e), surface: "import_record" });
       setError(`Couldn't start recording: ${msg}`);
       setRecState("idle");
       detectorRef.current = null;

@@ -24,6 +24,7 @@ export default function SongEditorScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { songId } = useLocalSearchParams<{ songId?: string }>();
+  const analyticsSongId = typeof songId === "string" && songId ? songId : null;
   const { width: windowWidth } = useWindowDimensions();
   const isDesktop = windowWidth >= DESKTOP_BREAKPOINT;
   const scoreTargetWidth = isDesktop
@@ -42,6 +43,10 @@ export default function SongEditorScreen() {
   const playerRef = useRef<AudioPlayer | null>(null);
   const previewHandleRef = useRef<SequenceHandle | null>(null);
   const previewPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Both edit paths stream updates (drag = per pointermove, syllable input =
+  // per keystroke), so analytics collapses each to one event per gesture/note.
+  const lastDragRef = useRef<{ boundaryIdx: number; at: number }>({ boundaryIdx: -1, at: 0 });
+  const lastLyricNoteRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (typeof songId !== "string" || !songId) {
@@ -127,25 +132,32 @@ export default function SongEditorScreen() {
     [matched],
   );
 
+  // Only ChunkDividerControls calls this, so every change here is a nudge press.
   const handleChunksChange = useCallback((next: ChunkSpec[]) => {
+    track("song_editor_action", { action: "nudge", songId: analyticsSongId });
     setChunks(next);
     setDirty(true);
     setSavedMsg(null);
-  }, []);
+  }, [analyticsSongId]);
 
   const handleRenameChunk = useCallback(
     (idx: number, name: string) => {
+      track("song_editor_action", { action: "rename", songId: analyticsSongId });
       setChunks((prev) => prev.map((c, i) => (i === idx ? { ...c, name } : c)));
       setDirty(true);
       setSavedMsg(null);
     },
-    [],
+    [analyticsSongId],
   );
 
   // Per-note syllable edit. Writes directly to song.allNotes[origIdx].syllable
   // so the matched pipeline picks it up via identity (lyrics stays empty).
   const handleSyllableChange = useCallback(
     (originalNoteIdx: number, syllable: string) => {
+      if (lastLyricNoteRef.current !== originalNoteIdx) {
+        track("song_editor_action", { action: "lyrics", songId: analyticsSongId });
+        lastLyricNoteRef.current = originalNoteIdx;
+      }
       setSong((prev) => {
         if (!prev) return prev;
         if (originalNoteIdx < 0 || originalNoteIdx >= prev.allNotes.length) return prev;
@@ -156,13 +168,19 @@ export default function SongEditorScreen() {
       setDirty(true);
       setSavedMsg(null);
     },
-    [],
+    [analyticsSongId],
   );
 
   // In-score boundary drag: boundaryIdx is the chunk that starts at the divider
   // (always ≥ 1). Clamp so neither neighbor shrinks below 1 note.
   const handleBoundaryDragMove = useCallback(
     (boundaryIdx: number, newStartNoteIdx: number) => {
+      const now = Date.now();
+      const last = lastDragRef.current;
+      if (last.boundaryIdx !== boundaryIdx || now - last.at > 800) {
+        track("song_editor_action", { action: "drag", songId: analyticsSongId });
+      }
+      lastDragRef.current = { boundaryIdx, at: now };
       setChunks((prev) => {
         if (boundaryIdx < 1 || boundaryIdx >= prev.length) return prev;
         const left = prev[boundaryIdx - 1]!;
@@ -180,7 +198,7 @@ export default function SongEditorScreen() {
       setDirty(true);
       setSavedMsg(null);
     },
-    [],
+    [analyticsSongId],
   );
 
   const handleSave = useCallback(async () => {
@@ -209,6 +227,7 @@ export default function SongEditorScreen() {
         // reading the textarea here would always report false.
         hasLyrics: song.allNotes.some((n) => n.syllable?.trim()),
       });
+      track("song_editor_action", { action: "save", songId: analyticsSongId });
       setSong(next);
       setChunks(final);
       setDirty(false);
@@ -216,7 +235,7 @@ export default function SongEditorScreen() {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, [song, chunks, lyrics]);
+  }, [song, chunks, lyrics, analyticsSongId]);
 
   const stopPreview = useCallback(() => {
     if (previewPollRef.current) {
@@ -241,6 +260,8 @@ export default function SongEditorScreen() {
       stopPreview();
       const chunk = chunks.find((c) => c.id === chunkId);
       if (!chunk) return;
+      // Start presses only; the toggle-off above is a stop, not a preview.
+      track("song_editor_action", { action: "preview", songId: analyticsSongId });
       try {
         if (!playerRef.current) {
           playerRef.current = createAudioPlayer();
@@ -263,7 +284,7 @@ export default function SongEditorScreen() {
         stopPreview();
       }
     },
-    [song, chunks, playingChunkId, stopPreview],
+    [song, chunks, playingChunkId, stopPreview, analyticsSongId],
   );
 
   useEffect(() => {
@@ -342,7 +363,7 @@ export default function SongEditorScreen() {
           return (
             <Pressable
               key={opt}
-              onPress={() => setScoreEngine(opt)}
+              onPress={() => { setScoreEngine(opt); track("setting_changed", { setting: "notation_engine", value: opt }); }}
               style={{
                 paddingHorizontal: Spacing.sm,
                 paddingVertical: Spacing["2xs"],
@@ -429,7 +450,10 @@ export default function SongEditorScreen() {
                   </View>
                   <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
                     <Pressable
-                      onPress={() => setLyricEditChunkId((cur) => (cur === c.id ? null : c.id))}
+                      onPress={() => {
+                        lastLyricNoteRef.current = null;
+                        setLyricEditChunkId((cur) => (cur === c.id ? null : c.id));
+                      }}
                       accessibilityLabel={lyricEditChunkId === c.id ? `Done editing lyrics for ${c.name}` : `Edit lyrics for ${c.name}`}
                       style={{
                         paddingHorizontal: Spacing.sm,

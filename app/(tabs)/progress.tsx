@@ -29,6 +29,7 @@ import { TodayRoutineCard } from "@/components/practice/TodayRoutineCard";
 import PathwaysCard from "@/components/practice/PathwaysCard";
 import { RoutineEditModal, buildRoutineItems } from "@/components/practice/RoutineEditModal";
 import ImportModal from "@/components/import/ImportModal";
+import { track } from "@/lib/analytics";
 import { useTheme } from "@/hooks/use-theme";
 import { Spacing, Radii, Typography, Fonts } from "@/constants/theme";
 
@@ -127,6 +128,11 @@ function ExerciseRow({
   const [expanded, setExpanded] = useState(false);
   const router = useRouter();
 
+  function toggleExpanded() {
+    if (!expanded) track("progress_exercise_expanded", { exerciseId, kind: imported ? "imported" : "builtin" });
+    setExpanded((v) => !v);
+  }
+
   // Convert trend data to SparklinePoint array (date string → epoch ms).
   const sparkData: SparklinePoint[] = progress.trend.map((row) => ({
     date: new Date(row.date).getTime(),
@@ -148,7 +154,7 @@ function ExerciseRow({
 
   return (
     <View style={[styles.exerciseCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle, borderRadius: Radii.md }]}>
-      <Pressable onPress={() => setExpanded((v) => !v)} style={[styles.exerciseHeader, { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, gap: Spacing.xs }]}>
+      <Pressable onPress={toggleExpanded} style={[styles.exerciseHeader, { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, gap: Spacing.xs }]}>
         <View style={[styles.exerciseHeaderLeft, { gap: Spacing['2xs'] }]}>
           <View style={[styles.exerciseNameRow, { gap: Spacing.xs }]}>
             <Text style={{ fontSize: Typography.lg.size, lineHeight: Typography.lg.lineHeight, fontFamily: Fonts.display, color: colors.textPrimary }}>
@@ -255,10 +261,15 @@ function RecentSessionRow({
 
   const label = displayName ?? exerciseName(session.exerciseId);
 
+  function toggleExpanded() {
+    if (!expanded) track("progress_session_expanded", { exerciseId: session.exerciseId });
+    setExpanded((v) => !v);
+  }
+
   return (
     <View style={[styles.sessionCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle, borderRadius: Radii.md }]}>
       <Pressable
-        onPress={() => setExpanded((v) => !v)}
+        onPress={toggleExpanded}
         style={[styles.sessionRow, { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, gap: Spacing.xs }]}
       >
         <View style={[styles.sessionLeft, { gap: Spacing['2xs'] }]}>
@@ -330,10 +341,16 @@ function SongLibraryRow({
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
 
+  function toggleExpanded() {
+    // Song rows have no exercise of their own, so the song id stands in as the id.
+    if (!expanded) track("progress_exercise_expanded", { exerciseId: song.id, kind: "song" });
+    setExpanded((v) => !v);
+  }
+
   return (
     <View style={[styles.exerciseCard, { backgroundColor: colors.bgSurface, borderColor: colors.borderSubtle, borderRadius: Radii.md }]}>
       <Pressable
-        onPress={() => setExpanded((v) => !v)}
+        onPress={toggleExpanded}
         style={[styles.exerciseHeader, { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, gap: Spacing.xs }]}
       >
         <View style={[styles.exerciseHeaderLeft, { gap: Spacing['2xs'] }]}>
@@ -382,7 +399,7 @@ function SongLibraryRow({
           <View style={[styles.importedActionsRow, { gap: Spacing.xs, justifyContent: "flex-end" }]}>
             <Pressable
               style={[styles.importedActionBtn, { backgroundColor: colors.bgSurface, borderRadius: Radii.sm, borderWidth: 1, borderColor: colors.borderStrong, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs }]}
-              onPress={() => router.push({ pathname: "/song-editor", params: { songId: song.id } })}
+              onPress={() => { track("song_editor_action", { action: "open", via: "progress", songId: song.id }); router.push({ pathname: "/song-editor", params: { songId: song.id } }); }}
               accessibilityLabel={`Edit segments for ${song.name}`}
             >
               <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.bodyMedium, color: colors.textPrimary }}>Edit segments</Text>
@@ -452,6 +469,7 @@ export default function ProgressScreen() {
   const { editRoutine } = useLocalSearchParams<{ editRoutine?: string }>();
   useEffect(() => {
     if (editRoutine === "1") {
+      track("routine_edit_opened", { surface: "progress", via: "deeplink" });
       setEditModalVisible(true);
       router.setParams({ editRoutine: undefined });
     }
@@ -493,11 +511,13 @@ export default function ProgressScreen() {
   }
 
   async function handleDeleteUserExercise(id: string) {
+    track("user_content_deleted", { kind: "exercise" });
     await deleteUserExercise(id).catch(() => {});
     setUserExercises((prev) => prev.filter((it) => it.descriptor.id !== id));
   }
 
   async function handleDeleteSong(songId: string) {
+    track("user_content_deleted", { kind: "song" });
     await deleteSong(songId).catch(() => {});
     // Strip any of this song's chunk IDs from the saved routine.
     await pruneRoutineExerciseIds((id) => {
@@ -517,6 +537,7 @@ export default function ProgressScreen() {
   async function handleBackup() {
     try {
       await downloadBackup();
+      track("backup_exported");
       // Refresh age display after a successful export
       const info = await lastExportInfo(Date.now()).catch(() => ({ at: null, ageDays: null }));
       setLastExportDays(info.ageDays);
@@ -539,6 +560,7 @@ export default function ProgressScreen() {
         if (!file) return;
         const text = await file.text();
         const result = await importAll(text);
+        track("backup_restored", { ok: result.ok, count: result.ok ? result.restoredKeys.length : undefined });
         if (result.ok) {
           setRestoreStatus({ kind: "ok", count: result.restoredKeys.length });
         } else {
@@ -656,7 +678,7 @@ export default function ProgressScreen() {
                 </Text>
               </Pressable>
               <Pressable
-                onPress={() => setNudgeDismissed(true)}
+                onPress={() => { track("backup_nudge_dismissed"); setNudgeDismissed(true); }}
                 style={[styles.nudgeDismiss]}
                 accessibilityLabel="Dismiss backup reminder"
               >
@@ -672,7 +694,10 @@ export default function ProgressScreen() {
         <TodayRoutineCard
           routine={activeRoutine}
           status={routineStatus}
-          onPressEdit={() => setEditModalVisible(true)}
+          onPressEdit={() => {
+            track("routine_edit_opened", { surface: "progress", via: "button" });
+            setEditModalVisible(true);
+          }}
         />
 
         <WeeklySummaryCard
@@ -771,7 +796,7 @@ export default function ProgressScreen() {
 
             <Pressable
               style={[styles.savedTipsRow, { backgroundColor: colors.bgSurface, borderRadius: Radii.md, borderColor: colors.borderStrong, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, gap: Spacing.xs, minHeight: 44 }]}
-              onPress={() => router.push("/coaching-saved")}
+              onPress={() => { track("coaching_saved_opened", { surface: "progress" }); router.push("/coaching-saved"); }}
               accessibilityLabel="Open saved coaching tips"
             >
               <Text style={{ fontSize: Typography.sm.size, color: colors.textTertiary, fontFamily: Fonts.body }}>☆</Text>

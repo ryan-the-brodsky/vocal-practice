@@ -3,6 +3,7 @@ import { Pressable, Text, View } from "react-native";
 
 import { buildContrastPlayback, type FocusNote, type PlaybackVariant } from "@/lib/coaching";
 import { createAudioPlayer, type AudioPlayer, type SequenceHandle } from "@/lib/audio";
+import { track } from "@/lib/analytics";
 import type { NoteEvent } from "@/lib/exercises/types";
 import SyllableDisplay from "@/components/SyllableDisplay";
 import MelodyDisplay from "@/components/practice/MelodyDisplay";
@@ -82,6 +83,7 @@ export default function ContrastPlayback({
   }
 
   async function handlePlay(variant: PlaybackVariant) {
+    track("coaching_playback", { which: variant === "target-note" || variant === "phrase-target" ? "correct" : "yours", variant });
     cancelInFlight();
     try {
       const events = buildContrastPlayback(focus, iterationEvents, variant);
@@ -106,6 +108,7 @@ export default function ContrastPlayback({
   }
 
   function handleMoreExamples() {
+    track("coaching_next_mistake", { via: "more_examples" });
     cancelInFlight();
     setFocusIdx((i) => (i + 1) % focuses.length);
   }

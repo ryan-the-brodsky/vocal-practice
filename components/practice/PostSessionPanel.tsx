@@ -201,6 +201,7 @@ export function PostSessionPanel({
                 <Pressable
                   style={[styles.rowBtn, { backgroundColor: "transparent", borderColor: colors.borderStrong }]}
                   onPress={() => {
+                    track("session_discarded", { exerciseId: pendingSession.exerciseId });
                     onDiscard();
                     setSessionNote("");
                   }}

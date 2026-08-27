@@ -247,7 +247,13 @@ export default function RangeTesterIsland() {
     playReference(t);
   }, [playReference]);
 
+  const handlePracticeCta = useCallback(() => {
+    track('range_test_cta_pressed', { cta: 'practice', voiceType: result?.label ?? null });
+    router.push((result ? `/?voicePart=${result.appVoicePart}` : '/') as Href);
+  }, [result, router]);
+
   const reset = useCallback(() => {
+    track('range_test_restarted', { from: phase });
     abortRef.current.aborted = true;
     pendingResolveRef.current?.('abort');
     teardown();
@@ -369,7 +375,7 @@ export default function RangeTesterIsland() {
               </Text>
               <PrimaryButton
                 label="Practice warm-ups in your range →"
-                onPress={() => router.push((result ? `/?voicePart=${result.appVoicePart}` : '/') as Href)}
+                onPress={handlePracticeCta}
               />
               <Pressable onPress={reset} accessibilityRole="button" accessibilityLabel="Test again" hitSlop={8}>
                 <Text style={styles.ghost}>Test again</Text>
