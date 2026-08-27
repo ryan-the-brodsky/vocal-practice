@@ -1,13 +1,14 @@
 ---
-# Each FULL run publishes a NEW date-stamped artifact (never update-in-place — that hits a false
+# Each FULL run publishes a NEW date-stamped artifact (never update-in-place, since that hits a false
 # "identical content" conflict). Newest first; this list is the pseudo-historical archive of daily boards.
 dashboards:
+  - 2026-08-27: "https://claude.ai/code/artifact/5d6dd051-7d1e-4c3f-a51f-a600ddbf79a2"
   - 2026-08-26: "https://claude.ai/code/artifact/0be8ed29-bc50-4925-9895-38e45607829e"
-last_run: 2026-08-26
+last_run: 2026-08-27
 window_default: 7d
 ---
 
-# Vocal Habit — Analytics Findings Log
+# Vocal Habit Analytics Findings Log
 
 The persistent memory for the `analytics-report` skill. Each daily run **reads** this file (to know what
 we're tracking), **updates** the active investigations with the day's data, and **appends** new findings.
@@ -24,19 +25,21 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   Signal to watch: `ai_crawler_hit` where `vendor='anthropic' AND kind IN ('index','user')` growing *beyond* the
   ~5 setup test hits; and vocalhabit.com appearing on search.brave.com for target queries.
   Next check: daily crawler counts; Brave SERP spot-check weekly.
-  **Update Aug 22:** still flat — `Claude-SearchBot` has NOT crawled since our Aug 20 test, 2 days after the robots
+  **Update Aug 22:** still flat. `Claude-SearchBot` has NOT crawled since our Aug 20 test, 2 days after the robots
   allow + Brave submit (ChatGPT-User by contrast exploded 126→310). Verify Brave has actually indexed us and that
   prod robots.txt still serves the Claude groups.
-  **Update Aug 25:** 5 days on, STILL test level — `Claude-SearchBot` 3 / `Claude-User` 2, no real crawl since Aug 20.
+  **Update Aug 25:** 5 days on, STILL test level. `Claude-SearchBot` 3 / `Claude-User` 2, no real crawl since Aug 20.
   Meanwhile `ChatGPT-User` retrieval climbed 350→393 (+12%). Anthropic scrapes for training (`ClaudeBot` 72) but the
-  recommendation path is dead. Brave-index verification is now the blocking action — spot-check search.brave.com.
-  **Update Aug 26:** 6 days on, still test level — `Claude-SearchBot` 3 / `Claude-User` 3 (+1 User hit only), no real
+  recommendation path is dead. Brave-index verification is now the blocking action. Spot-check search.brave.com.
+  **Update Aug 26:** 6 days on, still test level. `Claude-SearchBot` 3 / `Claude-User` 3 (+1 User hit only), no real
   crawl. `ChatGPT-User` retrieval 393→446 (+13%); `ClaudeBot` training flat at 72. Brave-index verification still the
   blocking action, still not done.
-  **Update Aug 26 (run 2) — RAW COUNTS WERE SPOOFED.** Content-path filter (see the new spoof investigation) shows the
+  **Update Aug 26 (run 2): RAW COUNTS WERE SPOOFED.** Content-path filter (see the new spoof investigation) shows the
   earlier 446/72/70 were inflated by a UA-spoofing scanner. **Genuine** retrieval: `ChatGPT-User` **277** content hits
   (the only real one; matches Bing's 277 citations); `Claude-User`/`Claude-SearchBot` **3/3** content hits = STILL
   test-level. Claude's cite-path never went live. Judge this investigation on content_hits, not raw UA counts, from now on.
+  **Update Aug 27:** 7 days on, still frozen. `Claude-SearchBot` 3 / `Claude-User` 3 content hits, zero movement.
+  `ClaudeBot` (training) crept 6→9. Brave-index verification is still the blocking action and still has not been done.
 
 - **[OPEN · 2026-08-26 · run 2] Crawler tap is UA-spoofed (a credential scanner).** A scanner sprays secret paths
   (`/.env`, `/.ssh/id_dsa`, `/aws/credentials`, `/Dockerfile`, `/jenkins/.env`, `/proxy`, `/api/*`) while faking
@@ -46,46 +49,83 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   is worth a security note. Next: consider content-filtering the tap itself and/or a WAF rule; keep reading content_hits only.
 
 - **[WATCH · 2026-08-26 · run 2] New pain-point articles + embed analytics.** 3 articles shipped + Request-Indexed
-  today (why-cant-i-sing-high-notes / why-does-my-recorded-voice-sound-bad / why-do-i-sing-flat) — first content
+  today (why-cant-i-sing-high-notes / why-does-my-recorded-voice-sound-bad / why-do-i-sing-flat). First content
   inflow lever. In-article `EmbeddedExercise` now fires `embed_exercise_played` + `embed_exercise_open_full`
   (article→app conversion), on Learn + spotlights. No data yet (just deployed). Watch first plays + whether the new
   pages enter Bing's cited pool (currently the 4-page surface is /learn/ hub 124, sovt 40, home 21, spotlights).
+  **Update Aug 27: first data, and a blocker.** `embed_exercise_played` fired **2 times / 1 person** (first at
+  18:10:50 UTC); `embed_exercise_open_full` **0**. The article-to-app conversion step has not happened once. Both
+  events are wired in code (`components/learn/EmbeddedExercise.tsx:76` and `:119`), so the zero is genuine, not a
+  gap. Separately, **Bing has still never crawled any of the 3 new articles** (`bwt.py check`: why-cant-i-sing-high-notes,
+  why-do-i-sing-flat, why-does-my-recorded-voice-sound-bad all uncrawled), so they cannot enter the cited pool yet.
 
-- **[OPEN · 2026-08-26] Bing indexation + AI grounding (NEW ground truth — Bing Webmaster Tools).** BWT *is* set up
-  (verified `vocalhabit.com` property; also holds gradical.app — switch property before reading). This is the
+- **[WATCH · 2026-08-27] Guided-mode nudge (deployed ~Aug 26 night).** `guided_nudge_shown` **5 impressions / 4
+  people**, first at 2026-08-27T08:54:48Z, last 21:02:42Z. **Every impression was `reason: "rough"`** (the
+  struggling-singer branch). The `experienced` branch has not triggered once. `guided_nudge_accepted` = **0**;
+  the event is wired at `components/practice/PostSessionPanel.tsx:161`, so that is a genuine zero, not missing
+  instrumentation. Meanwhile Guided mode itself is now readable for the first time (the Aug-26 instrumentation
+  landed): **6 of 59 practice starts today were `mode:'guided'`, from 2 people, 4 of them scored**, but 4 of
+  those 6 came from the heavy dev-test identity, so real guided usage is ~2 starts / 1 person. Next: give it a
+  few days of impressions before judging the accept rate; if accepts stay at 0 while impressions accumulate,
+  the nudge copy or its placement in the post-session panel is the suspect, not the targeting.
+
+- **[OPEN · 2026-08-26] Bing indexation + AI grounding (NEW ground truth: Bing Webmaster Tools).** BWT *is* set up
+  (verified `vocalhabit.com` property; also holds gradical.app, so switch property before reading). This is the
   upstream view for ChatGPT+Copilot (both Bing-backed) we'd been blind to. First read:
-  - **Search Performance:** 908 impressions / 11 clicks (last ~30d) — Bing indexes & serves us far more than GSC shows.
+  - **Search Performance:** 908 impressions / 11 clicks (last ~30d). Bing indexes & serves us far more than GSC shows.
   - **AI Performance (Copilot + partners, 3-mo):** **277 total citations, avg 4 cited pages.** Far more citations than
     Ahrefs' sampled "Copilot 5"; confirms the narrow-page-surface finding from Bing's own data. Citations ticking up
     Aug 21–24; cited-pages nudged to ~7 recently.
   - **Top cited PAGES:** `/learn/` hub **124**, `/learn/sovt-exercises` 40, `/` 21, `/artists/freddie-mercury` 19,
-    `/artists/chappell-roan` ~10. Artist spotlights ARE getting cited — validates that content type.
+    `/artists/chappell-roan` ~10. Artist spotlights ARE getting cited. Validates that content type.
   - **Top grounding QUERIES:** "learn to sing online free" **44 (23.7% share)**, "best free online singing course" 20,
     "free singing lessons for beginners" 19, "learn to sing" 8. Citations are driven by **free/online/beginner
     learn-to-sing intent** (AI recommends us as a free tool), NOT by technique or pain-point articles (sovt is the
     lone technique exception).
   - **Indexation audit:** most pages indexed fine (`chest-voice-exercises`, `chappell-roan` = "Indexed successfully").
-    The lone straggler was **`/learn/why-does-my-voice-crack`: "Discovered but not crawled — URL cannot appear on
+    The lone straggler was **`/learn/why-does-my-voice-crack`: "Discovered but not crawled. URL cannot appear on
     Bing"** (discovered via IndexNow Aug 24, never crawled). **→ Requested indexing manually (Aug 26); quota 100/day.**
-  - **Takeaways:** (1) indexation is NOT the main citation blocker — most content is indexed; getting cited is about
+  - **Takeaways:** (1) indexation is NOT the main citation blocker. Most content is indexed; getting cited is about
     answer-fit/authority. (2) The **/learn/ hub is our single biggest cited asset** (124) on "learn to sing free"
-    intent. (3) DR 0 is flagged by BWT itself ("not enough inbound links from high-quality domains") — the real lever.
+    intent. (3) DR 0 is flagged by BWT itself ("not enough inbound links from high-quality domains"). The real lever.
   - Next: **request-indexing on every new publish** (voice-crack proved IndexNow-discovery ≠ crawl for brand-new URLs);
     lean pain-point articles toward the proven "free/beginner/how-do-I" framing; check AI Performance weekly.
+  **Update Aug 27: citations jumped and the page surface widened.** Total citations **277 → 352**; more importantly
+  the **daily rate roughly tripled**: 10.9/day (Aug 11–17) → **28.7/day (Aug 18–24)**, with single days of 79 (Aug 22)
+  and 75 (Aug 25). Bing's own "avg cited pages" moved **4 → 10** on Aug 25. The cited-page list is now **17 pages**
+  (was reported as the top ~5): `/learn/` **168**, sovt 40, `/` 25, freddie-mercury 20, **`/vocal-range-test` 12**,
+  can-tone-deaf-people-learn-to-sing 11, vocal-warm-ups-for-beginners 11, chappell-roan 10, vocal-agility 8,
+  ariana-grande 7, how-to-increase-vocal-range 5, mix-voice 4, can-anyone-learn-to-sing 4, chest-voice 2, belting 1,
+  breathing 1, how-to-practice-singing 1. Grounding queries went 4 → 6: **"learn to sing" 8 → 40** (20.5% share) and
+  **"range test" 9 (new)**. The first evidence a *tool page* pulls citations on its own terms, not just the hub.
+  **Indexation regression:** 25/31 indexed; the 3 Aug-26 pain-point articles have **never been crawled**, and
+  `why-does-my-voice-crack` is still uncrawled a day after manual Request Indexing. Publish + IndexNow is not
+  yielding a next-day crawl. Caveat: `/learn/how-to-practice-singing` reads "not indexed" in the API yet appears in
+  the AI-cited list, so the two Bing surfaces disagree. Bing Search Performance: 978 impr / 12 clicks over Aug 12–25
+  (~70 impr/day, flat); top organic queries "vocal warm ups" 51 and "vocal warm up" 37, **both at 0 clicks**.
 
-- **[OPEN · 2026-08-20] `/learn/sovt-exercises` entry growth.** Entries grew ~2 → 24 — **real**. The 27-min Ahrefs
-  avg dwell is a **measurement artifact** (PostHog session-span: 12s median, 3.3min max) — idle left-open tabs
+- **[OPEN · 2026-08-20] `/learn/sovt-exercises` entry growth.** Entries grew ~2 → 24. **Real**. The 27-min Ahrefs
+  avg dwell is a **measurement artifact** (PostHog session-span: 12s median, 3.3min max). Idle left-open tabs
   inflating Ahrefs' mean, not deep reading. Real question: which channel drives the *entry* growth, and can we
-  replicate it. Corollary: **distrust Ahrefs session-duration generally** — cross-check dwell against PostHog.
+  replicate it. Corollary: **distrust Ahrefs session-duration generally**. Cross-check dwell against PostHog.
 
-- **[PRIMARY · 1A · 2026-08-22] Inflow — grow citations & referrals.** Co-equal with retention (1B); actively
-  being worked, NOT settled. Flat now (~16 ChatGPT ref/day, ~33 citations) with no organic flywheel — citations
-  don't compound from clicks — so growth comes from INPUTS we ship: more indexed answer-content (query coverage),
+- **[PRIMARY · 1A · 2026-08-22] Inflow: grow citations & referrals.** Co-equal with retention (1B); actively
+  being worked, NOT settled. Flat now (~16 ChatGPT ref/day, ~33 citations) with no organic flywheel. Citations
+  don't compound from clicks, so growth comes from INPUTS we ship: more indexed answer-content (query coverage),
   real authority (legit backlinks / brand mentions; DR is 0), primary-source assets, Bing indexation. Baseline
   (Aug 22): ChatGPT 33 cites / 4 pages · Copilot 5 / 3 · others 0 · ~16 ChatGPT ref/day · DR 0 · branded search
-  "vocal habit" 14 clicks / 15 impr / pos 2 (Google — understates vs Bing). Lever gauges to track each run:
+  "vocal habit" 14 clicks / 15 impr / pos 2 (Google. Understates vs Bing). Lever gauges to track each run:
   citations-per-page, referral rate, branded-search growth.
-- **[PRIMARY · 1B · 2026-08-22] Retention — do they stick & deepen.** Co-equal with inflow (1A). Growth =
+  **Update Aug 27: 1A MOVED for the first time, on the citation lever only.** Bing citations **10.9/day → 28.7/day
+  week-over-week (+163%)** and the cited-page surface widened to 17 pages (see the Bing investigation above). Every
+  other gauge is unmoved: LLM referrals **~15/day** (Ahrefs LLM 106 over W2), branded search "vocal habit" **7 clicks
+  / 10 impr / pos 2**, **DR still 0**, **0 community mentions**. And our own tap says `ChatGPT-User` content fetches
+  are **flat at ~39/day** (36/39/47/42/44/35/36/35 across Aug 20–27). So: consultation is widening, clicks are not.
+  Reconciliation. Rising Bing citations against flat live page-fetches means answers are increasingly grounded on
+  Bing's **cached index** rather than fresh `ChatGPT-User` pulls, which is consistent with both numbers being right.
+  **Correction to prior runs:** the "+12%/+13% ChatGPT-User retrieval growth" reported Aug 24–26 was cumulative-total
+  growth, i.e. days accumulating. The per-day rate was flat the whole time. Read rates only.
+- **[PRIMARY · 1B · 2026-08-22] Retention: do they stick & deepen.** Co-equal with inflow (1A). Growth =
   inflow × retention × word-of-mouth; with inflow flat, retention decides whether the trickle compounds.
   **Success criterion (Ryan): we're healthy iff BOTH
   (a) returning-session volume per week AND (b) depth per returning visit are rising.** A steady trickle into a
@@ -94,72 +134,124 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   never cumulative. Depth metric = practice-starts/visit (logging is opt-in; regulars skip it, so logged/visit
   understates depth). Caveats: localStorage proxy is a per-device floor; true person-level retention isn't
   available cookieless. WoM proxy to stand up: branded-search ("vocal habit") growth in GSC/Bing.
-  **⚠ Metric caveat (Ryan, Aug 24) — the returner definition is muddy.** `returning`/`visitNumber` count *site*
+  **⚠ Metric caveat (Ryan, Aug 24): the returner definition is muddy.** `returning`/`visitNumber` count *site*
   visits, so the cohort conflates genuine tool-returners with first-time-tool users on site-visit 2 (e.g. read a
-  Learn article, then tried the tool). Exercise completion by visit depth is 39%→50%→62% (visits 1→2→3) — the
+  Learn article, then tried the tool). Exercise completion by visit depth is 39%→50%→62% (visits 1→2→3). The
   right direction, but n collapses (198/34/21), so directional only.
   **✅ FIX SHIPPED (PR #19 `feat/practice-counters`, merged + deployed 2026-08-24).** `lib/analytics/practiceCounters.ts`
   stamps `practiceNumber` / `hasPracticedBefore` on practice_started + pattern_completed, and `finishNumber` /
   `hasFinishedBefore` on true completions (completedAllKeys). Verified live in the prod bundle; property present on
   practice_started from Aug 24 (11/45, mid-day deploy) and **100% from Aug 25 (9/9)**. First read (n≈20, directional
   only): practiceNumber tail already reaches #9; hasPracticedBefore=true 15 starts / 5 ppl vs false 5 / 5.
-  **Now measure 1B depth/completion on `practiceNumber` (genuine practice-returners), not `visitNumber`** — needs
+  **Now measure 1B depth/completion on `practiceNumber` (genuine practice-returners), not `visitNumber`**. Needs
   ~a week of accumulation before the 2nd+-practice cohort has usable n. Until then 1B stays directional on the
   site-visit proxy, but the honest metric is finally instrumented.
+  **Update Aug 27: PASSING on the headline series, but the verdict now turns on one identity.** Site-visit proxy:
+  returning practice-starts **13.9 → 14.9/day (+7%)**, depth **2.49 → 2.60** practice-starts/returning visit,
+  returning share **23.0% → 29.7%**. Returning browse **64% deeper** (3.48 vs 2.12 pv/visit) and start **168% more**
+  practice/visit (2.60 vs 0.97). Untagged still 0. **⚠ Sensitivity:** one identity logged **26 practice starts today**
+  with `practiceNumber` running 1→24 on deploy day and toggling Guided mode. Almost certainly Ryan testing the new
+  nudge. It sits in the `returning=true` cohort and supplies **24 of that cohort's 104 starts**. Excluding it, the
+  same two bars read **11.4/day and 2.05 depth. Both DOWN**. Heavy single-day identities appear in every prior week
+  too (30 starts wk of Aug 10, 24 wk of Aug 17; cookieless ids rotate daily so one human = one id per day), so
+  excluding would break the series and was not done, but at this n the pass/fail flips on one person. Treat the
+  PASSING verdict as low-confidence this run.
+  **First clean read on the honest counter** (Aug 25+, 100% coverage, dev identity excluded): of **18 distinct
+  singers**, **13 reached practice #2 (72%)**, **10 reached #3 (56%)**, **5 reached #5 (28%)**. That is a genuinely
+  healthy practice-retention curve and is the metric to lead with from here. Caveat: `practiceNumber` is a
+  localStorage per-device counter, so a fresh device or cleared storage restarts at 1. It is a floor.
 
 - **[WATCH · 2026-08-20] ChatGPT activation floor.** ~25% of ChatGPT arrivals start practicing / ~22% reach
   scoring (floors vs Ahrefs' ChatGPT visitor count). Strong for cold referral. Watch for drift up or down.
+  **Update Aug 27:** cumulative floors **holding**. 52 started / 45 scored / 21 logged against Ahrefs' 223
+  cumulative ChatGPT visitors = **≥23% start / ≥20% scoring / ≥9% logged**. The 7-day slice reads lower
+  (19/94 = 20% start, 16/94 = 17% scoring) but that is small-n noise, not a drift; report the cumulative.
 
 - **[RESOLVED · 2026-08-21] `untagged` events.** Was ~15% (87 pv) but all confined to the launch days
   (Aug 13–16); week 2 has **0 untagged**. Early-days artifact (pageviews before the super-property registered),
-  now clean — not a growing problem.
+  now clean, not a growing problem.
 - **[WATCH · 2026-08-21] Funnel deepening.** Per-day W1→W2: practice +19%, scoring +34%, logged +80% while
   pageviews held flat. Watch whether it holds as W2 fills (currently 2 of 7 days). Persisted in `weekly-snapshots.md`.
 - **[OPEN · 2026-08-21] Re-aim onboarding pacing.** Drop-off is front-loaded (18 of 28 skippers bail at the first
-  two steps), NOT at the late steps — so pacing isn't a drop-off fix. But steps 4–5 (Import, Song-segment) teach
+  two steps), NOT at the late steps, so pacing isn't a drop-off fix. But steps 4–5 (Import, Song-segment) teach
   features with 5 opens / 0 song-saves. **Shipped Aug 22 to prod (PR #13):** voice → step 0 + default tenor→alto.
   Next: defer Import/Song-segment intros to a return visit; analyze onboarding funnel by `stepKey` (indices shifted).
-- **[OPEN · 2026-08-22] Direct-traffic surge — bots?** W2 (Aug 20–22) direct = 51 visitors at **96% bounce, 0s
-  avg session** — smells like a bot/spam wave or a burst of referrer-stripped junk, not real visitors. It dragged
+- **[OPEN · 2026-08-22] Direct-traffic surge: bots?** W2 (Aug 20–22) direct = 51 visitors at **96% bounce, 0s
+  avg session**. Smells like a bot/spam wave or a burst of referrer-stripped junk, not real visitors. It dragged
   cumulative LLM share from ~52% to ~49%. Next: break `$direct` down by UA / `$virt_is_bot` / geo; don't count it
-  as growth until characterized. **Update Aug 25:** persists — W2 (Aug 20–24) direct = **69 visitors at 94% bounce**,
+  as growth until characterized. **Update Aug 25:** persists. W2 (Aug 20–24) direct = **69 visitors at 94% bounce**,
   now roughly equal to LLM (72) and holding LLM share down to 44%. Still uncharacterized; still don't count as growth.
-  **Update Aug 26:** persists — W2 (Aug 20–26) direct = **81 visitors at 93% bounce**; cumulative direct 130 @ 90%
-  (+9 since last run). Holds W2 LLM share to ~50%. Still uncharacterized — break down by UA / bot flag / geo.
+  **Update Aug 26:** persists. W2 (Aug 20–26) direct = **81 visitors at 93% bounce**; cumulative direct 130 @ 90%
+  (+9 since last run). Holds W2 LLM share to ~50%. Still uncharacterized. Break down by UA / bot flag / geo.
+  **Update Aug 27:** persists. Cumulative direct **142 @ 89% bounce**; last 7 days 77 @ 92%. Still uncharacterized
+  after 5 days of flagging it; this is now the longest-open unactioned item. Break down by UA / `$virt_is_bot` / geo.
 
-- **[WATCH · 2026-08-24] Organic / community mentions (WoM).** As the user base grows, public mentions — Reddit
-  especially — are the leading sign word-of-mouth is taking hold, and a more public organic-mention venue than
+- **[WATCH · 2026-08-24] Organic / community mentions (WoM).** As the user base grows, public mentions. Reddit
+  especially. Are the leading sign word-of-mouth is taking hold, and a more public organic-mention venue than
   branded search. Track each run: reddit.com / HN / forum referrers in Ahrefs Web Analytics + a
   `site:reddit.com "vocal habit"` / `"vocalhabit.com"` sweep. **Baseline Aug 24: 0 Reddit mentions.** Pairs with
   branded search as the WoM gauge on the retention→growth path. Evaluating a metered tool-gateway (see below) for
-  proper social listening. **Update Aug 26: still 0** — no reddit/HN/forum referrers in Ahrefs; `site:reddit.com`
+  proper social listening. **Update Aug 26: still 0**, no reddit/HN/forum referrers in Ahrefs; `site:reddit.com`
   sweep empty. First artist-spotlight page (`/artists/chappell-roan`) drew its first 2 AI-referred entries.
+  **Update Aug 27: still 0 Reddit/HN/forum referrers**, `site:reddit.com` sweep still empty. One small first:
+  Ahrefs logged the **first-ever `social` visitor** (1) in the cumulative window. Branded search flat at 7 clicks /
+  10 impr / pos 2. Artist spotlights are, however, now visible on the *citation* side (freddie-mercury 20,
+  chappell-roan 10, ariana-grande 7) and picking up branded-artist impressions in Bing organic
+  ("freddie mercury vocal range" 10, "ariana grande vocal range" 10, both 0 clicks).
 
 ## Findings (newest first)
 
+### 2026-08-27
+- **1A INFLOW MOVED, first time since launch, and only on the citation lever.** Bing citations went
+  **~10.9/day (Aug 11–17) → ~28.7/day (Aug 18–24)**, single days of 79 (Aug 22) and 75 (Aug 25); total 277 → 352.
+  The cited-page surface widened from a handful to **17 distinct pages**. `/vocal-range-test` (12),
+  can-tone-deaf-people-learn-to-sing (11), vocal-warm-ups-for-beginners (11), vocal-agility (8), ariana-grande (7)
+  and six more all entered the pool, on top of the `/learn/` hub climbing 124 → **168**.
+- **Two new grounding queries, one of them a tool.** "learn to sing" jumped **8 → 40** citations (20.5% share) and
+  **"range test" appeared at 9**. That is the first evidence a *tool page* earns citations on its own terms rather
+  than everything funnelling through the Learn hub. A direct argument for building more free ungated tools.
+- **Zero-click confirmed and widening.** Citations +163%/day while LLM referrals hold **~15/day** and our own
+  `ChatGPT-User` content fetches are **flat at ~39/day**. Reconciliation: answers are increasingly grounded on
+  Bing's cached index, not fresh page pulls. **Correction:** the "+12%/+13% retrieval growth" in the Aug 24–26
+  entries was cumulative accumulation, not a rate. The per-day rate never moved.
+- **W2 completed and the "funnel deepening" finding broke.** With all 7 days in, per-day W1→W2: practice **exactly
+  flat** (34.9 → 34.9), scoring **+8%**, logged **+76%**, pageviews **−9%** (75.1 → 68.4). The earlier +14%/+23%
+  readings came from W2's first six days, which excluded the very light Aug 25 (23 starts) and Aug 26 (6). Only
+  logging genuinely rose. Lesson: do not headline a partial-bucket delta.
+- **Bing still has not crawled the Aug-26 articles.** 25/31 sitemap URLs indexed; all three pain-point pages
+  uncrawled, and `why-does-my-voice-crack` uncrawled a day after manual Request Indexing. Publish + IndexNow is not
+  producing a next-day crawl. The content lever cannot be evaluated yet.
+- **Last night's three features each caught users; none converted.** `guided_nudge_shown` 5 / 4 people (all
+  `reason:'rough'`), accepted **0**. `embed_exercise_played` 2 / 1 person, open-full **0**. Practice counters at
+  100% coverage. Guided mode readable at last: 6 of 59 starts. Both accept-path events are wired in code, so the
+  zeros are real. Too early to judge, but log the accept rate daily from here.
+- **1B passing but low-confidence**. One likely dev identity (26 starts, counter 1→24 on deploy day) supplies 24 of
+  the returning cohort's 104 starts; strip it and both health bars invert. The honest practice-returner curve is the
+  better read: **72% of singers reach practice #2, 56% reach #3, 28% reach #5** (n=18, dev identity excluded).
+
 ### 2026-08-26 · product deep-dive (scoring realness + Guided mode)
-- **First-party data is REAL — score distribution proves it.** 201 scored completions (meanAccuracyPct on
+- **First-party data is REAL. Score distribution proves it.** 201 scored completions (meanAccuracyPct on
   `pattern_completed`, flowing since Aug 15): mean 55.5%, median 57%, p25–p75 = 36–78%, only 6/201 at exactly 0.
   A smooth human skill-curve, not a bot/silence spike at 0. Granting a mic + singing a pitch-matched pattern is the
-  hardest thing to fake and the least worth faking — the trustworthy layer is trustworthy.
+  hardest thing to fake and the least worth faking. The trustworthy layer is trustworthy.
 - **Grading was beginner-harsh → softened (code, pending deploy).** The `accuracyPct` is "% of frames within ±50¢
-  of target" (time-on-pitch), NOT a grade — but a bare "57%" reads like an F. Fixes: (1) widened color bands to
+  of target" (time-on-pitch), NOT a grade, but a bare "57%" reads like an F. Fixes: (1) widened color bands to
   green ≤50¢ / yellow ≤100¢ / red >100¢ (unified `tone-utils` with `NoteResultsStrip`; DESIGN.md's own labels:
   green "in tune", yellow "close call", red "clearly off"); (2) the post-session badge now shows **avg ±X¢ off pitch**
   (the tuning metric) instead of a percent.
-- **Guided (slow drill) mode was UNINSTRUMENTED — now fixed.** `GuidedSession` had zero `track()` calls, so the
+- **Guided (slow drill) mode was UNINSTRUMENTED. Now fixed.** `GuidedSession` had zero `track()` calls, so the
   "0 guided / 488 standard" split was a blind spot, not proven zero use. Wired `practice_started` + `pattern_completed`
   with `mode:'guided'` (+ practiceNumber/finish counters). From next deploy we can finally see slow-mode usage and
   scoring. **Open:** nudge struggling beginners (high cents-off / low accuracy) toward Guided; measure conversion.
 
 ### 2026-08-26 · run 2 (PM)
-- **Crawler tap is spoofed — major correction.** A credential-scanner fakes crawler UAs to hit `/.env`, `/.ssh`,
+- **Crawler tap is spoofed. Major correction.** A credential-scanner fakes crawler UAs to hit `/.env`, `/.ssh`,
   `/aws/credentials`. Content-path filter: **ChatGPT-User 277 content hits is the ONLY real retrieval** (matches
   Bing's 277 citations); Claude 3/3, GPTBot 0, Perplexity 1. The 446/72/70 counts we'd been tracking were
   spoof-inflated. Crawler signal is content-filtered from now on (§C updated).
-- **Claude never went live** — the Aug-26 "Claude 40/19 surge" was the scanner, not Anthropic. Genuine Claude
+- **Claude never went live**. The Aug-26 "Claude 40/19 surge" was the scanner, not Anthropic. Genuine Claude
   retrieval still 3/3. Three sources agree (Bing, Ahrefs-via-Brave=0, content-filtered tap): ChatGPT is the engine.
-- **Bing AI Performance is now a standing sweep step (§A4b)** — 277 real citations / ~4 pages, grounding on
+- **Bing AI Performance is now a standing sweep step (§A4b)**. 277 real citations / ~4 pages, grounding on
   free/beginner "learn to sing free/online/course" intent; top page the /learn/ hub (124). Ahrefs' 38 samples the same.
 - **3 pain-point articles shipped + Request-Indexed today** (first content inflow lever); in-article exercise
   instrumented (`embed_exercise_played` / `_open_full`), awaiting first data.
@@ -167,98 +259,98 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   (returning browse ~43% deeper, 3.05 vs 2.13 pv). Dashboard redeployed in place (same URL, run-2 content).
 
 ### 2026-08-26
-- **1B (retention) PASSING — 4th run running.** Both bars up again: returning practice-starts **12.3→13.9/day
+- **1B (retention) PASSING. 4th run running.** Both bars up again: returning practice-starts **12.3→13.9/day
   (+13%)**, depth **2.32→2.49** practice-starts/returning visit, and returning **share recovered** 20.2→**23.0%**.
   Returning browse **39% deeper** (3.05 vs 2.20 pv/visit) and start **~150% more** practice/visit (2.49 vs 0.98).
   Untagged still 0.
 - **Practice-returner counter is now READING** (Aug 24+ tagged window): repeat-practice starts already outnumber
-  first-timers **27 vs 9**, `practiceNumber` tail reaching **#11**. Directional (n small) — a clean 1B depth/completion
+  first-timers **27 vs 9**, `practiceNumber` tail reaching **#11**. Directional (n small). A clean 1B depth/completion
   cut on genuine practice-returners is ~a week of accrual out, but the honest metric is confirmed live.
-- **1A (inflow) still FLAT** — citations unchanged (ChatGPT 33/4pg, Copilot 5/3pg, others 0), branded search
+- **1A (inflow) still FLAT**. Citations unchanged (ChatGPT 33/4pg, Copilot 5/3pg, others 0), branded search
   "vocal habit" pos 2 (8 clicks / 10 impr this window), DR 0, **0 Reddit mentions**. No lever shipped yet.
-- **Anthropic still scraped-not-recommended** — `Claude-SearchBot`/`Claude-User` **3/3** (+1 User hit only), no real
+- **Anthropic still scraped-not-recommended**. `Claude-SearchBot`/`Claude-User` **3/3** (+1 User hit only), no real
   crawl 6 days post-allow, while `ChatGPT-User` retrieval climbed **393→446 (+13%)**. Zero-click retrieval rising;
   human referrals flat ~18/day.
-- **Funnel deepening softened but holds** (6 full days of W2) — per-day vs W1: practice **+14%**, scoring **+23%**,
+- **Funnel deepening softened but holds** (6 full days of W2). Per-day vs W1: practice **+14%**, scoring **+23%**,
   logged **+100%**; pageviews flat (75→75/day). Logging doubled; engagement still outpacing traffic.
-- **Direct surge persists** — cumulative direct 130 @ 90% bounce (+9); W2 81 @ 93%. Still open.
-- **First artist-spotlight entries** — `/artists/chappell-roan` drew 2 AI-referred entries this window (new content
+- **Direct surge persists**. Cumulative direct 130 @ 90% bounce (+9); W2 81 @ 93%. Still open.
+- **First artist-spotlight entries**. `/artists/chappell-roan` drew 2 AI-referred entries this window (new content
   type live). `/learn/chest-voice-exercises` holds as #3 Learn entry (11). Aug 23 remains biggest day (115 pv).
 
 ### 2026-08-25
-- **1B (retention) still PASSING** — both bars up again: returning practice-starts **~10.9→~12.3/day (+13%)**,
+- **1B (retention) still PASSING**. Both bars up again: returning practice-starts **~10.9→~12.3/day (+13%)**,
   depth **2.14→2.32** practice-starts/returning visit. Returning still browse **34% deeper** (3.16 vs 2.36 pv/visit)
-  and start **~110% more** practice/visit (2.32 vs 1.11) than new. Returning share dipped 22.5→**20.2%** — dilution
+  and start **~110% more** practice/visit (2.32 vs 1.11) than new. Returning share dipped 22.5→**20.2%**. Dilution
   from a new-visitor week, not fewer returns (returning volume rose). Untagged still 0.
-- **✅ Practice-session counter is LIVE (PR #19, shipped Aug 24) — I mis-reported it as pending last run.**
+- **✅ Practice-session counter is LIVE (PR #19, shipped Aug 24). I mis-reported it as pending last run.**
   `practiceNumber` / `hasPracticedBefore` / `finishNumber` now stamp practice events; 100% coverage from Aug 25.
-  This retires the "returner def is muddy" blocker — from next week, cut 1B depth/completion on `practiceNumber`
+  This retires the "returner def is muddy" blocker. From next week, cut 1B depth/completion on `practiceNumber`
   (genuine practice-returners) instead of the `visitNumber` site-visit proxy. First read is n≈20 (directional only).
-- **1A (inflow) still FLAT** — citations unchanged (ChatGPT 33/4pg, Copilot 5/3pg, others 0), branded search
+- **1A (inflow) still FLAT**. Citations unchanged (ChatGPT 33/4pg, Copilot 5/3pg, others 0), branded search
   "vocal habit" steady at pos 2, DR 0. No lever shipped yet. **Anthropic still scraped-not-recommended:**
   `Claude-SearchBot`/`Claude-User` frozen at 3/2 (test level) 5 days post-allow, while `ChatGPT-User` retrieval
   climbed 350→**393 (+12%)**. Zero-click retrieval rising; human referrals flat ~14–16/day.
-- **Funnel deepening holds at 5 full days of W2** — per-day vs W1: practice **+23%**, scoring **+30%**, logged
+- **Funnel deepening holds at 5 full days of W2**. Per-day vs W1: practice **+23%**, scoring **+30%**, logged
   **+96%**; pageviews now also up **+9%** (75→82/day). Engagement still outpacing traffic.
-- **Direct surge persists** — W2 direct 69 @ 94% bounce, ~equal to LLM (72); LLM share held down to 44%. Still open.
-- **`/learn/chest-voice-exercises` breaking out** — 11 entries this window, new #3 Learn entry page (after
+- **Direct surge persists**. W2 direct 69 @ 94% bounce, ~equal to LLM (72); LLM share held down to 44%. Still open.
+- **`/learn/chest-voice-exercises` breaking out**. 11 entries this window, new #3 Learn entry page (after
   homepage 134 and sovt-exercises 41). Second content entry point worth watching.
 - **Aug 24 solid** (79 pv / 45 practice / 15 logged); Aug 23 remains the biggest day (115 pv / 47 practice).
 
 ### 2026-08-24
-- **1B (retention) is PASSING its bar** — both metrics rising: returning practice-starts **~7.75→~10.9/day
+- **1B (retention) is PASSING its bar**. Both metrics rising: returning practice-starts **~7.75→~10.9/day
   (+40%)** week-over-week, and depth **2.14** practice-starts/returning visit (↑ 1.89→2.10→2.14). Returning
   share 21→**22.5%**. This is the win condition being met.
-- **1A (inflow) is FLAT** — citations ~32 (from 33/34; noise), ChatGPT referrals steady ~16/day, branded search
+- **1A (inflow) is FLAT**. Citations ~32 (from 33/34; noise), ChatGPT referrals steady ~16/day, branded search
   "vocal habit" unchanged at **14 clicks / pos 2**, DR still 0. No inflow lever has shipped yet, so flat is
-  expected — not a failure, just no experiment run. Anthropic **still scraped-not-recommended**: `Claude-SearchBot`
+  expected, not a failure, just no experiment run. Anthropic **still scraped-not-recommended**: `Claude-SearchBot`
   flat at test level 4 days on, while `ChatGPT-User` climbs 310→350 (retrieval up, not referrals).
 - **Funnel deepening continues** (4 days of W2): per-day practice +22%, scoring +31%, logged +88% vs W1.
-- **Direct surge persists** — 119 visitors at 90% bounce; still bot-like, investigation still open.
+- **Direct surge persists**. 119 visitors at 90% bounce; still bot-like, investigation still open.
 - **Aug 23 was the biggest day yet** (115 pageviews, 47 practice starts).
 
 ### 2026-08-22
 - **Funnel deepening holds** at 3 days of W2: per-day practice +17%, scoring +27%, logged +72% vs W1, pageviews
-  flat (~75→72/day). Real, sustained — engagement rising faster than traffic.
-- **Returning engagement gap is widening** — returning now browse ~33% deeper (3.34 vs 2.51 pages/visit) and
+  flat (~75→72/day). Real, sustained. Engagement rising faster than traffic.
+- **Returning engagement gap is widening**. Returning now browse ~33% deeper (3.34 vs 2.51 pages/visit) and
   start ~81% more practice/visit (2.10 vs 1.16), up from +23%/+50% a day ago. The cohort matters more with volume.
-- **Still scraped, not recommended** — ChatGPT-User crawler exploded (159→310); Anthropic's `ClaudeBot` (training)
+- **Still scraped, not recommended**. ChatGPT-User crawler exploded (159→310); Anthropic's `ClaudeBot` (training)
   grew to 70, but `Claude-SearchBot`/`Claude-User` haven't fired for real since our Aug 20 test. Claude has still
   not recommended us to anyone.
-- **Direct-traffic surge looks like junk** — W2 direct 51 at 96% bounce / 0s sessions; opened an investigation.
+- **Direct-traffic surge looks like junk**. W2 direct 51 at 96% bounce / 0s sessions; opened an investigation.
   Cumulative LLM share dipped to 49% purely from this dilution (LLM itself flat at ~16/day).
 - **Shipped to prod:** onboarding voice-first + alto default (PR #13); analytics skill + logs (PR #14).
 
 ### 2026-08-21
-- **Onboarding is bimodal, not leaky** — 71% finish all 6 steps; 29% skip and bail immediately (avg step 1.5),
+- **Onboarding is bimodal, not leaky**. 71% finish all 6 steps; 29% skip and bail immediately (avg step 1.5),
   no mid-funnel drop-off. Voice is load-bearing: 69% pick, and **74% of pickers choose a non-default voice**
   (alto 39% > tenor 26% > baritone 23% > soprano 13%). Import/Song-segment steps teach near-unused features
   (5 import opens, 0 song saves in 9 days). **Shipped:** default tenor→alto; voice moved to step 0 (gates Next).
 - **Funnel is deepening.** Per-day W1→W2: practice **+19%**, reached-scoring **+34%**, logged **+80%** while
   pageviews held flat (~75→73/day). Engagement rising faster than traffic. (W2 = 2 of 7 days; confirm as it fills.)
-- **ChatGPT activation holding** — cumulative floors ~26% start / ~22% scoring / ~12% logged (37/32/17 of 142
+- **ChatGPT activation holding**. Cumulative floors ~26% start / ~22% scoring / ~12% logged (37/32/17 of 142
   Ahrefs ChatGPT visitors). Not drifting.
-- **`untagged` resolved** — 87 pv all in launch days; week 2 is 0 untagged. Returning cohort data is clean now.
-- **Still scraped, not recommended** — `ChatGPT-User` climbing (126→159, real OpenAI end-user serving);
+- **`untagged` resolved**. 87 pv all in launch days; week 2 is 0 untagged. Returning cohort data is clean now.
+- **Still scraped, not recommended**. `ChatGPT-User` climbing (126→159, real OpenAI end-user serving);
   `ClaudeBot` +2 (training only); `Claude-SearchBot`/`Claude-User` flat at test levels. Perplexity/GPTBot quiet since Aug 20.
-- **Returning share fell 30%→14%** — but that's **dilution from a new-visitor surge** (162→305 new pv), not
+- **Returning share fell 30%→14%**, but that's **dilution from a new-visitor surge** (162→305 new pv), not
   fewer returns (69→49). Returning still browse ~23% deeper and start ~50% more practice/visit.
-- **Set up the persistent view** — `analytics/weekly-snapshots.md` (7-day buckets + point-in-time snapshots) and
+- **Set up the persistent view**. `Analytics/weekly-snapshots.md` (7-day buckets + point-in-time snapshots) and
   the dashboard trend now accumulates from launch instead of a rolling 7-day window.
 
 ### 2026-08-20
 - **Returning visitors are meaningfully more engaged** than new ones: 3.5 vs 2.66 pages/visit, and 2.17 vs 1.24
-  practice-starts per visitor-day (~75% higher). First real read on the returning feature — positive.
-- **Claude has SCRAPED us but not RECOMMENDED us yet.** `ClaudeBot` (training) 39 hits is real — but training
-  ≠ end-user citation (direct analog to `GPTBot` 33). The recommendation path — `Claude-SearchBot` (index) +
-  `Claude-User` (a real question pulling the page) — is still ≈ our 5 setup tests. Nuance: `ClaudeBot` was
+  practice-starts per visitor-day (~75% higher). First real read on the returning feature. Positive.
+- **Claude has SCRAPED us but not RECOMMENDED us yet.** `ClaudeBot` (training) 39 hits is real, but training
+  ≠ end-user citation (direct analog to `GPTBot` 33). The recommendation path. `Claude-SearchBot` (index) +
+  `Claude-User` (a real question pulling the page). Is still ≈ our 5 setup tests. Nuance: `ClaudeBot` was
   already allowed *before* our robots.txt change and feeds *future* models, so it won't drive near-term recs; the
   `Claude-SearchBot`/`Claude-User` path we just enabled is the one to watch. Contrast: OpenAI is already serving
   end users (`ChatGPT-User` 126, `OAI-SearchBot` 37), not just training.
-- **AI-crawler tap live** (`netlify/edge-functions/ai-crawler-tap.ts`): first-day landscape — ChatGPT-User 126,
+- **AI-crawler tap live** (`netlify/edge-functions/ai-crawler-tap.ts`): first-day landscape. ChatGPT-User 126,
   PerplexityBot 39, ClaudeBot 39, OAI-SearchBot ~36, GPTBot 33.
-- **LLM still the #1 channel** — 128/243 visitors (53%), 2.8:1 over search; ChatGPT ≈ 99% of LLM.
-- **`/learn/sovt-exercises` entries grew ~2→24** (real) — but its 27-min Ahrefs dwell is an idle-tab artifact
+- **LLM still the #1 channel**. 128/243 visitors (53%), 2.8:1 over search; ChatGPT ≈ 99% of LLM.
+- **`/learn/sovt-exercises` entries grew ~2→24** (real), but its 27-min Ahrefs dwell is an idle-tab artifact
   (PostHog: 12s median). Lesson banked: Ahrefs session-duration ≠ real engagement; cross-check against PostHog.
 - **Citations:** ChatGPT 33 across 4 pages, Copilot 5 across 3; Perplexity/Gemini/Google/Grok 0.
 - **Infra shipped:** Claude crawlers allowed in robots.txt; 4 URLs submitted to Brave; crawler tap deployed.
