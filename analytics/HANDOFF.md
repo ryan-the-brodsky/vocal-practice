@@ -77,6 +77,16 @@ rates, never let a rising total read as momentum. Separate *retrieval* (crawler 
   primary paper (leads in `seo/data/vosci-references-2026-08-27.md`; Björkner 2008 is already cited alongside)
   and re-run `content-fact-check`. Also: 4 pain-point metaDescriptions exceed 165
 chars (why-cant-i-sing-high-notes 183, why-do-i-sing-flat 200, recorded-voice 222, voice-crack 184); trim.
+- **Analytics coverage audit (2026-08-27, PostHog project 556732 confirmed):** `$pageview` fires on every
+  route change (`capture_pageview: 'history_change'`), so Learn/spotlight/range-test arrivals are covered.
+  `embed_exercise_played` is LIVE in production (first events 2026-08-27, surface=learn, slug=chest-voice-exercises);
+  `embed_exercise_open_full` is wired (EmbeddedExercise.tsx:119) but has never fired yet. Spotlights pass
+  `surface="spotlight"` through SpotlightDrill, so they are covered by the same two events. **Not instrumented
+  at all:** Plan tab (browse, "Add to routine"), Progress tab (sparkline expands, "Coach this" is covered via
+  coaching_started), PathwaysCard "Practice this path" (calls saveRoutine directly, bypasses routine_edited),
+  TodayRoutineCard item taps, TempoControl, octave selector, HeadphonesBanner "continue without", backup
+  export/import, LearnHub search/category chips. Candidate next events: `pathway_selected`, `plan_exercise_added`,
+  `tempo_changed`, `octave_shift_set`, `headphones_skipped`.
 - **Queued product ideas from VoSci:** loudness axis on the range test (we already have `rmsDb`), adaptive
   routine sequencing, glossary of 100-150 `DefinedTerm` pages, Help Scout Beacon-style feedback widget,
   teacher/studio tier as the validated monetization wedge. Listing actions: AlternativeTo (self-serve),
