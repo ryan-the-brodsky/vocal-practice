@@ -1,0 +1,177 @@
+{
+ "10-minute-vocal-warm-up": {
+  "words": 2226,
+  "avg_sentence": 21.8,
+  "jargon_per_1k": 21.1,
+  "sources": 0,
+  "inline_cites": 9
+ },
+ "5-minute-vocal-warm-up": {
+  "words": 1608,
+  "avg_sentence": 21.4,
+  "jargon_per_1k": 21.8,
+  "sources": 0,
+  "inline_cites": 6
+ },
+ "belting-exercises": {
+  "words": 2241,
+  "avg_sentence": 19.3,
+  "jargon_per_1k": 37.9,
+  "sources": 12,
+  "inline_cites": 5
+ },
+ "breathing-exercises-for-singing": {
+  "words": 1218,
+  "avg_sentence": 17.8,
+  "jargon_per_1k": 16.4,
+  "sources": 0,
+  "inline_cites": 4
+ },
+ "can-anyone-learn-to-sing": {
+  "words": 1704,
+  "avg_sentence": 20.8,
+  "jargon_per_1k": 21.7,
+  "sources": 8,
+  "inline_cites": 3
+ },
+ "can-tone-deaf-people-learn-to-sing": {
+  "words": 1748,
+  "avg_sentence": 20.0,
+  "jargon_per_1k": 10.9,
+  "sources": 7,
+  "inline_cites": 4
+ },
+ "can-you-learn-to-sing-as-an-adult": {
+  "words": 1945,
+  "avg_sentence": 20.8,
+  "jargon_per_1k": 15.9,
+  "sources": 6,
+  "inline_cites": 3
+ },
+ "chest-voice-exercises": {
+  "words": 2116,
+  "avg_sentence": 20.2,
+  "jargon_per_1k": 39.2,
+  "sources": 0,
+  "inline_cites": 5
+ },
+ "head-voice-exercises": {
+  "words": 1497,
+  "avg_sentence": 17.7,
+  "jargon_per_1k": 27.4,
+  "sources": 7,
+  "inline_cites": 4
+ },
+ "how-to-improve-singing-voice": {
+  "words": 1977,
+  "avg_sentence": 21.0,
+  "jargon_per_1k": 34.4,
+  "sources": 5,
+  "inline_cites": 1
+ },
+ "how-to-increase-vocal-range": {
+  "words": 1726,
+  "avg_sentence": 19.9,
+  "jargon_per_1k": 41.1,
+  "sources": 6,
+  "inline_cites": 3
+ },
+ "how-to-practice-singing": {
+  "words": 2246,
+  "avg_sentence": 20.4,
+  "jargon_per_1k": 24.5,
+  "sources": 5,
+  "inline_cites": 1
+ },
+ "how-to-sing-in-tune": {
+  "words": 2034,
+  "avg_sentence": 20.1,
+  "jargon_per_1k": 27.0,
+  "sources": 6,
+  "inline_cites": 4
+ },
+ "how-to-warm-up-your-voice": {
+  "words": 1707,
+  "avg_sentence": 19.1,
+  "jargon_per_1k": 30.5,
+  "sources": 0,
+  "inline_cites": 4
+ },
+ "mix-voice-exercises": {
+  "words": 2223,
+  "avg_sentence": 19.4,
+  "jargon_per_1k": 28.8,
+  "sources": 5,
+  "inline_cites": 5
+ },
+ "pitch-training-for-singers": {
+  "words": 2256,
+  "avg_sentence": 20.2,
+  "jargon_per_1k": 31.5,
+  "sources": 6,
+  "inline_cites": 3
+ },
+ "sovt-exercises": {
+  "words": 1742,
+  "avg_sentence": 18.4,
+  "jargon_per_1k": 39.0,
+  "sources": 0,
+  "inline_cites": 6
+ },
+ "vibrato-exercises": {
+  "words": 1502,
+  "avg_sentence": 18.7,
+  "jargon_per_1k": 16.6,
+  "sources": 8,
+  "inline_cites": 2
+ },
+ "vocal-agility-exercises": {
+  "words": 1824,
+  "avg_sentence": 19.5,
+  "jargon_per_1k": 14.3,
+  "sources": 0,
+  "inline_cites": 0
+ },
+ "vocal-resonance-exercises": {
+  "words": 1890,
+  "avg_sentence": 21.2,
+  "jargon_per_1k": 54.5,
+  "sources": 7,
+  "inline_cites": 3
+ },
+ "vocal-warm-ups-for-beginners": {
+  "words": 1691,
+  "avg_sentence": 18.7,
+  "jargon_per_1k": 25.4,
+  "sources": 0,
+  "inline_cites": 2
+ },
+ "why-cant-i-sing-high-notes": {
+  "words": 2748,
+  "avg_sentence": 19.8,
+  "jargon_per_1k": 12.7,
+  "sources": 7,
+  "inline_cites": 4
+ },
+ "why-do-i-sing-flat": {
+  "words": 2315,
+  "avg_sentence": 20.6,
+  "jargon_per_1k": 9.5,
+  "sources": 6,
+  "inline_cites": 3
+ },
+ "why-does-my-recorded-voice-sound-bad": {
+  "words": 1895,
+  "avg_sentence": 19.1,
+  "jargon_per_1k": 2.6,
+  "sources": 6,
+  "inline_cites": 0
+ },
+ "why-does-my-voice-crack": {
+  "words": 2971,
+  "avg_sentence": 20.7,
+  "jargon_per_1k": 11.8,
+  "sources": 9,
+  "inline_cites": 7
+ }
+}
