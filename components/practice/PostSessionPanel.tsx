@@ -3,13 +3,25 @@
 // (Routine progress is surfaced via the TodayRoutineCard on Practice; the
 // per-session "Next: X →" / "Routine done" banner was removed in favor of
 // keeping Start visually primary at idle.)
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
+import { track } from "@/lib/analytics";
+import { readPracticeContext } from "@/lib/analytics/practiceCounters";
 import type { SessionRecord } from "@/lib/progress";
 import { isPersonalBest } from "@/lib/progress/stats";
+import { hasSeenGuidedNudge, markGuidedNudgeSeen } from "@/lib/settings/guidedNudge";
 import { useTheme } from "@/hooks/use-theme";
+
+// The Guided-mode nudge shows AT MOST ONCE per device — a one-time "did you know
+// this exists?", never a repeated reminder of a poor score. Two ways to earn it:
+// a rough session (avg this far off pitch), or — for an experienced practicer who
+// never hit a rough patch — a plain reminder once they're clearly a regular.
+const GUIDED_NUDGE_CENTS = 90; // ~a whole semitone off on average
+const GUIDED_NUDGE_PRACTICES = 5; // experienced-practicer reminder threshold
+
+type NudgeReason = "rough" | "returning";
 
 interface CoachingCta {
   sessionId: string;
@@ -38,6 +50,11 @@ interface Props {
    *  Guided mode omits both props and keeps the legacy explicit Log/Discard. */
   primaryAction?: ReactNode;
   secondaryAction?: ReactNode;
+  /** True when switching to Guided is possible here (Standard mode + a
+   *  pitch-detected exercise). Gates the beginner "try slow mode" nudge. */
+  canGuide?: boolean;
+  /** Switches the surrounding screen into Guided mode and clears this panel. */
+  onTryGuided?: () => void;
 }
 
 export function PostSessionPanel({
@@ -51,6 +68,8 @@ export function PostSessionPanel({
   allSessions,
   primaryAction,
   secondaryAction,
+  canGuide,
+  onTryGuided,
 }: Props) {
   const { colors } = useTheme();
   const [sessionNote, setSessionNote] = useState("");
@@ -76,6 +95,30 @@ export function PostSessionPanel({
       })()
     : null;
 
+  // Decide once per finished session whether to surface the one-time Guided
+  // nudge. Marking it seen the moment it shows guarantees it appears at most
+  // ONCE per device, ever — a discovery, not a recurring "you scored poorly".
+  const [guidedNudge, setGuidedNudge] = useState<{ reason: NudgeReason } | null>(null);
+  const pendingId = pendingSession?.id;
+  useEffect(() => {
+    if (!canGuide || !onTryGuided || !pendingId || hasSeenGuidedNudge()) {
+      setGuidedNudge(null);
+      return;
+    }
+    let reason: NudgeReason | null = null;
+    if (avgCentsOff != null && avgCentsOff >= GUIDED_NUDGE_CENTS) reason = "rough";
+    else if (readPracticeContext().practiceNumber >= GUIDED_NUDGE_PRACTICES) reason = "returning";
+    if (!reason) {
+      setGuidedNudge(null);
+      return;
+    }
+    setGuidedNudge({ reason });
+    markGuidedNudgeSeen();
+    track("guided_nudge_shown", { reason, avgCentsOff });
+  }, [pendingId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const showGuidedNudge = !!guidedNudge && isIdle && !loggedMessage;
+
   return (
     <>
       {pendingSession && isIdle && !loggedMessage && (
@@ -90,6 +133,44 @@ export function PostSessionPanel({
                   ? `★ First time through${avgCentsOff != null ? ` · avg ±${avgCentsOff}¢ off pitch` : ""}`
                   : `★ New personal best on this exercise${avgCentsOff != null ? ` · avg ±${avgCentsOff}¢ off pitch` : ""}`}
               </Text>
+            </View>
+          )}
+
+          {showGuidedNudge && guidedNudge && (
+            <View style={[styles.nudge, { backgroundColor: colors.accentMuted, borderColor: colors.accent }]}>
+              <Text style={[styles.nudgeText, { color: colors.textPrimary, fontFamily: Fonts.body }]}>
+                {guidedNudge.reason === "rough" ? (
+                  <>
+                    That one raced ahead of you, and that&apos;s completely normal at first.{" "}
+                    <Text style={{ fontFamily: Fonts.bodySemibold }}>Guided mode</Text> slows things
+                    down and waits for you to land each note before it moves on.
+                  </>
+                ) : (
+                  <>
+                    Quick tip while you&apos;re here:{" "}
+                    <Text style={{ fontFamily: Fonts.bodySemibold }}>Guided mode</Text> is a slower,
+                    hold-and-match drill that waits for you to land each note. Handy for nailing a
+                    tricky passage.
+                  </>
+                )}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Switch to Guided slow mode and try again"
+                onPress={() => {
+                  track("guided_nudge_accepted", { reason: guidedNudge.reason, avgCentsOff });
+                  onTryGuided?.();
+                }}
+                style={({ pressed }) => [
+                  styles.nudgeBtn,
+                  { backgroundColor: colors.accent },
+                  pressed && { opacity: 0.85 },
+                ]}
+              >
+                <Text style={[styles.nudgeBtnText, { color: colors.bgCanvas, fontFamily: Fonts.bodySemibold }]}>
+                  Try Guided (slow) →
+                </Text>
+              </Pressable>
             </View>
           )}
 
@@ -252,6 +333,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
   },
   bestBadgeText: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+  },
+  nudge: {
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  nudgeText: {
+    fontSize: Typography.sm.size,
+    lineHeight: Typography.sm.lineHeight,
+  },
+  nudgeBtn: {
+    alignSelf: "flex-start",
+    borderRadius: Radii.md,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    minHeight: 40,
+    justifyContent: "center",
+  },
+  nudgeBtnText: {
     fontSize: Typography.sm.size,
     lineHeight: Typography.sm.lineHeight,
   },

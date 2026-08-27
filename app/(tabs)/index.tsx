@@ -490,6 +490,16 @@ export default function PracticeScreen() {
     });
   }, [exercise, voicePart]);
 
+  // Beginner rescue from the post-session nudge: drop into Guided (slow) mode
+  // and clear the panel so the Guided UI is ready to start.
+  const handleTryGuided = useCallback(() => {
+    setMode("guided");
+    AsyncStorage.setItem(MODE_STORAGE_KEY, "guided").catch(() => {});
+    setPendingSession(null);
+    setCoachingCta(null);
+    setLoggedMessage(null);
+  }, []);
+
   const handleGuidedPatternComplete = useCallback(
     (record: SessionRecord, iterations: KeyIteration[]) => {
       setPendingSession(record);
@@ -1177,6 +1187,7 @@ export default function PracticeScreen() {
           handleStop={handleStop}
           handleLogSession={handleLogSession}
           handleDiscardSession={handleDiscardSession}
+          onTryGuided={handleTryGuided}
           headphonesConfirmed={headphonesConfirmed}
           iterationsRef={iterationsRef}
           leadInCountdown={leadInCountdown}
@@ -1808,6 +1819,8 @@ interface StandardBodyProps {
   /** True when completing this exercise finishes the routine — the primary
    *  button reads "Complete routine" and stays put instead of advancing. */
   isRoutineFinisher: boolean;
+  /** Switch to Guided (slow) mode from the beginner nudge in the post-session panel. */
+  onTryGuided: () => void;
 }
 
 function StandardModeBody({
@@ -1847,6 +1860,7 @@ function StandardModeBody({
   onTryAgain,
   nextExerciseName,
   isRoutineFinisher,
+  onTryGuided,
 }: StandardBodyProps) {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
@@ -2099,6 +2113,8 @@ function StandardModeBody({
           allSessions={loggedSessions}
           primaryAction={primaryActionButton}
           secondaryAction={secondaryActionButton}
+          canGuide={detectionEnabled}
+          onTryGuided={onTryGuided}
         />
       )}
     </>

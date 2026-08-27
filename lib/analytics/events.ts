@@ -27,6 +27,11 @@ export type AnalyticsEvent =
   // the app: `_played` = pressed Play in-article; `_open_full` = clicked through
   // to the full scored exercise in Practice. Discriminated by `surface` + `slug`.
   | 'embed_exercise_played'
-  | 'embed_exercise_open_full';
+  | 'embed_exercise_open_full'
+  // Beginner rescue: after a rough Standard session we offer the slower Guided
+  // (hold-and-match) mode. `_shown` = the nudge appeared; `_accepted` = they
+  // switched. Measures whether nudging struggling singers into slow mode works.
+  | 'guided_nudge_shown'
+  | 'guided_nudge_accepted';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null | undefined>;
