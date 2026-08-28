@@ -9,7 +9,7 @@ targetKeyword: "pitch training"
 volume: 150
 kd: 17
 intent: informational
-metaDescription: "Pitch training for singers — what the research says about ear training, breath support, SOVT, and the nay 1-3-5-3-1 exercise for CCM."
+metaDescription: "Pitch training for singers: what the research says about ear training, breath support, SOVT, and the nay 1-3-5-3-1 exercise for CCM."
 references:
   - citation: "Bottalico, P., Graetzer, S., & Hunter, E.J. (2017). Effect of Training and Level of External Auditory Feedback on the Singing Voice: Pitch Inaccuracy. Journal of Voice, 31(1), 122.e9–122.e16. PMC5010534."
     url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5010534/"
@@ -23,86 +23,86 @@ references:
     url: ""
   - citation: "Stachler, R.J. et al. (2018). Clinical Practice Guideline: Hoarseness (Dysphonia) (Update). Otolaryngology–Head and Neck Surgery, 158(1_suppl), S1–S42."
     url: "https://aao-hnsfjournals.onlinelibrary.wiley.com/doi/abs/10.1177/0194599817751030"
-updated: "2026-06-25"
+updated: "2026-08-27"
 ---
 
 # Pitch Training for Singers: What the Research Actually Shows
 
-Pitch accuracy is one of the most trainable skills in singing — and one of the most misunderstood. It is often treated as a fixed trait you either have or you don't, when the research points in the opposite direction: consistent pitch problems usually have identifiable physical or perceptual causes, and both respond to targeted practice.
+Pitch accuracy is one of the most trainable skills in singing. It is also one of the most misunderstood. It is often treated as a fixed trait you either have or you don't. The research points the other way. Ongoing pitch problems usually have a cause you can identify, either in how you hear the note or in how your voice produces it. Both kinds of cause respond to targeted practice.
 
-This article is written for contemporary commercial music (CCM) singers — pop, rock, R&B, musical theatre — not classical voice. The physiology is the same, but the framing and the exercises differ. Classical conventions (covering, operatic vowel modification) are labeled as such throughout.
+This article is written for contemporary commercial music (CCM) singers, meaning pop, rock, R&B, and musical theatre. It is not written for classical voice. The body works the same way in both. The language and the exercises are different. Where a point comes from classical training, such as covering or operatic vowel modification, it is labeled as such.
 
 ## What does "pitch training" actually mean?
 
-The term covers two distinct but related things that are often conflated:
+The phrase covers two different things that often get mixed together.
 
-**Ear training** — developing the internal ability to imagine a pitch accurately before you sing it. Music learning researcher Edwin Gordon called this *audiation*: hearing and mentally processing sound before you produce it. It is a cognitive skill, separate from whether your voice physically hits the note.
+**Ear training** is learning to imagine a pitch accurately before you sing it. Music learning researcher Edwin Gordon called this *audiation*, meaning you hear and process a sound in your mind before you produce it. It is a thinking skill. It is separate from whether your voice lands on the note.
 
-**Vocal coordination** — the muscular work of matching your voice to the pitch your ear is targeting. Even singers with good audiation can miss a note if breath support collapses, if the larynx rises under tension, or if the coordination between registers is uneven.
+**Vocal coordination** is the muscular work of matching your voice to the note your ear is aiming for. Even singers who hear the note clearly can miss it. Breath support can collapse. The larynx, your voice box, can rise under tension. The handoff between chest voice and head voice can be uneven.
 
-Both are trainable. Persistent pitch problems in CCM singers usually involve at least one of each — a slightly fuzzy internal target combined with a physical habit that pulls the voice off that target. The best practice addresses both simultaneously.
+Both are trainable. In CCM singers, stubborn pitch problems usually involve one of each. The target in your head is slightly fuzzy, and a physical habit pulls your voice off that target. The best practice works on both at the same time.
 
 ## What the research says about ear training
 
-A 2017 study by Bottalico, Graetzer, and Hunter in the *Journal of Voice* compared pitch inaccuracy in professional and non-professional singers across varying conditions. Professionals averaged 25.0 cents of error; non-professionals averaged 34.5 cents — a meaningful gap, but not an insurmountable one. More interesting was this finding: non-professionals sang *more* accurately when external feedback was attenuated by hearing protectors than in normal listening conditions. The researchers interpreted this as evidence that non-professionals over-rely on monitoring themselves in real time, which introduces correction lag and overcorrection, rather than leading with a clear internal pitch target.
+A 2017 study by Bottalico, Graetzer, and Hunter in the *Journal of Voice* measured how far off pitch trained and untrained singers were. Professionals missed by 25.0 cents on average, and non-professionals by 34.5 cents. A cent is one hundredth of a semitone, so the gap is meaningful but not out of reach. The stranger finding came next. Non-professionals sang *more* accurately when hearing protectors muffled the sound of their own voice than when they could hear normally. The researchers read this as evidence that untrained singers lean too hard on listening to themselves in real time. That listening arrives late, so they chase the note and overcorrect instead of leading with a clear target in their head.
 
-A 2024 study by Reed, Pearce, and McPherson in *Musicae Scientiae* tested the same idea more directly: singers with stronger auditory imagery ability (measured by the Bucknell Auditory Imagery Scale) maintained more accurate pitch when external audio feedback was pitch-shifted. Higher imagery scores predicted greater pitch stability when external feedback became unreliable. The effect was specific to pitch: timing accuracy was not significantly related to imagery scores.
+A 2024 study by Reed, Pearce, and McPherson in *Musicae Scientiae* tested the same idea more directly. They scored how vividly each singer could imagine sound, using the Bucknell Auditory Imagery Scale. Then they pitch-shifted what the singers heard of their own voices. Singers with higher imagery scores held their pitch better once that feedback became unreliable. The effect showed up in pitch alone. Timing accuracy had no significant relationship to imagery scores.
 
-The practical takeaway from both studies: **ear training for singers is not primarily about hearing pitch on a keyboard and repeating it.** It is about building a vivid internal model of the note before the voice moves. Interval drills and drone practice help, but the goal is to hear the pitch clearly in your head *first* and then release it — not to sing and monitor simultaneously.
+Both studies point to the same practical lesson. **Ear training for singers is not mainly about playing a pitch on a keyboard and copying it.** It is about building a vivid model of the note in your head before your voice moves. Interval drills and drone practice still help. The goal is to hear the pitch clearly first and then release it, rather than singing and monitoring at the same time.
 
-A 2025 study by Pfordresher and Greenspon in *Musicae Scientiae* found that singers who trained over a wide pitch range (one octave) showed greater improvement in singing accuracy than those who trained over a narrower range (a perfect fifth). The proposed explanation is that restricted pitch range in inaccurate singers reflects limited sensorimotor mapping — the internal connections between what you hear and what your voice does. Training across a broader range appears to expand that mapping.
+A 2025 study by Pfordresher and Greenspon in *Musicae Scientiae* compared two training ranges. Singers who trained across a full octave improved more than singers who trained across a perfect fifth. The authors suggest that off-pitch singers stay in a narrow range because the link between what they hear and what their voice does is still thin. Training over a wider range appears to widen that link.
 
-## The physical side: breath, tension, and registration
+## The physical side: breath, tension, and your break
 
-Good audiation alone does not guarantee accurate pitch. The voice has to be physically capable of executing what the ear intends. Three physical variables account for most of the pitch problems in CCM singers.
+Hearing the note clearly is not enough on its own. Your voice also has to be able to execute what your ear intends. Three physical things account for most pitch problems in CCM singers.
 
-### Breath support and subglottal pressure
+### Breath support and air pressure
 
-Subglottal pressure — the air pressure below the vocal folds — drives pitch. Sundberg's research on singing acoustics established that subglottal pressure must be actively managed upward as pitch rises to keep notes stable. When the ribcage collapses early in a phrase, pressure drops and pitch falls flat. This is the most common cause of drifting flat on long notes or at phrase ends: a support problem, not an ear problem.
+The air pressure below your vocal folds drives pitch. Voice science calls it subglottal pressure. Sundberg's research on singing acoustics established that this pressure has to be managed upward as pitch rises, or notes will not stay stable. When your ribcage collapses early in a phrase, the pressure drops and the pitch falls flat. That is the most common reason singers drift flat on long notes and at the ends of phrases. It is a support problem, not an ear problem.
 
-The traditional remedy — *appoggio* (Italian: "lean"), a classical term for rib-out breath management — and the CCM version ("stay wide as if still inhaling while you sing") describe the same mechanical goal. Breath support vocabulary differs across methods; the physics does not.
+Classical teachers call the fix *appoggio*, Italian for "lean". It means keeping the ribs open while you manage the breath. CCM teachers usually say something like "stay wide, as if you were still breathing in while you sing". The words differ from method to method. The mechanical goal and the physics do not.
 
-### Laryngeal tension and over-blowing
+### Throat tension and over-blowing
 
-Sharp pitch tends to come from the opposite problem: too much pressure or external muscular squeeze. Pushing more air than the note requires stiffens the vocal folds beyond their target tension and the note overshoots. Jaw clenching, tongue-root gripping, or raising the larynx to reach a high note all apply external compression that disrupts fine pitch control. The note goes sharp or, when the cords eventually give up, cracks flat.
+Singing sharp tends to come from the opposite problem, which is too much pressure or too much outside squeeze. Push more air than the note needs and the folds stiffen past the tension they were aiming for. The note overshoots. Clenching the jaw, gripping with the root of the tongue, or hauling the voice box up to reach a high note all press on the voice from outside. That pressing disrupts fine pitch control. The note goes sharp, or it cracks flat once the folds give up.
 
-Estill Voice Training, Complete Vocal Technique (CVT), and The Vocalist Studio generally agree on the remedy for sharp, effortful high notes: add ring before adding volume. Aryepiglottic narrowing — the twang quality common to CCM, belt, and folk styles — boosts projection in the 2,000–4,000 Hz range through resonance rather than through increased subglottal pressure. It gives the voice cut without requiring the over-blowing that pulls pitch sharp.
+Estill Voice Training, Complete Vocal Technique (CVT), and The Vocalist Studio broadly agree on the fix for sharp, effortful high notes. Add ring before you add volume. That bright, slightly nasal ring is called twang, and it is common in CCM, belt, and folk singing. It comes from narrowing a small space just above the folds, which voice science calls aryepiglottic narrowing. The narrowing boosts projection in the 2,000–4,000 Hz range through resonance rather than through more air pressure. You get cut without the over-blowing that pulls pitch sharp.
 
-### The passaggio and registration blend
+### The passaggio and blending chest into head voice
 
-The *passaggio* (Italian: "passage") is the transition zone between registers. In classical pedagogy, the male tenor primo passaggio typically falls around D4–E4, with the secondo passaggio near F#4–G4; female sopranos and mezzos encounter theirs roughly between Eb4 and G4, with an upper passaggio around Eb5–G5. CCM pedagogy uses the same underlying physiology but describes the "break" somewhat differently — for most male CCM singers the register shift becomes noticeable around E4–F4, and for most female CCM singers around A4–Bb4 — though individual variation is considerable and voice type shifts these windows. The passaggio is where pitch tends to go flat then crack, or to drift sharp under the effort of pushing chest voice above its ceiling.
+The *passaggio* (Italian for "passage") is the part of your range where the voice shifts from one register to the next. Most singers call it the break. Classical training maps it in detail. For tenors, the first passaggio (primo) typically falls around D4–E4, and the second (secondo) near F#4–G4. Sopranos and mezzos meet theirs roughly between Eb4 and G4, with an upper one around Eb5–G5. CCM teaching works with the same physiology but describes the break a little differently. For most male CCM singers the shift becomes noticeable around E4–F4. For most female CCM singers it shows up around A4–Bb4. Individual variation is considerable, and voice type moves these windows too. This is where pitch tends to go flat and then crack, or to drift sharp when you push chest voice above its ceiling.
 
-Where methods genuinely disagree: how to navigate the passaggio in CCM. Classical pedagogy typically emphasizes vowel modification ascending (narrowing EE toward IH, wide AH toward UH) to manage resonance transitions. Many contemporary approaches — SLS, CVT, Somatic Voicework — prioritize keeping the vowel intact and adjusting internal resonance through SOVT exercises (semi-occluded vocal tract work like lip trills or straw phonation) that train the blend more automatically. Neither is wrong. They are different leverage points for the same coordination problem, and which one works depends on the singer's habit patterns.
+Methods genuinely disagree about how to get through this zone in CCM. Classical training usually emphasizes changing the vowel as you ascend, narrowing EE toward IH and rounding wide AH toward UH, to manage the change in resonance. Many contemporary approaches, including SLS, CVT, and Somatic Voicework, would rather you keep the vowel intact. They adjust the sound inside your throat and mouth instead, using exercises such as lip trills or straw work. These are called SOVT exercises, short for semi-occluded vocal tract, which means singing through a partly closed mouth. They train the blend more automatically. Neither camp is wrong. They are two different handles on the same coordination problem, and which one works depends on the habits you already have.
 
-## Why SOVT exercises are worth your time
+## Why SOVT exercises help your pitch
 
-SOVT exercises include lip trills, "ng" hums, straw phonation, and humming on /m/ or /n/ with the lips gently together. Ingo Titze's 2006 paper in the *Journal of Speech, Language, and Hearing Research* provided the physical rationale: partial occlusion at the lips increases the acoustic inertance (a resonance property) of the air column above the vocal folds. This inertive loading reduces the transglottal pressure differential needed to sustain vibration — lowering what is called the phonation threshold pressure, the minimum effort required to keep the folds vibrating at a given pitch.
+SOVT exercises include lip trills, "ng" hums, straw work, and humming on /m/ or /n/ with the lips lightly together. Ingo Titze's 2006 paper in the *Journal of Speech, Language, and Hearing Research* set out why they work. Closing the mouth partway changes how the column of air above the folds pushes back, a property called acoustic inertance. That loading means a smaller pressure difference across the folds is enough to keep them vibrating. It lowers what is called the phonation threshold pressure, the least effort needed to keep the folds vibrating at a given pitch.
 
-For pitch training specifically, the benefit is that SOVT exercises regulate air pressure automatically. You cannot over-blow through a straw or a lip trill the way you can on a wide-open vowel — the occlusion imposes a ceiling on pressure. This makes it easier to develop the light, efficient coordination that is harder to sustain when the face is open and the temptation is to push. Three to five minutes of lip trills or "ng" hums across the range before anything louder is one of the most consistent cross-method recommendations in CCM pedagogy.
+For pitch training in particular, the value is that these drills regulate air pressure for you. You cannot over-blow through a straw or a lip trill the way you can on a wide-open vowel. The partly closed mouth puts a ceiling on the pressure. That makes it easier to find the light, efficient coordination that slips away when your mouth is open and pushing is available. Three to five minutes of lip trills or "ng" hums across your range, before anything louder, is one of the most consistent recommendations across CCM methods.
 
 ## Practical approaches to pitch training
 
-No single drill fixes every problem, but a few tools appear consistently across research and across CCM methods:
+No single drill fixes every problem. A few tools show up again and again, both in the research and across CCM methods.
 
-**Drone practice.** Sustain the tonic on a keyboard or tanpura app and sing scales over it. The acoustic beats you hear when you drift are instantaneous and precise — more diagnostic than a tuner showing you cents after the fact.
+**Drone practice.** Hold the tonic, the home note of the key, on a keyboard or a tanpura app and sing scales over it. When you drift, the two pitches beat against each other and you hear it instantly. That is more diagnostic than a tuner reporting cents after the fact.
 
-**Hear first, then sing.** Before each phrase or interval, imagine the note for one beat before phonating. This is a direct audiation exercise — it trains the internal model that research suggests underlies accurate pitch.
+**Hear first, then sing.** Before each phrase or interval, imagine the note for one beat before you make a sound. This is audiation practice, and it builds the mental target that the research points to.
 
-**Record and compare.** Bone conduction changes how your voice sounds from the inside; recordings are what everyone else hears. A phone voice memo after each practice phrase closes that gap faster than any other feedback.
+**Record and compare.** Sound traveling through your skull changes how your voice sounds from the inside. A recording is what everyone else hears. A phone voice memo after each practice phrase closes that gap faster than any other feedback.
 
-**Slow down, then add tempo.** The Bottalico et al. study found that slower tempos reduced pitch inaccuracy, especially for non-professionals. Slow practice exposes the pitch shape and removes the real-time pressure that leads to overcorrection.
+**Slow down, then add tempo.** The Bottalico et al. study found that slower tempos reduced pitch inaccuracy, especially for non-professionals. Slow practice exposes the shape of the line and removes the real-time pressure that leads to overcorrection.
 
-**SOVT warm-up.** As above — three to five minutes of lip trills or straw phonation before anything pushed warms the folds with less impact and calibrates breath-to-tone balance.
+**SOVT warm-up.** Three to five minutes of lip trills or straw work before anything pushed. It warms the folds with less impact and settles the balance between breath and tone.
 
 ## Try it: Nay 1-3-5-3-1
 
-The **Nay 1-3-5-3-1** exercise is widely used in CCM pedagogy and appears in Somatic Voicework and Speech-Level Singing curricula, among others. The pattern moves through scale degrees 1, 3, 5, 3, 1 (do–mi–sol–mi–do) on the syllable "nay," stepping up by a half-step each repetition.
+The **Nay 1-3-5-3-1** exercise is widely used in CCM teaching. It appears in the Somatic Voicework and Speech-Level Singing curricula, among others. The pattern runs up and back down through scale degrees 1, 3, 5, 3, 1 (do–mi–sol–mi–do) on the syllable "nay". Each repetition starts a half step higher than the last.
 
-The /næ/ vowel does two specific things. First, the /n/ consonant brings the folds into light contact before the vowel opens — a clean, simultaneous onset rather than a breathy or pressed start. Second, the bright, forward vowel naturally encourages twang resonance (aryepiglottic narrowing), which provides projection and edge without requiring extra subglottal pressure. Both qualities are directly useful for pitch: better onset control reduces the scooping and flat entrances that come from a breathy start, and twang keeps the tone efficient so over-blowing is not needed to be heard.
+The /næ/ vowel does two specific things. The /n/ brings the folds into light contact before the vowel opens, so the note starts cleanly rather than breathy or pressed. The bright, forward vowel then invites twang, the narrowing above the folds described earlier, which adds projection and edge without extra air pressure. Both qualities help your pitch directly. A clean start cuts down on the scooping and flat entrances that follow a breathy onset. Ring keeps the tone efficient, so you do not need to over-blow to be heard.
 
-The 1-3-5-3-1 shape covers the lower part of the passaggio in small steps rather than one large leap, which makes it easier to maintain a blended registration through the transition. At 112 bpm with quarter notes, each note is long enough to settle pitch before moving on. When a particular key goes noticeably sharp or wobbly, that is diagnostic: it marks where a breath, tension, or registration fix is needed.
+The 1-3-5-3-1 shape crosses the lower part of the passaggio in small steps rather than one large leap. That makes it easier to hold a blended tone through the transition. At 112 bpm in quarter notes, each note lasts long enough to settle before the next one. When one key goes noticeably sharp or wobbly, treat it as information. It marks where a breath, tension, or blending fix is needed.
 
-The Nay 1-3-5-3-1 exercise is available to try below. Vocal Habit plays the piano accompaniment, you sing along, and pitch accuracy is scored after each pass.
+You can try the exercise below. Vocal Habit plays the piano accompaniment, you sing along, and your pitch accuracy is scored after each pass.
 
 <!-- ExerciseWidget: nay-1-3-5-3-1 -->
 
@@ -112,27 +112,27 @@ The Nay 1-3-5-3-1 exercise is available to try below. Vocal Habit plays the pian
 
 ### Can anyone improve their pitch accuracy with training?
 
-The evidence says yes for most singers. The Bottalico et al. (2017) data showed that even without formal training, non-professionals improved when external feedback conditions changed — the voice responded to better information. The 2025 Pfordresher and Greenspon study demonstrated measurable improvement in inaccurate singers after a structured training period. Absolute pitch is much harder to develop in adulthood; *relative* pitch accuracy (staying in tune while singing) is a motor-auditory skill that research consistently shows is trainable.
+For most singers, yes. In the Bottalico et al. (2017) data, non-professionals with no formal training sang better once the listening conditions changed, so the voice responded to better information. The 2025 Pfordresher and Greenspon study showed measurable improvement in off-pitch singers after a structured training period. Absolute pitch, or perfect pitch, is much harder to develop in adulthood. *Relative* pitch accuracy, meaning staying in tune while you sing, is a skill of ear and muscle together, and research consistently shows it can be trained.
 
 ### Should I use a tuner while I practice?
 
-Tuners can be useful for identifying systematic bias (always 15 cents flat, always sharp on the top note). They are less useful for real-time practice because the feedback lag encourages you to monitor and overcorrect rather than to lead with internal hearing. A better pattern: sing the phrase, then check the recording or the tuner after the fact. Use drone practice — singing over a sustained tonic — for real-time feedback, because you hear the beats instantly and the tuning is relative rather than absolute.
+Tuners are useful for spotting a consistent bias, such as always sitting 15 cents flat or always going sharp on the top note. They are less useful during practice itself, because the lag in the feedback pushes you to monitor and overcorrect instead of leading with the note in your head. Sing the phrase first, then check the tuner or the recording afterwards. For feedback while you sing, use a drone. Singing over a held tonic lets you hear the beats instantly, and it tunes you by relationship rather than by absolute frequency.
 
 ### What causes singing flat on long notes?
 
-The most common cause is collapsing breath support, not a weak ear. When the ribs close inward during a sustained note, subglottal pressure drops and pitch follows. Other contributors: insufficient cord closure (breathy tone), a sagging soft palate (velum), or fatigue. Check support first — keep the lower ribs open and the breath controlled through the end of the phrase.
+The most common cause is collapsing breath support, not a weak ear. When the ribs close inward during a sustained note, the air pressure under the folds drops and the pitch follows it down. Other contributors are folds that are not closing firmly enough (a breathy tone), a sagging soft palate, and plain fatigue. Check support first. Keep the lower ribs open and the breath controlled through the end of the phrase.
 
 ### Why do I sound in tune in my head but flat on a recording?
 
-Bone conduction — sound traveling through your skull — amplifies lower frequencies and makes your voice sound fuller and brighter from the inside than from the outside. On a recording you hear only air conduction, which is what listeners hear. Most singers have a consistent gap between how they sound to themselves and how they actually sound. Recording regularly (even a phone voice memo) is the fastest way to calibrate that internal model against reality.
+Some of your voice reaches your ears through the bones of your skull rather than through the air. That path, called bone conduction, amplifies the lower frequencies and makes your voice sound fuller and brighter from the inside. A recording carries only the air-borne sound, which is what listeners hear. Almost every singer has a consistent gap between the two. Recording regularly, even a phone voice memo, is the fastest way to line up the voice in your head with the one other people hear.
 
 ### Does belting or loud singing make pitch harder to control?
 
-Loud singing increases subglottal pressure demands and can amplify existing tension habits, which does make accurate pitch harder if the technique is inefficient. Research on professional CCM and belt singers (Titze, Sundberg, and related voice-science literature) distinguishes resonance-driven belt — which uses aryepiglottic narrowing (twang) for acoustic projection — from pushed, over-blown belt that relies on excess subglottal pressure. The working hypothesis in contemporary pedagogy is that the former maintains more stable pitch than the latter, though large-scale controlled studies comparing belt styles and intonation accuracy in CCM singers are limited. The pitch problems most commonly associated with belting are downstream of the same variables seen elsewhere: over-blowing, laryngeal tension, and pulled chest weight above the passaggio.
+It can. Loud singing raises the air pressure the voice has to manage and can amplify tension habits you already have, so accurate pitch does get harder if the technique is inefficient. Voice-science work on professional CCM and belt singers (Titze, Sundberg, and related literature) separates two kinds of belt. One is driven by resonance and uses aryepiglottic narrowing, or twang, for projection. The other is pushed and over-blown, and it relies on excess pressure below the folds. Contemporary teaching works on the hypothesis that the first holds pitch more steadily. Large controlled studies comparing belt styles and tuning accuracy in CCM singers are limited. The pitch problems usually blamed on belting come from the same variables as everywhere else, namely over-blowing, throat tension, and chest weight dragged above the passaggio.
 
 ### When should I see a doctor about my voice?
 
-If hoarseness or any unexplained vocal change does not improve within **four weeks**, see a laryngologist (an ENT who specializes in the voice) for a scope evaluation. The 2018 AAO-HNS Clinical Practice Guideline on dysphonia recommends referral within four weeks of persistent symptoms — shortened from the prior three-month window in the 2009 guideline. See a doctor sooner if you have a neck mass, pain with swallowing, breathing difficulty, or a history of tobacco use.
+If hoarseness or any unexplained change in your voice does not improve within **four weeks**, see a laryngologist, an ENT who specializes in the voice, for a scope evaluation. The 2018 AAO-HNS Clinical Practice Guideline on dysphonia recommends referral within four weeks of persistent symptoms. That is shortened from the three-month window in the 2009 guideline. See a doctor sooner if you have a neck mass, pain with swallowing, breathing difficulty, or a history of tobacco use.
 
 ---
 
