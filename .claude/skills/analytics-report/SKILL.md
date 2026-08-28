@@ -36,7 +36,8 @@ is a **partial** UTC day; flag it. Honor an explicit window when given.
 | Ahrefs Web Analytics `project_id` | **10013070** |
 | Ahrefs Site Explorer target | **vocalhabit.com** (`mode: subdomains`) |
 | Findings log | `analytics/findings-log.md` (persistent memory + dated `dashboards:` URL history) |
-| Bing AI Performance | **the real citation picture** (§A4b) — browser-only, no MCP; needs user login; switch property to vocalhabit.com (defaults to gradical.app) |
+| Bing Webmaster API | index status, Search Performance, top search queries, URL submission — via `scripts/bing/bwt.py` (account-global key in `~/.claude/.env`; **no browser**). Verified property = `https://vocalhabit.com/`. |
+| Bing AI Performance | **citations / grounding queries / cited pages** (§A4b) — **browser-only, no API endpoint**; switch property to vocalhabit.com (defaults to gradical.app) |
 
 **⚠️ ALWAYS `switch-project {"projectId": 556732}` before every PostHog query** — the active project is
 account-global and silently drifts to Gradical (558041). Idempotent; do it every run.
@@ -58,10 +59,21 @@ Load deferred tools first: `mcp__posthog__exec`; and
   inflow-lever gauge. Treat these counts as a floor/trend only: on Aug 26 Ahrefs showed Copilot 5 cites while
   Bing's own tool showed 277 — Ahrefs samples, and has **no grounding-query or per-page view at all**. The real
   citation picture comes from A4b.
-- **A4b Bing AI Performance (BROWSER — the real citation picture; FULL runs MUST do this).** Bing Webmaster Tools
-  is the ground truth for ChatGPT + Copilot (both resolve through Bing's index) and the ONLY source of **grounding
-  queries** (what phrasing triggers a citation) and the **per-page cited breakdown** — Ahrefs surfaces neither.
-  It is **browser-only, no MCP**, and needs the user's BWT login. Drive it:
+- **A4a-API Bing Webmaster API (`scripts/bing/bwt.py`) — index status, Search Performance, submission, NO browser.**
+  An account-global API key lives in `~/.claude/.env` (`BING_WEBMASTER_API_KEY`, covers vocalhabit.com). Use it
+  instead of the dashboard for everything the API exposes. On a FULL run:
+  - `python3 scripts/bing/bwt.py search 30` — Bing clicks/impressions over 30 data points (GSC understates Bing
+    hard; this is the real Bing Search Performance).
+  - `python3 scripts/bing/bwt.py queries 20` — top Bing **search** queries by impressions (organic phrasing; NOT
+    AI grounding queries — those are only in §A4b).
+  - `python3 scripts/bing/bwt.py check` — INDEXED/not for every sitemap URL. For a not-indexed brand-new URL,
+    `python3 scripts/bing/bwt.py submit <url>` (or `submit-sitemap`) replaces the browser Request-Indexing flow;
+    `quota` shows submissions left. (GetUrlInfo is rate-limited ~10/min, so `check` paces itself.)
+  The JSON API (`ssl.bing.com/webmaster/api.svc/json`) is separate from the SOAP/POX surface retiring 2026-08-31.
+- **A4b Bing AI Performance (BROWSER — the one thing the API can't give us; FULL runs MUST do this).** Bing
+  Webmaster Tools is the ground truth for ChatGPT + Copilot (both resolve through Bing's index) and the ONLY source
+  of **grounding queries** (what phrasing triggers a citation) and the **per-page cited breakdown** — Ahrefs
+  surfaces neither, and the Webmaster **API has no AI-Performance endpoint**, so this stays browser-only. Drive it:
   1. Load the claude-in-chrome core tools (ToolSearch), `navigate` to `https://www.bing.com/webmasters`. If signed
      out, click Sign In and **hand off to the user** (auth is theirs — never enter credentials).
   2. **Switch the property to `vocalhabit.com`** — the account also holds `gradical.app`, which is the wrong
@@ -70,8 +82,8 @@ Load deferred tools first: `mcp__posthog__exec`; and
      **Avg Cited Pages** + the trend direction.
   4. **List By → Grounding Queries**: top queries with Citations + Citation Share + Intent/Topic (this is what
      actually gets us cited — the money view). **List By → Pages**: top cited pages + counts.
-  5. Also glance at **Search Performance** (Bing impressions/clicks — GSC massively understates Bing) and, for any
-     brand-new URL, **URL Inspection** → if "Discovered but not crawled", **Request Indexing** (quota ~100/day).
+  5. Search Performance, index status, and Request Indexing now come from the **API (A4a, `bwt.py`)** — keep this
+     browser session focused only on the AI-Performance grounding-query / cited-page view above.
   Snapshot the Bing citation total + top grounding queries + top cited pages into the findings log / weekly
   snapshots (they're **point-in-time**, like the Ahrefs citation counts — can't be recomputed for a past date).
   Baseline (Aug 26, 3-mo): **277 citations / ~4 cited pages**; top grounding "learn to sing online free" 44
