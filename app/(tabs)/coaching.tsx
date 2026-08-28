@@ -373,6 +373,12 @@ export default function CoachingScreen() {
     try {
       await saveSavedCoaching(snapshot);
       setSavedDiagnosisId(id);
+      // Fired after the write so a failed save isn't counted as a bookmark.
+      track("coaching_bookmark", {
+        kind: "diagnosis",
+        saved: true,
+        exerciseId: contextExerciseId ?? null,
+      });
     } catch {
       // non-fatal
     }
@@ -383,6 +389,11 @@ export default function CoachingScreen() {
     try {
       await deleteSavedCoaching(savedDiagnosisId);
       setSavedDiagnosisId(null);
+      track("coaching_bookmark", {
+        kind: "diagnosis",
+        saved: false,
+        exerciseId: contextExerciseId ?? null,
+      });
     } catch {
       // ignore
     }
@@ -409,6 +420,11 @@ export default function CoachingScreen() {
     try {
       await saveSavedCoaching(snapshot);
       setSavedTipId(id);
+      track("coaching_bookmark", {
+        kind: "tip",
+        saved: true,
+        exerciseId: contextExerciseId ?? null,
+      });
     } catch {
       // ignore
     }
@@ -419,6 +435,11 @@ export default function CoachingScreen() {
     try {
       await deleteSavedCoaching(savedTipId);
       setSavedTipId(null);
+      track("coaching_bookmark", {
+        kind: "tip",
+        saved: false,
+        exerciseId: contextExerciseId ?? null,
+      });
     } catch {
       // ignore
     }
@@ -427,6 +448,7 @@ export default function CoachingScreen() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   function navigateToSaved() {
+    track("coaching_saved_opened");
     router.push("/coaching-saved");
   }
 
@@ -771,7 +793,12 @@ export default function CoachingScreen() {
       {otherDiagnoses.length > 0 && (
         <View style={{ gap: Spacing["2xs"] }}>
           <Pressable
-            onPress={() => setOtherOpen((v) => !v)}
+            onPress={() => {
+              const next = !otherOpen;
+              setOtherOpen(next);
+              // "Other findings" is this screen's next-mistake surface; count opens only.
+              if (next) track("coaching_next_mistake", { exerciseId: contextExerciseId ?? null });
+            }}
             accessibilityRole="button"
             accessibilityLabel={otherOpen ? "Collapse other findings" : "Expand other findings"}
           >
@@ -844,6 +871,10 @@ export default function CoachingScreen() {
           const params: Record<string, string> = {};
           if (contextExerciseId) params.exerciseId = contextExerciseId;
           if (record?.voicePart) params.voicePart = record.voicePart;
+          track("coaching_retry_started", {
+            exerciseId: contextExerciseId ?? null,
+            keyIndex: model.focusObservation?.keyIndex ?? null,
+          });
           router.push({ pathname: "/", params });
         }}
         accessibilityRole="button"

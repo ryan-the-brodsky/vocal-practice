@@ -125,7 +125,9 @@ export default function ImportModal({
     }
   }, [visible]);
 
-  const handleAnalyze = useCallback(async (form: PendingForm) => {
+  // `source` is passed in rather than read off `pickMode` so the event can't
+  // drift if the picker changes while an analysis is in flight.
+  const handleAnalyze = useCallback(async (form: PendingForm, source: "upload" | "record") => {
     setError(null);
     setPhase("analyzing");
     try {
@@ -135,11 +137,18 @@ export default function ImportModal({
         tempoBpm: form.tempoBpm,
         timeSignature: form.timeSignature,
       });
+      track("import_analysis_finished", {
+        ok: true,
+        source,
+        kind: form.kind,
+        noteCount: analysis.notes.length,
+      });
       setReview({ analysis, form });
       setSelectedNoteIdx(undefined);
       setPhase("reviewing");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
+      track("import_analysis_finished", { ok: false, source, kind: form.kind });
       setError(humanizeAnalyzeError(msg));
       setPhase("picking");
     }
@@ -234,6 +243,7 @@ export default function ImportModal({
 
   const handleEditChunks = useCallback(() => {
     if (!savedSongId) return;
+    track("song_editor_action", { action: "open", via: "import", songId: savedSongId });
     onClose();
     router.push({ pathname: "/song-editor", params: { songId: savedSongId } });
   }, [savedSongId, onClose, router]);
@@ -280,7 +290,7 @@ export default function ImportModal({
                   return (
                     <Pressable
                       key={k}
-                      onPress={() => setKind(k)}
+                      onPress={() => { setKind(k); track("import_kind_selected", { kind: k }); }}
                       style={[
                         styles.pickModeChip,
                         {
@@ -312,7 +322,10 @@ export default function ImportModal({
                   return (
                     <Pressable
                       key={m}
-                      onPress={() => setPickMode(m)}
+                      onPress={() => {
+                        if (!active) track("import_tab_selected", { tab: m });
+                        setPickMode(m);
+                      }}
                       style={[
                         styles.pickModeChip,
                         {
@@ -341,13 +354,13 @@ export default function ImportModal({
                 <ImportForm
                   initialVoicePart={initialVoicePart ?? "tenor"}
                   kind={kind}
-                  onAnalyze={(s) => handleAnalyze({ ...s, kind })}
+                  onAnalyze={(s) => handleAnalyze({ ...s, kind }, "upload")}
                 />
               ) : (
                 <RecordingForm
                   initialVoicePart={initialVoicePart ?? "tenor"}
                   kind={kind}
-                  onAnalyze={(s) => handleAnalyze({ ...s, kind })}
+                  onAnalyze={(s) => handleAnalyze({ ...s, kind }, "record")}
                 />
               )}
             </>

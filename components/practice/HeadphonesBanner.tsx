@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
 import { useEffect, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { track } from "@/lib/analytics";
 import { useTheme } from "@/hooks/use-theme";
 
 // Module-level: null until answered this JS session (resets on cold app start).
@@ -46,6 +47,7 @@ export default function HeadphonesModal({ onConfirm }: HeadphonesModalProps) {
   }, []);
 
   function handleChoice(confirmed: boolean) {
+    track("headphones_answered", { confirmed });
     sessionAnswer = confirmed;
     AsyncStorage.setItem(SESSION_KEY, confirmed ? "yes" : "no").catch(() => {});
     setVisible(false);

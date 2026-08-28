@@ -3,6 +3,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { PanResponder, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
+import { track } from "@/lib/analytics";
 import { useTheme } from "@/hooks/use-theme";
 import {
   DEFAULT_TEMPO_SCALE,
@@ -20,6 +21,8 @@ interface Props {
   scale: number;
   onChange: (scale: number) => void;
   disabled?: boolean;
+  /** Rides along on tempo_changed so a speed change is attributable to a drill. */
+  exerciseId?: string;
 }
 
 const THUMB = 22;
@@ -27,7 +30,7 @@ const THUMB = 22;
 /** Always-visible speed control for the practice loop: drag the track or tap
  *  −/+ to move a notch. Deliberately not inside the settings drawer — slowing a
  *  drill down is a per-session decision, not a preference you set once. */
-export function TempoControl({ baseTempo, scale, onChange, disabled = false }: Props) {
+export function TempoControl({ baseTempo, scale, onChange, disabled = false, exerciseId }: Props) {
   const { colors } = useTheme();
   const [trackWidth, setTrackWidth] = useState(0);
   const trackRef = useRef<View>(null);
@@ -45,6 +48,18 @@ export function TempoControl({ baseTempo, scale, onChange, disabled = false }: P
   const slower = nextDistinctTempoScale(baseTempo, snapped, -1);
   const faster = nextDistinctTempoScale(baseTempo, snapped, 1);
 
+  const emitTempo = useCallback(
+    (next: number, via: "drag" | "step" | "reset") => {
+      track("tempo_changed", {
+        scale: next,
+        bpm: effectiveBpm(baseTempo, next),
+        exerciseId: exerciseId ?? null,
+        via,
+      });
+    },
+    [baseTempo, exerciseId],
+  );
+
   const measure = useCallback(() => {
     try {
       trackRef.current?.measureInWindow?.((x, _y, width) => {
@@ -57,6 +72,9 @@ export function TempoControl({ baseTempo, scale, onChange, disabled = false }: P
 
   // Latest handler without rebuilding the responder on every render.
   const applyRef = useRef<(pageX: number) => void>(() => {});
+  // A drag crosses many notches; the event fires once, on release, with the
+  // notch the singer settled on.
+  const dragScaleRef = useRef<number | null>(null);
   applyRef.current = (pageX: number) => {
     if (disabled) return;
     const { x, width } = geom.current;
@@ -64,7 +82,17 @@ export function TempoControl({ baseTempo, scale, onChange, disabled = false }: P
     // with the thumb's centre rather than the track edge.
     const travel = Math.max(1, width - THUMB);
     const next = tempoScaleFromFraction((pageX - x - THUMB / 2) / travel);
-    if (next !== snapped) onChange(next);
+    if (next !== snapped) {
+      dragScaleRef.current = next;
+      onChange(next);
+    }
+  };
+
+  const endDragRef = useRef<() => void>(() => {});
+  endDragRef.current = () => {
+    const settled = dragScaleRef.current;
+    dragScaleRef.current = null;
+    if (settled !== null) emitTempo(settled, "drag");
   };
 
   const responder = useMemo(
@@ -77,6 +105,8 @@ export function TempoControl({ baseTempo, scale, onChange, disabled = false }: P
           applyRef.current(evt.nativeEvent.pageX);
         },
         onPanResponderMove: (_evt, gesture) => applyRef.current(gesture.moveX),
+        onPanResponderRelease: () => endDragRef.current(),
+        onPanResponderTerminate: () => endDragRef.current(),
       }),
     [measure],
   );
@@ -92,7 +122,7 @@ export function TempoControl({ baseTempo, scale, onChange, disabled = false }: P
 
   const stepper = (direction: 1 | -1, target: number | null) => (
     <Pressable
-      onPress={() => { if (target !== null) onChange(target); }}
+      onPress={() => { if (target !== null) { onChange(target); emitTempo(target, "step"); } }}
       disabled={disabled || target === null}
       style={[
         styles.stepper,
@@ -121,7 +151,7 @@ export function TempoControl({ baseTempo, scale, onChange, disabled = false }: P
         </Text>
         {!isDefault && (
           <Pressable
-            onPress={() => onChange(DEFAULT_TEMPO_SCALE)}
+            onPress={() => { onChange(DEFAULT_TEMPO_SCALE); emitTempo(DEFAULT_TEMPO_SCALE, "reset"); }}
             disabled={disabled}
             style={styles.resetLink}
             accessibilityRole="button"
@@ -147,8 +177,8 @@ export function TempoControl({ baseTempo, scale, onChange, disabled = false }: P
           accessibilityLabel="Tempo"
           accessibilityValue={{ text: `${bpm} beats per minute, ${appliedTempoLabel(baseTempo, snapped)}` }}
           onAccessibilityAction={(e) => {
-            if (e.nativeEvent.actionName === "increment" && faster !== null) onChange(faster);
-            if (e.nativeEvent.actionName === "decrement" && slower !== null) onChange(slower);
+            if (e.nativeEvent.actionName === "increment" && faster !== null) { onChange(faster); emitTempo(faster, "step"); }
+            if (e.nativeEvent.actionName === "decrement" && slower !== null) { onChange(slower); emitTempo(slower, "step"); }
           }}
           accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
           {...(disabled ? {} : responder.panHandlers)}

@@ -108,6 +108,7 @@ export default function PracticeScreen() {
   // (an alto handed the old tenor default sings an octave off). loadVoicePart() overrides this on mount.
   const [voicePart, setVoicePartState] = useState<VoicePart>("alto");
   const setVoicePart = useCallback((next: VoicePart) => {
+    track("voice_part_selected", { voicePart: next });
     setVoicePartState(next);
     saveVoicePart(next).catch(() => {});
   }, []);
@@ -179,6 +180,7 @@ export default function PracticeScreen() {
       setExerciseId(wantExerciseId);
       userPickedExerciseRef.current = true;
       appliedExercise = true;
+      track("exercise_selected", { exerciseId: wantExerciseId, source: "deeplink" });
     }
     if (wantVoicePart && (VALID_VOICE_PARTS as readonly string[]).includes(wantVoicePart)) {
       setVoicePartState(wantVoicePart as VoicePart);
@@ -196,6 +198,7 @@ export default function PracticeScreen() {
       const list = await getAllExercises();
       setAvailableExercises(list);
       // Auto-select the freshly-imported exercise.
+      track("exercise_selected", { exerciseId: newId, source: "import" });
       if (list.some((e) => e.id === newId)) {
         setExerciseId(newId);
         userPickedExerciseRef.current = true;
@@ -206,11 +209,13 @@ export default function PracticeScreen() {
   }, []);
 
   function handleSetMode(next: Mode) {
+    track("mode_changed", { mode: next });
     setMode(next);
     AsyncStorage.setItem(MODE_STORAGE_KEY, next).catch(() => {});
   }
 
   function handleSetDemoEnabled(val: boolean) {
+    track("setting_changed", { setting: "demo", value: val });
     setDemoEnabled(val);
     AsyncStorage.setItem(DEMO_ENABLED_KEY, String(val)).catch(() => {});
   }
@@ -243,6 +248,8 @@ export default function PracticeScreen() {
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const trackerRef = useRef<SessionTracker | null>(null);
   const sessionStartMsRef = useRef<number>(0);
+  // Stamped on the Start press so a Stop during the demo can report a real elapsed time.
+  const startPressMsRef = useRef<number>(0);
   const audioStartMsRef = useRef<number>(0);
   const detectorStartMsRef = useRef<number>(0);
   // The tonic this run started from — so "Try again" replays the same span
@@ -328,6 +335,7 @@ export default function PracticeScreen() {
    *  in-flight session state so the next run starts from a clean slate. */
   const handleResetTonic = useCallback(() => {
     if (status !== "idle") return;
+    track("setting_changed", { setting: "tonic_reset", value: exerciseId });
     setExerciseTonicMap((prev) => {
       const next = new Map(prev);
       next.delete(tonicMapKey);
@@ -338,7 +346,7 @@ export default function PracticeScreen() {
     setCoachingCta(null);
     setSavedMessage(null);
     setLoggedMessage(null);
-  }, [status, tonicMapKey]);
+  }, [status, tonicMapKey, exerciseId]);
 
   /** Switch to a different exercise, preserving each exercise's own session-end state. */
   const switchExerciseTo = useCallback((newId: string) => {
@@ -356,7 +364,8 @@ export default function PracticeScreen() {
 
   /** Manual exercise pick (picker chip / routine row tap): same as switch, but
    *  also tells the routine-tracking effect to stop auto-advancing. */
-  const handleExerciseChange = useCallback((newId: string) => {
+  const handleExerciseChange = useCallback((newId: string, source: "picker" | "routine") => {
+    track("exercise_selected", { exerciseId: newId, source });
     userPickedExerciseRef.current = true;
     switchExerciseTo(newId);
   }, [switchExerciseTo]);
@@ -371,7 +380,8 @@ export default function PracticeScreen() {
     const cur = ids.indexOf(exerciseId);
     const nextId = cur === -1 ? ids[0] : ids[(cur + 1) % ids.length];
     if (nextId && nextId !== exerciseId) {
-      handleExerciseChange(nextId);
+      track("routine_advanced", { fromExerciseId: exerciseId, toExerciseId: nextId });
+      handleExerciseChange(nextId, "routine");
       return true;
     }
     return false;
@@ -462,6 +472,7 @@ export default function PracticeScreen() {
     if (userPickedExerciseRef.current || !routine || status !== "idle") return;
     const next = todayStatus(routine, loggedSessions).items.find((i) => !i.done);
     if (next && next.id !== exerciseId && availableExercises.some((e) => e.id === next.id)) {
+      track("exercise_selected", { exerciseId: next.id, source: "auto" });
       switchExerciseTo(next.id);
     }
   }, [routine, loggedSessions, exerciseId, availableExercises, status, switchExerciseTo]);
@@ -493,6 +504,7 @@ export default function PracticeScreen() {
   // Beginner rescue from the post-session nudge: drop into Guided (slow) mode
   // and clear the panel so the Guided UI is ready to start.
   const handleTryGuided = useCallback(() => {
+    track("mode_changed", { mode: "guided" });
     setMode("guided");
     AsyncStorage.setItem(MODE_STORAGE_KEY, "guided").catch(() => {});
     setPendingSession(null);
@@ -566,6 +578,7 @@ export default function PracticeScreen() {
     setPendingSession(null);
     setLoggedMessage(null);
     setStatus("loading");
+    startPressMsRef.current = Date.now();
     track("practice_started", {
       exerciseId: exercise.id,
       voicePart,
@@ -833,6 +846,14 @@ export default function PracticeScreen() {
       demoAbortedRef.current = true;
       demoSkipRef.current();
       setStatus("idle");
+      // Stopped before the pattern ever started, so nothing was planned or scored.
+      track("practice_stopped", {
+        exerciseId: exercise.id,
+        mode,
+        keysScored: 0,
+        plannedKeys: 0,
+        elapsedMs: Date.now() - startPressMsRef.current,
+      });
       return;
     }
     // Guard with refs (always current) instead of status (stale in interval closure).
@@ -870,8 +891,10 @@ export default function PracticeScreen() {
       );
     }
 
+    let keysScored = 0;
     if (tracker) {
       const completed = tracker.finalize();
+      keysScored = completed.length;
       if (completed.length > 0) {
         const id =
           typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -995,6 +1018,17 @@ export default function PracticeScreen() {
       });
     }
 
+    // Manual Stop only; a natural finish is already covered by pattern_completed.
+    if (!wasComplete) {
+      track("practice_stopped", {
+        exerciseId: exercise.id,
+        mode,
+        keysScored,
+        plannedKeys: iterations.length,
+        elapsedMs: Date.now() - sessionStartMsRef.current,
+      });
+    }
+
     setStatus("idle");
     setProgress(0);
     setNoteProgress(0);
@@ -1032,6 +1066,7 @@ export default function PracticeScreen() {
   const tempoControl = (
     <TempoControl
       baseTempo={exercise.tempo}
+      exerciseId={exercise.id}
       scale={tempoScale}
       onChange={setTempoScale}
       disabled={status !== "idle"}
@@ -1043,7 +1078,7 @@ export default function PracticeScreen() {
       exercise={exercise}
       exerciseId={exerciseId}
       availableExercises={availableExercises}
-      onExerciseChange={handleExerciseChange}
+      onExerciseChange={(id) => handleExerciseChange(id, "picker")}
       onImport={() => setImportModalVisible(true)}
       onEditSong={(songId) => router.push({ pathname: "/song-editor", params: { songId } })}
       voicePart={voicePart}
@@ -1091,7 +1126,7 @@ export default function PracticeScreen() {
           routine={activeRoutine}
           status={routineStatus}
           onPressEdit={() => router.push("/progress?editRoutine=1")}
-          onItemPress={status === "idle" ? handleExerciseChange : undefined}
+          onItemPress={status === "idle" ? (id) => handleExerciseChange(id, "routine") : undefined}
         />
       )}
 
@@ -1546,7 +1581,11 @@ function SettingsCluster({
               return (
                 <Pressable
                   key={opt.label}
-                  onPress={() => { onAccompanimentSelect(opt.value); setOpen(null); }}
+                  onPress={() => {
+                    track("setting_changed", { setting: "accompaniment", value: opt.value ?? "default" });
+                    onAccompanimentSelect(opt.value);
+                    setOpen(null);
+                  }}
                   style={[
                     styles.chip,
                     {
@@ -1588,7 +1627,11 @@ function SettingsCluster({
               return (
                 <Pressable
                   key={g}
-                  onPress={() => { onGuidanceSelect(g); setOpen(null); }}
+                  onPress={() => {
+                    track("setting_changed", { setting: "guidance", value: g });
+                    onGuidanceSelect(g);
+                    setOpen(null);
+                  }}
                   style={[
                     styles.chip,
                     {
@@ -1648,7 +1691,10 @@ function SettingsCluster({
             </Text>
             <Switch
               value={rawCaptureEnabled}
-              onValueChange={onRawCaptureToggle}
+              onValueChange={(v) => {
+                track("setting_changed", { setting: "raw_capture", value: v });
+                onRawCaptureToggle(v);
+              }}
               disabled={disabled}
               trackColor={{ true: colors.accent }}
               thumbColor={colors.bgElevated}
@@ -1977,7 +2023,7 @@ function StandardModeBody({
       <Text style={[styles.demoBannerText, { color: colors.accent, fontFamily: Fonts.bodyMedium }]}>
         Listen first…
       </Text>
-      <Pressable onPress={() => demoSkipRef.current?.()}>
+      <Pressable onPress={() => { track("demo_skipped", { exerciseId: exercise.id }); demoSkipRef.current?.(); }}>
         <Text style={[styles.demoSkipText, { color: colors.accent, fontFamily: Fonts.body }]}>
           Skip demo
         </Text>
@@ -2004,7 +2050,10 @@ function StandardModeBody({
         </Text>
         <Pressable
           style={[styles.btn, { backgroundColor: colors.accent, minHeight: 44 }]}
-          onPress={() => handleLogSession("")}
+          onPress={() => {
+            track("follow_along_finished", { exerciseId: exercise.id, marked: "done" });
+            void handleLogSession("");
+          }}
           accessibilityRole="button"
           accessibilityLabel="Mark this warmup done"
         >
@@ -2014,7 +2063,10 @@ function StandardModeBody({
         </Pressable>
         <Pressable
           style={styles.discardLink}
-          onPress={handleDiscardSession}
+          onPress={() => {
+            track("follow_along_finished", { exerciseId: exercise.id, marked: "skip" });
+            handleDiscardSession();
+          }}
           accessibilityRole="button"
           accessibilityLabel="Skip logging this warmup"
         >

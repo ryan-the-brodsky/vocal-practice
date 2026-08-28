@@ -2,8 +2,15 @@ import { useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
+import { track } from '@/lib/analytics';
 
 const c = Colors.light;
+
+// The spotlight slug is the last path segment of the canonical share url.
+function slugFromUrl(url: string): string | null {
+  const path = url.split(/[?#]/)[0].replace(/\/+$/, '');
+  return path.split('/').pop() || null;
+}
 
 // Static prefilled share row. Real share-intent links (open client-side) +
 // copy-link. The OG/Twitter <head> tags make the shared preview show the hero.
@@ -16,7 +23,13 @@ export default function ShareRow({ url, text }: { url: string; text: string }) {
     { label: 'Reddit', href: `https://www.reddit.com/submit?url=${enc(url)}&title=${enc(text)}` },
   ];
 
+  const share = (label: string, href: string) => {
+    track('spotlight_share_pressed', { slug: slugFromUrl(url), network: label.toLowerCase() });
+    Linking.openURL(href);
+  };
+
   const copy = () => {
+    track('spotlight_share_pressed', { slug: slugFromUrl(url), network: 'copy' });
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(url).then(() => setCopied(true)).catch(() => {});
     }
@@ -27,7 +40,7 @@ export default function ShareRow({ url, text }: { url: string; text: string }) {
       <Text style={styles.label}>Share</Text>
       {targets.map((t) => (
         <Pressable key={t.label} accessibilityRole="button" accessibilityLabel={`Share on ${t.label}`}
-          onPress={() => Linking.openURL(t.href)}
+          onPress={() => share(t.label, t.href)}
           style={({ pressed }) => [styles.pill, pressed && styles.pillPressed]}>
           <Text style={styles.pillText}>{t.label}</Text>
         </Pressable>

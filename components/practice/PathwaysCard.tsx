@@ -9,6 +9,7 @@ import { capabilityMeta } from "@/lib/exercises/capabilities";
 import { getExercise } from "@/lib/exercises/library";
 import { isDoneToday } from "@/lib/progress/routine";
 import type { SessionRecord } from "@/lib/progress";
+import { track } from "@/lib/analytics";
 import { useTheme } from "@/hooks/use-theme";
 import { Spacing, Radii, Typography, Fonts } from "@/constants/theme";
 
@@ -63,7 +64,11 @@ function PathwayRow({
   return (
     <View style={[styles.row, { borderColor: colors.borderSubtle, borderRadius: Radii.md, backgroundColor: colors.bgSurface }]}>
       <Pressable
-        onPress={() => setExpanded((v) => !v)}
+        onPress={() => {
+          const next = !expanded;
+          if (next) track("pathway_expanded", { pathwayId: pathway.id });
+          setExpanded(next);
+        }}
         style={[styles.rowHeader, { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, gap: Spacing["2xs"] }]}
         accessibilityLabel={`${pathway.name} — ${practiced} of ${total} practiced`}
       >
@@ -102,7 +107,10 @@ function PathwayRow({
             return (
               <Pressable
                 key={id}
-                onPress={() => onPracticeExercise(id)}
+                onPress={() => {
+                  track("pathway_exercise_pressed", { pathwayId: pathway.id, exerciseId: id });
+                  onPracticeExercise(id);
+                }}
                 style={[styles.exerciseRow, { paddingVertical: Spacing.xs, gap: Spacing.xs }]}
                 accessibilityLabel={`Practice ${name}`}
               >
@@ -119,7 +127,10 @@ function PathwayRow({
           })}
 
           <Pressable
-            onPress={() => onUsePath(pathway.exerciseIds)}
+            onPress={() => {
+              track("pathway_selected", { pathwayId: pathway.id, exerciseCount: pathway.exerciseIds.length });
+              onUsePath(pathway.exerciseIds);
+            }}
             style={[styles.usePathBtn, { backgroundColor: colors.accent, borderRadius: Radii.md, paddingVertical: Spacing.sm, marginTop: Spacing["2xs"] }]}
             accessibilityLabel={`Make ${pathway.name} today's routine`}
           >

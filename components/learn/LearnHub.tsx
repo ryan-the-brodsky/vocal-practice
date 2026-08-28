@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -6,6 +6,7 @@ import { Colors, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
 import { LEARN_ARTICLES } from '@/content/learn/articles.generated';
 import { capabilityMeta, isCapability, type Capability } from '@/lib/exercises/capabilities';
 import SpotlightCarousel from '@/components/artists/SpotlightCarousel';
+import { track } from '@/lib/analytics';
 
 // The Learn hub content (intro + range-test card + artist-spotlight carousel +
 // search + category chips + article grid). Rendered by the single static SEO
@@ -32,22 +33,50 @@ const SORTED = [...LEARN_ARTICLES].sort(
 );
 const CATEGORIES = [...new Set(SORTED.map((a) => a.category))].sort((a, b) => catOrder(a) - catOrder(b));
 
+const MIN_SEARCH_LEN = 2;
+
+function filterArticles(query: string, activeCat: string | null) {
+  const q = query.trim().toLowerCase();
+  return SORTED.filter((a) => {
+    if (activeCat && a.category !== activeCat) return false;
+    if (!q) return true;
+    return (
+      a.title.toLowerCase().includes(q) ||
+      a.targetKeyword.toLowerCase().includes(q) ||
+      a.tags.some((t) => t.toLowerCase().includes(q))
+    );
+  });
+}
+
 export default function LearnHub() {
   const [query, setQuery] = useState('');
   const [activeCat, setActiveCat] = useState<string | null>(null);
+  const lastSearchCount = useRef<number | null>(null);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return SORTED.filter((a) => {
-      if (activeCat && a.category !== activeCat) return false;
-      if (!q) return true;
-      return (
-        a.title.toLowerCase().includes(q) ||
-        a.targetKeyword.toLowerCase().includes(q) ||
-        a.tags.some((t) => t.toLowerCase().includes(q))
-      );
-    });
-  }, [query, activeCat]);
+  const filtered = useMemo(() => filterArticles(query, activeCat), [query, activeCat]);
+
+  // One event per distinct result set instead of one per keystroke.
+  const handleQueryChange = useCallback(
+    (next: string) => {
+      setQuery(next);
+      const trimmed = next.trim();
+      if (trimmed.length < MIN_SEARCH_LEN) {
+        lastSearchCount.current = null;
+        return;
+      }
+      const resultCount = filterArticles(next, activeCat).length;
+      if (resultCount === lastSearchCount.current) return;
+      lastSearchCount.current = resultCount;
+      track('learn_search', { queryLength: trimmed.length, resultCount });
+    },
+    [activeCat],
+  );
+
+  const handleCategory = useCallback((cat: string | null) => {
+    lastSearchCount.current = null;
+    setActiveCat(cat);
+    track('learn_category_selected', { category: cat ?? 'all' });
+  }, []);
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
@@ -58,7 +87,11 @@ export default function LearnHub() {
           exercise you can practice with live pitch feedback.
         </Text>
 
-        <Link href="/vocal-range-test" style={styles.toolCardLink}>
+        <Link
+          href="/vocal-range-test"
+          style={styles.toolCardLink}
+          onPress={() => track('learn_tool_card_pressed', { tool: 'range_test' })}
+        >
           <View style={styles.toolCard}>
             <Text style={styles.toolBadge}>Free tool</Text>
             <Text style={styles.toolTitle}>Vocal Range Test</Text>
@@ -76,14 +109,14 @@ export default function LearnHub() {
           placeholder="Search guides…"
           placeholderTextColor={c.textTertiary}
           value={query}
-          onChangeText={setQuery}
+          onChangeText={handleQueryChange}
           accessibilityLabel="Search guides"
         />
 
         <View style={styles.chips}>
-          <Chip label="All" active={activeCat === null} onPress={() => setActiveCat(null)} />
+          <Chip label="All" active={activeCat === null} onPress={() => handleCategory(null)} />
           {CATEGORIES.map((cat) => (
-            <Chip key={cat} label={catLabel(cat)} active={activeCat === cat} onPress={() => setActiveCat(cat)} />
+            <Chip key={cat} label={catLabel(cat)} active={activeCat === cat} onPress={() => handleCategory(cat)} />
           ))}
         </View>
 

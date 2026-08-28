@@ -37,6 +37,11 @@ export default function OnboardingScreen() {
   const [voice, setVoice] = useState<VoicePart | null>(null);
   const [routineIds, setRoutineIds] = useState<string[]>(DEFAULT_ROUTINE.exerciseIds);
 
+  // Fires on mount too, which is right: landing on step 0 is a real step view.
+  useEffect(() => {
+    track("onboarding_step_viewed", { stepKey: stepKeys[step] ?? "unknown", index: step });
+  }, [step]);
+
   // Persist on change (skipping the seeded mount value) so any exit — Next, Back,
   // or Skip — keeps whatever the user last chose.
   // Persist only a real choice. The mount value is now null, so there's no

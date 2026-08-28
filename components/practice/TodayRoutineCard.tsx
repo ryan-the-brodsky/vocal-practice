@@ -11,6 +11,7 @@ import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-nativ
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { track } from "@/lib/analytics";
 import { exerciseName } from "@/lib/exercises/names";
 import type { RoutineConfig, RoutineStatus } from "@/lib/progress";
 
@@ -30,6 +31,8 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
   const isEmpty = routine.exerciseIds.length === 0;
   const allDone = !isEmpty && status.done === status.total;
   const nextItem = isEmpty ? null : status.items.find((i) => !i.done) ?? status.items[status.items.length - 1];
+  // Compact is only ever rendered on Practice; the full card is the Progress surface.
+  const surface = compact ? "practice" : "progress";
 
   const eyebrow = (
     <Text
@@ -64,7 +67,10 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
         ]}
       >
         <Pressable
-          onPress={() => setExpanded(true)}
+          onPress={() => {
+            track("routine_card_expanded", { surface });
+            setExpanded(true);
+          }}
           accessibilityRole="button"
           accessibilityLabel={
             isEmpty
@@ -265,6 +271,7 @@ export function TodayRoutineCard({ routine, status, onPressEdit, onItemPress, co
                 <Pressable
                   key={item.id}
                   onPress={() => {
+                    track("routine_item_pressed", { surface, exerciseId: item.id });
                     onItemPress(item.id);
                     if (compact) setExpanded(false);
                   }}
