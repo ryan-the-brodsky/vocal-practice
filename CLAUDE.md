@@ -266,6 +266,10 @@ PostHog via `posthog-js`, **cookieless** (`cookieless_mode: 'always'`) — store
 
 The full plan with rationale, slicing, and risk register is at `~/.claude/plans/glistening-wiggling-hamming.md`. Read that before starting any subsequent PR.
 
+## E2E (Playwright, added 2026-08-29)
+
+`npm run e2e` = `expo export` + `playwright test` against the real static `dist/`, served Netlify-style by `e2e/static-server.mjs` (exact file → clean URL `.html` → dir `index.html` → SPA fallback). `npm run e2e:only` skips the export. `playwright.config.ts` uses the installed Google Chrome (`channel: "chrome"`) so no browser download is needed. First spec: `e2e/courses.spec.ts` (Learn hub → syllabus → lesson → routine toggle → mark complete → next; every lesson page 200 + H1; Courses tab + `/plan` redirect). Two things the specs must account for: the headphones dialog covers the tab bar on Practice until answered, and `five-note-scale-mee-may-mah` is in `DEFAULT_ROUTINE`, so lesson 1's toggle already reads "✓ In routine" unless the routine is seeded empty.
+
 ## Run
 
 ```bash

@@ -16,7 +16,9 @@
     "seo:indexnow": "node scripts/indexnow-submit.mjs",
     "lint": "expo lint",
     "test": "jest",
-    "test:coverage": "jest --selectProjects unit --coverage"
+    "test:coverage": "jest --selectProjects unit --coverage",
+    "e2e": "npm run web:export && playwright test",
+    "e2e:only": "playwright test"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",
