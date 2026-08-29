@@ -49,10 +49,15 @@ const APP_HOME_DESCRIPTION =
   'Free browser vocal warm-ups with real-time pitch scoring and piano accompaniment. No signup — pick a voice part, sing along, and see how accurate you are.';
 const APP_ROUTE_HEAD: Record<string, { title: string; description: string }> = {
   index: { title: 'Vocal Habit — Free Vocal Warm-Ups & Pitch Training', description: APP_HOME_DESCRIPTION },
-  plan: {
-    title: 'Plan Your Practice — Vocal Habit',
+  routine: {
+    title: 'Your Routine — Vocal Habit',
     description:
-      'Build a daily vocal-practice routine — browse warm-ups and exercises by capability and set your plan. Free, in your browser, no signup.',
+      'Build a daily vocal-practice routine — browse warm-ups and exercises by capability and choose what you practice. Free, in your browser, no signup.',
+  },
+  courses: {
+    title: 'Courses — Vocal Habit',
+    description:
+      'Free, self-paced singing courses with a scored exercise in every lesson. Start with Foundations of Singing.',
   },
   progress: {
     title: 'Your Progress — Vocal Habit',
@@ -70,6 +75,9 @@ const APP_ROUTE_HEAD: Record<string, { title: string; description: string }> = {
       'Targeted feedback on your singing — Vocal Habit finds your most common pitch mistakes and helps you fix them. Free, in your browser.',
   },
 };
+// Legacy /plan stub keeps the old head so a bookmarked tab still reads sensibly.
+APP_ROUTE_HEAD.plan = APP_ROUTE_HEAD.routine;
+
 const APP_ROUTE_HEAD_FALLBACK = { title: 'Vocal Habit', description: APP_HOME_DESCRIPTION };
 
 function AppRouteHead({ segments }: { segments: string[] }) {

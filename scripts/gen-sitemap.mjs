@@ -1,8 +1,8 @@
 // Generates public/sitemap.xml from the indexable routes + Learn article slugs.
-// The app shells (/plan, /progress, /library) are intentionally excluded — they
+// The app shells (/routine, /progress, /library) are intentionally excluded — they
 // render empty static HTML (client-only). Run: npm run seo:sitemap
 
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -39,10 +39,23 @@ const artistSlugs = readdirSync(artistDir)
   .map((p) => p.slug)
   .sort();
 
+// Courses: hub + one syllabus per course dir + lessons (NN-*.md) from the filesystem.
+const coursesDir = join(HERE, "..", "content", "courses");
+const courseIds = readdirSync(coursesDir).filter((f) => statSync(join(coursesDir, f)).isDirectory()).sort();
+const courseUrls = courseIds.flatMap((id) => [
+  { loc: `${SITE}/courses/${id}/`, priority: "0.8" },
+  ...readdirSync(join(coursesDir, id))
+    .filter((f) => /^\d{2}-.+\.md$/.test(f))
+    .sort()
+    .map((f) => ({ loc: `${SITE}/courses/${id}/${f.replace(/\.md$/, "")}`, priority: "0.6" })),
+]);
+
 const urls = [
   { loc: `${SITE}/`, priority: "1.0" },
   { loc: `${SITE}/vocal-range-test`, priority: "0.9" },
   { loc: `${SITE}/learn/`, priority: "0.7" },
+  { loc: `${SITE}/courses/`, priority: "0.7" },
+  ...courseUrls,
   ...slugs.map((s) => ({ loc: `${SITE}/learn/${s}`, priority: "0.6" })),
   ...artistSlugs.map((s) => ({ loc: `${SITE}/artists/${s}`, priority: "0.6" })),
 ];

@@ -68,6 +68,7 @@ import { SessionTracker, type SessionTrackerSnapshot } from "@/lib/session/track
 import { loadVoicePart, saveVoicePart } from "@/lib/settings/voicePart";
 import { DEFAULT_TEMPO_SCALE, effectiveBpm, loadTempoScale, saveTempoScale } from "@/lib/settings/tempo";
 import { TodayRoutineCard } from "@/components/practice/TodayRoutineCard";
+import CourseProgressCard from "@/components/courses/CourseProgressCard";
 
 const VOICE_PARTS: VoicePart[] = ["soprano", "alto", "tenor", "baritone"];
 const MODE_STORAGE_KEY = "vocal-training:mode:v1";
@@ -1129,6 +1130,8 @@ export default function PracticeScreen() {
           onItemPress={status === "idle" ? (id) => handleExerciseChange(id, "routine") : undefined}
         />
       )}
+      {/* Course "next lesson" cue — renders nothing unless a course is in progress. */}
+      {!isDesktop && <CourseProgressCard />}
 
       {/* Mode toggle — hidden for follow-along exercises (Guided needs detection). */}
       {detectionEnabled && (
@@ -2219,6 +2222,7 @@ function StandardModeBody({
                 {controls}
                 <View style={[styles.consoleDivider, { backgroundColor: colors.borderSubtle }]} />
                 <ConsoleLastTime exercise={exercise} loggedSessions={loggedSessions} />
+                <CourseProgressCard />
               </>
             ) : (
               liveReadouts

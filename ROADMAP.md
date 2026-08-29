@@ -4,6 +4,16 @@ Personal vocal-warmup app. Pitch detection + accuracy scoring with piano accompa
 
 > **Scope (2026-06-23):** web-only, single-user, local-first static site — no mobile/native app, no accounts, no externally-maintained resources. The iOS/TestFlight milestone (M1) is **dead scope**; native sections below are retained for history only. Focus is usability, delight, and hardening existing web features.
 
+## Courses — "Foundations of Singing" — shipped 2026-08-29
+
+The first named, free course: `/courses/foundations-of-singing/`, nine lessons in beginner order (baseline → breath → hum → SOVT → in-tune → chest → head → mix → build your routine). Each lesson is a new static page that wraps an existing Learn article (articles stay canonical): original framing prose, the exercise's `pedagogy` rendered as public copy for the first time, the mini-player, a per-exercise **Add to routine / ✓ In routine** toggle, manual **Mark complete**, Prev/Next. Progress is local (`vocal-training:courses:v1`, backed up), created only when a lesson is opened; nothing is gated.
+
+Why: Bing grounding queries that cite the site are dominated by "learn to sing online free" / "best free online singing course" / "free singing lessons for beginners" — resource-seeking intent that aggregators (Class Central, AlternativeTo) broker for ChatGPT. The syllabus page carries schema.org `Course` (`isAccessibleForFree`, provider, offers, `hasCourseInstance`, `syllabusSections`) so it can be listed as a course, not just a tool. Submission checklist in `seo/courses-class-central.md` — **only after a production `curl` shows the H1 and JSON-LD live**.
+
+Also in this slice: the **Plan tab is now Routine** (`/routine`; `/plan` redirects) and a **Courses tab** (→ `/courses`) sits between Practice and Routine; Practice shows a one-line "Next: Lesson N" cue while a course is in progress; `lib/progress/routine.ts` gained mutexed `add/remove/toggleExerciseIds`, replacing three inline add-to-routine implementations. Content ran through the anti-slop scanner and the two-lens adversarial fact-check (`seo/courses-foundations-content-sources.md`). 797 tests, `tsc` clean, export verified.
+
+**Open:** a second course once the first shows completion data (`course_lesson_completed` by `index`); YouTube playlist version of the syllabus for Class Central's provider path; ask finishing users (lesson 9) for a Class Central review.
+
 ## Cookieless Product Analytics — shipped 2026-08-13
 
 PostHog wired up in `lib/analytics/`, cookieless (`cookieless_mode: 'always'`, no session replay) so the site stays banner-free and consistent with the local-first posture — nothing is stored on the visitor's device. Three events only: `practice_started`, `pattern_completed`, `mic_error_shown`.
