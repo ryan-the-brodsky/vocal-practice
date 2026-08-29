@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
 import EmbeddedExercise from '@/components/learn/EmbeddedExercise';
-import { loadRoutine, saveRoutine } from '@/lib/progress/routine';
+import { addExerciseIds } from '@/lib/progress/routine';
 
 const c = Colors.light;
 
@@ -18,13 +18,8 @@ export default function SpotlightDrill({ exerciseId, slug }: { exerciseId: strin
 
   const add = useCallback(async () => {
     try {
-      const cfg = await loadRoutine();
-      if (cfg.exerciseIds.includes(exerciseId)) {
-        setState('already');
-        return;
-      }
-      await saveRoutine({ exerciseIds: [...cfg.exerciseIds, exerciseId] });
-      setState('added');
+      const { added } = await addExerciseIds([exerciseId]);
+      setState(added.length ? 'added' : 'already');
     } catch {
       // localStorage unavailable — leave the embed usable, just no-op the add.
     }

@@ -29,6 +29,9 @@ export {
   DEFAULT_ROUTINE,
   loadRoutine,
   saveRoutine,
+  addExerciseIds,
+  removeExerciseIds,
+  toggleExerciseId,
   isDoneToday,
   todayStatus,
 } from "./routine";

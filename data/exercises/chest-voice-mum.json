@@ -1,7 +1,7 @@
 {
   "id": "chest-voice-mum",
   "name": "Chest Voice Mum",
-  "pedagogy": "A grounded 1-3-5-3-1 arpeggio on a full 'mum' in the lower-middle register. The closed 'm' onset and open 'uh' vowel keep the tone connected and chesty without pushing — building a strong, carrying chest voice. Stay relaxed; let the sound feel spoken, not shouted.",
+  "pedagogy": "A grounded 1-3-5-3-1 arpeggio on a full 'mum' in the lower-middle register. The closed 'm' onset and open 'uh' vowel keep the tone connected and chesty without pushing, building a strong, carrying chest voice. Stay relaxed; let the sound feel spoken, not shouted.",
   "capability": "chest-voice",
   "scaleDegrees": [0, 4, 7, 4, 0],
   "syllables": ["mum", "mum", "mum", "mum", "mum"],

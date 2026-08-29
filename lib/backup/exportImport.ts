@@ -9,6 +9,7 @@ export const BACKUP_KEYS = [
   "vocal-training:songs:v1",
   "vocal-training:exercises:user:v1",
   "vocal-training:routine:v1",
+  "vocal-training:courses:v1",
   "vocal-training:coaching:saved:v1",
   "vocal-training:coaching:rotation:v1",
   "vocal-training:voice-part:v1",

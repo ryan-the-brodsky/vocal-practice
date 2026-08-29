@@ -7,7 +7,7 @@ import type { Capability } from "@/lib/exercises/capabilities";
 import { getAllExercises, groupByCapability, getExercise } from "@/lib/exercises/library";
 import type { ExerciseDescriptor } from "@/lib/exercises/types";
 import { exerciseName } from "@/lib/exercises/names";
-import { loadRoutine, saveRoutine } from "@/lib/progress/routine";
+import { loadRoutine, saveRoutine, toggleExerciseId } from "@/lib/progress/routine";
 import type { RoutineConfig } from "@/lib/progress/routine";
 import { listUserExercises } from "@/lib/exercises/userStore";
 import type { StoredExtractedExercise } from "@/lib/exercises/userStore";
@@ -111,13 +111,15 @@ export default function PlanScreen() {
     setRoutine(config);
   }
 
-  function handleToggleRoutine(id: string, capability?: Capability) {
-    const ids = (routine ?? { exerciseIds: [] }).exerciseIds;
-    const added = !ids.includes(id);
-    const next = added ? [...ids, id] : ids.filter((x) => x !== id);
-    // Imports and song segments carry no capability; send null rather than dropping the prop.
-    track("plan_exercise_toggled", { exerciseId: id, added, capability: capability ?? null });
-    void handleSaveRoutine({ exerciseIds: next });
+  async function handleToggleRoutine(id: string, capability?: Capability) {
+    try {
+      const { added, exerciseIds } = await toggleExerciseId(id);
+      // Imports and song segments carry no capability; send null rather than dropping the prop.
+      track("plan_exercise_toggled", { exerciseId: id, added, capability: capability ?? null });
+      setRoutine({ exerciseIds });
+    } catch {
+      // storage unavailable — leave the row as-is
+    }
   }
 
   // Map each capability to its exercises; the null group collects imports + song chunks.

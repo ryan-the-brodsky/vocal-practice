@@ -1,7 +1,7 @@
 {
   "id": "staccato-onset",
   "name": "Staccato Onset",
-  "pedagogy": "Short, separated 'gug' onsets leaping between the tonic, its third, and its fifth. The hard 'g' sets a clean, balanced vocal-fold closure at the start of each note — the foundation of a clear, un-breathy tone — while the staccato keeps every onset crisp and independent.",
+  "pedagogy": "Short, separated 'gug' onsets leaping between the tonic, its third, and its fifth. The hard 'g' sets a clean, balanced vocal-fold closure at the start of each note, the foundation of a clear, un-breathy tone, while the staccato keeps every onset crisp and independent.",
   "capability": "onset",
   "scaleDegrees": [0, 4, 0, 7, 0],
   "syllables": ["gug", "gug", "gug", "gug", "gug"],

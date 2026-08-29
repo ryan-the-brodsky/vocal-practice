@@ -1,7 +1,7 @@
 {
   "id": "agility-run",
   "name": "Agility Run",
-  "pedagogy": "A brisk nine-note run up and down the first five degrees on 'ah', training fast, even coordination — the control behind runs and riffs. The speed challenges pitch accuracy and steady breath flow without letting notes smear into each other.",
+  "pedagogy": "A brisk nine-note run up and down the first five degrees on 'ah', training the fast, even coordination behind runs and riffs. The speed challenges pitch accuracy and steady breath flow without letting notes smear into each other.",
   "capability": "agility",
   "scaleDegrees": [0, 2, 4, 5, 7, 5, 4, 2, 0],
   "syllables": ["ah", "ah", "ah", "ah", "ah", "ah", "ah", "ah", "ah"],

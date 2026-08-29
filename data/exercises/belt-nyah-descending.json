@@ -1,7 +1,7 @@
 {
   "id": "belt-nyah-descending",
   "name": "Belt Nyah (Descending)",
-  "pedagogy": "A bright, twangy belt-and-twang drill on a descending 5-4-3-2-1 scale. The nasalized 'nyah' (/njæ/) narrows the aryepiglottic funnel, boosting the 2–4 kHz 'ring' that makes belt carry — an 'Edge'-style brighter, sharper set-up. Descending from the top keeps it released. Source: Broadway belt pedagogy (Roll 2016, Journal of Voice) + Estill twang. The app scores pitch, not the twang brightness itself.",
+  "pedagogy": "A bright, twangy belt-and-twang drill on a descending 5-4-3-2-1 scale. The nasalized 'nyah' (/njæ/) narrows the aryepiglottic funnel, boosting the 2–4 kHz 'ring' that makes belt carry, an 'Edge'-style brighter, sharper set-up. Descending from the top keeps it released. Source: Broadway belt pedagogy (Roll 2016, Journal of Voice) + Estill twang. The app scores pitch, not the twang brightness itself.",
   "capability": "style",
   "scaleDegrees": [7, 5, 4, 2, 0],
   "syllables": ["nyah", "nyah", "nyah", "nyah", "nyah"],
