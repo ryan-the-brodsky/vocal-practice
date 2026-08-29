@@ -12,10 +12,11 @@ The current bucket is partial until it fills (see "days"). **Read growth from th
 |---|---|---|---|---|---|---|---|---|---|
 | W1 · Aug 13–19 | 7 | 176 | 52% | 526 | 244 | 162 | 45 | 34.9 | 23.1 |
 | W2 · Aug 20–26 | 7 | 219 | 48% | 479 | 244 | 175 | 79 | 34.9 | 25.0 |
-| W3 · Aug 27– | 1* | n/a | n/a | 69 | 59 | 40 | 17 | 59.0 | 40.0 |
+| W3 · Aug 27– | 2* | n/a | n/a | 172 | 155 | 99 | 30 | 77.5 | 49.5 |
 
-\*W3 is one partial day and is inflated by developer testing (one identity = 26 of 59 starts); do not read it as a
-trend. Ahrefs has not ingested Aug 27 at all, hence n/a.
+\*W3 is 2 days (Aug 27–28, Aug 28 partial). Both W1 and W2 sat at exactly 34.9 practice/day; W3 is running **77.5/day**,
+roughly double. Aug 27 (64 starts) predates the #20/#21 deploys, so it is organic, not a deploy artifact. Two days is not a
+trend — WATCH. Ahrefs has not ingested the W3 window, hence n/a.
 
 **⚠️ Correction (Aug 27): the "funnel deepening" finding does not survive W2 completing.** Prior runs computed W2 on
 its first 5–6 days and reported practice +14–23%/day. With all 7 days in, **per-day W1→W2 practice is exactly flat
@@ -32,13 +33,13 @@ treat Ahrefs visitors as channel-mix only.
 
 | Metric | Returning | New |
 |---|---|---|
-| Pages / visit | 3.48 | 2.12 |
-| Practice starts / visitor-day (**depth**) | 2.60 | 0.97 |
+| Pages / visit | 6.84 | 3.27 |
+| Practice starts / visitor-day (**depth**) | 3.21 | 1.11 |
 
-**Health bar = both rising. Status Aug 27: PASSING (5th run), but LOW CONFIDENCE, see the caveat.**
-- **Volume** (returning practice-starts/day): **7.75 → 10.9 → 12.3 → 13.9 → 14.9/day** ✓ (+7%)
-- **Depth** (practice-starts/returning visit): **1.89 → 2.10 → 2.14 → 2.32 → 2.49 → 2.60** ✓
-- Returning share of tagged pageviews: 22.5% → 20.2% → 23.0% → **29.7%**. Untagged still 0 (resolved).
+**Health bar = both rising. Status Aug 28: PASSING (6th run), still LOW CONFIDENCE — the Aug 27–28 volume spike inflates the returning series; see the caveat.**
+- **Volume** (returning practice-starts/day): **7.75 → 10.9 → 12.3 → 13.9 → 14.9 → 19.7/day** ✓ (Aug 28; note the Aug 27–28 volume spike lifts this — read with the WATCH)
+- **Depth** (practice-starts/returning visit): **1.89 → 2.10 → 2.14 → 2.32 → 2.49 → 2.60 → 3.21** ✓
+- Returning share of tagged pageviews: 22.5% → 20.2% → 23.0% → 29.7% → **35.9%**. Untagged still 0 (resolved).
 - Visit-number tail this window: 1→329 pv, 2→100, 3→6, 4→7, 5→7, 6→4, 7→15.
 
 **⚠️ One identity decides the verdict.** A single person logged 26 practice starts on Aug 27 with `practiceNumber`
@@ -51,15 +52,25 @@ the series and was not done. At this n the pass/fail flips on one person.
 **The practice-returner curve** (`practiceNumber`, Aug 25+, 100% coverage, dev identity excluded).
 Lead with this from here; it counts genuine practice-returners, not site-visit returners:
 
-| Milestone | Singers | Share |
-|---|---|---|
-| Practiced at all | 18 | 100% |
-| Reached practice #2 | 13 | 72% |
-| Reached practice #3 | 10 | 56% |
-| Reached practice #5 | 5 | 28% |
+| Milestone | Devices (raw) | Genuine (−1 dev) | Share | vs Aug 25–27 |
+|---|---|---|---|---|
+| Practiced ≥1 | 28 | 27 | 100% | +9 (was 18) |
+| Reached #2 | 21 | 20 | 74% | +7 (was 13, 72%) |
+| Reached #3 | 15 | 14 | 52% | +4 (was 10, 56%) |
+| Reached #5 | 10 | 9 | 33% | +4 (was 5, 28%) |
+| Reached #10 | 5 | 4 | 15% | new tier |
+| Reached #16 | 4 | 3 | 11% | new tier |
 
-Caveat: `practiceNumber` is a localStorage per-device counter. A fresh device or cleared storage restarts at 1, so
-these are floors. Window is short (3 days); re-cut weekly as it accrues.
+**Aug 28 read: the deep-returner cohort roughly doubled.** #5-reachers went **5 → 10** (genuine 9) and a #10 tier
+(4 genuine) and #16 tier (3 genuine) now exist where before the curve ran out. The *rates* held (72→74% at #2,
+28→33% at #5), so the growth is more people entering the funnel (Aug 28 added ~10 practicers) with retention shape
+stable-to-improving, not just window-widening. That is the "growing habit-builder cohort" signal.
+
+Caveats: (1) `practiceNumber` is a localStorage per-device counter — a fresh device or cleared storage restarts at
+1, so every tier is a **floor**. (2) One dev device reached **54** (30 starts on Aug 28 alone) and passes through
+every bucket, so it inflates each tier by exactly 1 and **owns the entire n≥21 tail** — subtracted in the "genuine"
+column. (3) Window is cumulative from Aug 25 (4 days), so the vs-prior counts partly reflect one more (big) day, not
+pure retention. Re-cut weekly.
 
 ## Inflow (1A): lever gauges (mostly point-in-time)
 
@@ -72,6 +83,7 @@ Flat so far, no inflow experiment shipped yet. Baseline to beat as content/autho
 | 2026-08-25 | n/a | n/a | 33 / 4pg | 5 / 3pg | ~14 | pos 2 (Google) | 0 |
 | 2026-08-26 | 277 | ~5 (top reported) | 33 / 4pg | 5 / 3pg | ~18 | 8 clicks / pos 2 (Google, 7d) | 0 |
 | 2026-08-27 | **352** | **17** | 33 / 4pg | 5 / 3pg | ~15 | 7 clicks / pos 2 (Google, 7d) | 0 |
+| 2026-08-28 | 352* | 17* | 33 / 4pg | 5 / 3pg | ~15 | 37 clicks / pos 2.7 (Google, 30d) | 0 |
 
 **Aug 27: 1A moved for the first time, on the citation lever only.** Bing citations per day: **10.9/day (Aug 11–17)
 → 28.7/day (Aug 18–24)**, +163%; single days of 79 (Aug 22) and 75 (Aug 25). Bing's own "avg cited pages" moved
@@ -134,7 +146,7 @@ filter (§C) gives the REAL cumulative retrieval:
 content_hits going forward.
 
 **⚠️ Rate correction (Aug 27): ChatGPT-User retrieval is FLAT, not growing.** Per-day content hits Aug 20–27:
-**36, 39, 47, 42, 44, 35, 36, 35**. Averaging ~39/day with no trend. The cumulative 277 → 314 is one more day
+**36, 39, 47, 42, 44, 35, 36, 35**. Averaging ~39/day with no trend. **Aug 28 (partial):** cumulative content hits ChatGPT-User 314 → **349**, OAI-SearchBot 32 → 35, ClaudeBot 9; Claude cite-path still **3/3** (test-level, 8 days on). Per-day ChatGPT-User retrieval ~35, still flat. The cumulative 277 → 314 is one more day
 accumulating. The "+12%" (Aug 25) and "+13%" (Aug 26) growth claims in earlier entries were reading the cumulative
 total, which is exactly the accumulation trap this file warns about. **Only the per-day rate counts.**
 

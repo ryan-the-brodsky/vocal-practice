@@ -1,4 +1,4 @@
-# Foundations of Singing — content fact-check record
+# Foundations of Singing: content fact-check record
 
 **Scope:** `content/courses/foundations-of-singing/*.md` (course intro + 9 lessons) and the `pedagogy` strings of the 12 exercises those lessons surface (rendered publicly for the first time on lesson pages). Two independent adversarial lenses (voice-science/acoustics; applied CCM pedagogy), both told to refute. Process per `seo/content-style-guide.md`. Checked 2026-08-29. The linked Learn articles carry their own `*-content-sources.md` and were not re-checked.
 

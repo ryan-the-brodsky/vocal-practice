@@ -2,9 +2,10 @@
 # Each FULL run publishes a NEW date-stamped artifact (never update-in-place, since that hits a false
 # "identical content" conflict). Newest first; this list is the pseudo-historical archive of daily boards.
 dashboards:
+  - 2026-08-28: "https://claude.ai/code/artifact/bc419b0e-0ef6-49d4-8614-c79e5d04c571"
   - 2026-08-27: "https://claude.ai/code/artifact/5d6dd051-7d1e-4c3f-a51f-a600ddbf79a2"
   - 2026-08-26: "https://claude.ai/code/artifact/0be8ed29-bc50-4925-9895-38e45607829e"
-last_run: 2026-08-27
+last_run: 2026-08-28
 window_default: 7d
 ---
 
@@ -19,6 +20,26 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
 ---
 
 ## Active investigations
+
+- **[RESOLVED · 2026-08-28] PR-21 analytics coverage (19→61 events) is live and firing.** Deployed 04:16 UTC Aug 28;
+  by 21:00 UTC ~18 brand-new events went 0→N exactly at deploy (onboarding_step_viewed 45, exercise_selected 24,
+  practice_stopped 21, tempo_changed 15, headphones_answered 10, mode_changed 8, routine_advanced 7, pathway_selected 6,
+  + a dozen more at 1–3). Prod bundle grep already confirmed the code shipped. Instrumentation verified working. ~29
+  catalog events remain at zero — nearly all deep/rare actions (song_saved, import_* funnel, coaching_* deep steps,
+  backup_restored, user_content_deleted). **One flagged for a wiring check: `voice_part_selected`** (50 starts + 8
+  onboardings today, zero fires — likely emits only on explicit change and onboarding's voice step is excluded like
+  routine, but confirm on the surface users touch). `plan_*` events zero too (Plan tab is low-traffic).
+
+- **[WATCH · 2026-08-28] Weekday vs weekend usage — inconclusive, sample too small.** 2 weeks, n=4 weekend days (one is
+  the Aug-15 launch spike) vs 10 weekday. Practice/day reads weekend 46 > weekday 37 but inverts to 30 < 37 once the
+  launch Saturday is dropped. Outlier-robust cut (DAU/day) leans weekend: 31 vs 24, still 28 vs 24 without the spike —
+  modestly more *people* on weekends, but depth/visitor flat (~1.5 starts) all week. No "weekday = deeper" signal.
+  Re-cut monthly; need several clean weeks before calling it.
+
+- **[WATCH · 2026-08-28] Practice volume spiked Aug 27–28 above the flat W1/W2 baseline.** W1 & W2 were both exactly
+  34.9 practice/day; Aug 27 = 64, Aug 28 = 91 (partial) → W3 running 77.5/day. Aug 27 predates the #20/#21 deploys, so
+  not attributable to them. Two days ≠ a trend — watch whether it holds into next week.
+
 
 - **[OPEN · 2026-08-20] Claude citation tracking.** No dashboard reports Claude citations (it rides Brave, not
   Bing). We allowed `Claude-User`/`Claude-SearchBot` in robots.txt and submitted 4 URLs to Brave on Aug 20.
@@ -58,6 +79,8 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   events are wired in code (`components/learn/EmbeddedExercise.tsx:76` and `:119`), so the zero is genuine, not a
   gap. Separately, **Bing has still never crawled any of the 3 new articles** (`bwt.py check`: why-cant-i-sing-high-notes,
   why-do-i-sing-flat, why-does-my-recorded-voice-sound-bad all uncrawled), so they cannot enter the cited pool yet.
+  **Update Aug 28:** `embed_exercise_played` climbed 2 → **7** all-time; `embed_exercise_open_full` got its **first fire**
+  (1, at 02:20 UTC). Article→app conversion is alive but still thin.
 
 - **[WATCH · 2026-08-27] Guided-mode nudge (deployed ~Aug 26 night).** `guided_nudge_shown` **5 impressions / 4
   people**, first at 2026-08-27T08:54:48Z, last 21:02:42Z. **Every impression was `reason: "rough"`** (the
@@ -68,6 +91,8 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   those 6 came from the heavy dev-test identity, so real guided usage is ~2 starts / 1 person. Next: give it a
   few days of impressions before judging the accept rate; if accepts stay at 0 while impressions accumulate,
   the nudge copy or its placement in the post-session panel is the suspect, not the targeting.
+  **Update Aug 28: first accepts.** `guided_nudge_accepted` 0 → **2** (1 today) against `guided_nudge_shown` 10 all-time
+  (2 since deploy). The accept path is alive; rate ~20% on a tiny base. Keep logging.
 
 - **[OPEN · 2026-08-26] Bing indexation + AI grounding (NEW ground truth: Bing Webmaster Tools).** BWT *is* set up
   (verified `vocalhabit.com` property; also holds gradical.app, so switch property before reading). This is the
@@ -200,6 +225,25 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   ("freddie mercury vocal range" 10, "ariana grande vocal range" 10, both 0 clicks).
 
 ## Findings (newest first)
+
+### 2026-08-28
+- **PR-21 analytics coverage is LIVE and firing.** ~18 new events went 0→N at the 04:16 UTC deploy on a busy Friday
+  (50 practice starts post-deploy): onboarding_step_viewed 45, exercise_selected 24, practice_stopped 21, tempo_changed
+  15, headphones_answered 10, mode_changed 8, routine_advanced 7, pathway_selected 6, and a dozen more at 1–3.
+  Instrumentation works. ~29 catalog events still zero, nearly all deep/rare-by-design; **`voice_part_selected` is the
+  one worth a wiring check** (50 starts + 8 onboardings, zero fires).
+- **Weekday vs weekend: can't call it yet.** Weekend leans slightly higher on *visitors* (DAU 28–31 vs 24/day, survives
+  outlier removal) but depth/visitor is flat all week (~1.5 starts). The raw practice/day "weekend wins" is entirely the
+  Aug-15 launch Saturday; remove it and weekdays edge ahead. n=4 weekend days over 2 weeks — insufficient. Faint "more
+  people on weekends," no depth difference. Re-cut monthly.
+- **Practice spiked the last two days.** W1 & W2 both exactly 34.9 practice/day; W3 (Aug 27–28, partial) running 77.5/day
+  (Aug 27=64, Aug 28=91). Aug 27 predates today's deploys, so organic. WATCH — two days isn't a trend.
+- **Two conversion paths came alive.** Guided nudge got its **first accepts** (guided_nudge_accepted 0→2). Embedded-exercise
+  plays climbed 2→7 and `embed_exercise_open_full` fired for the first time. Both still thin.
+- **Returning cohort remains the strongest story.** 7d: returning = 36% of tagged pageviews, **6.84 pages/visit vs 3.27**
+  new, **3.21 practice-starts/visit vs 1.11** — ~3× the practice per visit. Zero untagged (clean tagging).
+- **Branded search "vocal habit"** 37 clicks / 51 impr / pos 2.7 (Google, 30d); Bing organic 11 clicks / 855 impr (14d,
+  flat). Ahrefs citation sample timed out this run; Bing AI-Performance (browser) deferred — last banked Aug 27 (352 cites).
 
 ### 2026-08-27
 - **1A INFLOW MOVED, first time since launch, and only on the citation lever.** Bing citations went
