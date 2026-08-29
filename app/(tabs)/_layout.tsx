@@ -74,9 +74,25 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="plan"
+        name="curriculum"
+        // Courses are static SEO pages at /courses (marketing group). Same
+        // intercept pattern as Learn below so the URL reads /courses. The screen
+        // is named "curriculum", not "courses", so its stub can't shadow /courses/.
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.navigate('/courses');
+          },
+        }}
         options={{
-          title: 'Plan',
+          title: 'Courses',
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="graduationcap.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="routine"
+        options={{
+          title: 'Routine',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="list.bullet.clipboard" color={color} />,
         }}
       />
@@ -116,6 +132,8 @@ export default function TabLayout() {
         }
       />
       <Tabs.Screen name="coaching" options={{ href: null }} />
+      {/* Legacy /plan → /routine redirect stub; never a visible tab. */}
+      <Tabs.Screen name="plan" options={{ href: null }} />
     </Tabs>
   );
 }

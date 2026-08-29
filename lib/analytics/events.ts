@@ -35,10 +35,18 @@ export type AnalyticsEvent =
   | 'guided_next_tonic'
   // "Skip demo" during the demo phase.
   | 'demo_skipped'
+  // ── Courses ───────────────────────────────────────────────────────────────
+  | 'course_viewed'
+  | 'course_lesson_viewed'
+  | 'course_lesson_completed'
+  | 'course_exercise_toggled'
+  | 'course_next_pressed'
   // ── First run ─────────────────────────────────────────────────────────────
   | 'onboarding_step_viewed'
   | 'onboarding_finished'
   // ── Routine / Plan / Pathways ─────────────────────────────────────────────
+  // plan_* events fire from the Routine tab (route /routine, file routine.tsx).
+  // The tab was renamed from "Plan" on 2026-08-29; names kept so dashboards stay continuous.
   | 'routine_edited'
   | 'routine_edit_opened'
   | 'routine_card_expanded'
@@ -104,6 +112,7 @@ export type AnalyticsProps = Record<string, string | number | boolean | null | u
 // - plan_exercise_toggled: { exerciseId, added: boolean, capability }
 // - plan_cta_pressed: { cta: 'edit_routine' | 'import' | 'range_test' | 'learn' }
 // - pathway_*: { pathwayId, exerciseId?, exerciseCount? }
+// - course_*: { courseId, lessonId?, index?, surface?: 'syllabus' | 'lesson' | 'practice', exerciseId?, added?, completedCount?, total? }
 // - progress_*_expanded: { exerciseId, kind?: 'builtin' | 'imported' | 'song' }
 // - user_content_deleted: { kind: 'exercise' | 'song' }
 // - backup_restored: { ok: boolean, count? }

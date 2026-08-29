@@ -1,7 +1,7 @@
 {
   "id": "messa-di-voce",
   "name": "Messa di Voce",
-  "pedagogy": "On one sustained pitch, swell from near-silence up to full volume and back down to near-silence in a single smooth arc — the classic messa di voce. Trains breath/appoggio control and dynamic command. Plays as a follow-along: this exercise is about loudness on a steady pitch, which the app can't measure — it guides the pitch and you control the swell by ear. Try to keep the pitch from creeping sharp as you crescendo.",
+  "pedagogy": "On one sustained pitch, swell from near-silence up to full volume and back down to near-silence in a single smooth arc, the classic messa di voce. The classical bel canto test of breath control (appoggio, the Italian-school coordination of breath and tone) and of dynamic command. Plays as a follow-along: this exercise is about loudness on a steady pitch, which the app can't measure. It guides the pitch and you control the swell by ear. Try to keep the pitch from creeping sharp as you crescendo.",
   "capability": "dynamics",
   "scaleDegrees": [0],
   "syllables": ["ah"],

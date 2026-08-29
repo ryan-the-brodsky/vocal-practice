@@ -6,6 +6,7 @@ import { Colors, Fonts, Radii, Spacing, Typography } from '@/constants/theme';
 import { LEARN_ARTICLES } from '@/content/learn/articles.generated';
 import { capabilityMeta, isCapability, type Capability } from '@/lib/exercises/capabilities';
 import SpotlightCarousel from '@/components/artists/SpotlightCarousel';
+import CoursesRow from '@/components/courses/CoursesRow';
 import { track } from '@/lib/analytics';
 
 // The Learn hub content (intro + range-test card + artist-spotlight carousel +
@@ -102,6 +103,7 @@ export default function LearnHub() {
           </View>
         </Link>
 
+        <CoursesRow />
         <SpotlightCarousel />
 
         <TextInput

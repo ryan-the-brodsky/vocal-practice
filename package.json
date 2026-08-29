@@ -10,12 +10,15 @@
     "web": "expo start --web",
     "web:export": "expo export --platform web",
     "learn:gen": "node scripts/gen-learn-content.mjs",
+    "courses:gen": "node scripts/gen-courses.mjs",
     "profiles:gen": "node scripts/gen-artist-profiles.mjs",
     "seo:sitemap": "node scripts/gen-sitemap.mjs",
     "seo:indexnow": "node scripts/indexnow-submit.mjs",
     "lint": "expo lint",
     "test": "jest",
-    "test:coverage": "jest --selectProjects unit --coverage"
+    "test:coverage": "jest --selectProjects unit --coverage",
+    "e2e": "npm run web:export && playwright test",
+    "e2e:only": "playwright test"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",

@@ -30,7 +30,7 @@ export default function EmbeddedExercise({
 }: {
   exerciseId: string;
   slug?: string;
-  surface?: 'learn' | 'spotlight';
+  surface?: 'learn' | 'spotlight' | 'course';
 }) {
   const name = exerciseName(exerciseId) || 'this exercise';
   const evtProps = { exerciseId, slug: slug ?? null, surface };

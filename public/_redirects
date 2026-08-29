@@ -15,4 +15,6 @@
 # so they can never be shadowed regardless of Netlify's file-precedence behavior.
 # Add a line here for each new (marketing) route.
 /vocal-range-test    /vocal-range-test.html    200
+/courses             /courses/index.html       200
+/courses/foundations-of-singing    /courses/foundations-of-singing/index.html    200
 /*                   /index.html               200

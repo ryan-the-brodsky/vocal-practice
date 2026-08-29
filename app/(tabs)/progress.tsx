@@ -485,6 +485,7 @@ export default function ProgressScreen() {
   }
 
   // Make a path the daily routine — the existing streak/completion system tracks it.
+  // Deliberately replace-all (not addExerciseIds): "use this path" means the path IS the routine.
   async function handleUsePath(exerciseIds: string[]) {
     await saveRoutine({ exerciseIds }).catch(() => {});
     setRoutine({ exerciseIds });

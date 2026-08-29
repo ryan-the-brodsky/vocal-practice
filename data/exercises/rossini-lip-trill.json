@@ -1,7 +1,7 @@
 {
   "id": "rossini-lip-trill",
   "name": "Rossini Lip Trill",
-  "pedagogy": "Builds a full-range SOVT warm-up through the entire passaggio with minimal vocal fold pressure. The octave-and-a-half arc forces smooth register bridging while the lip trill obscures internal pitch monitoring, making the doubled-melody piano doubling essential for pitch reference.",
+  "pedagogy": "Builds a full-range SOVT warm-up through the entire passaggio with reduced vocal-fold collision (the lip occlusion raises pressure in the mouth and lowers the pressure drop across the folds). The octave-and-a-half arc forces smooth register bridging and the piano doubles the melody as a pitch reference, since the buzz gives less to go on than an open vowel and the app cannot score a trill.",
   "capability": "warmup-sovt",
   "scaleDegrees": [
     0,

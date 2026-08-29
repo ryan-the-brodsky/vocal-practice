@@ -1,7 +1,7 @@
 {
   "id": "straight-tone-vibrato",
   "name": "Straight Tone → Vibrato",
-  "pedagogy": "Hold one steady pitch with a straight (vibrato-free) tone for the first half, then release into an even, natural vibrato (~5–7 pulses per second, about a semitone wide) for the second half. Trains conscious control over vibrato onset. Plays as a follow-along: the app guides the target pitch but can't grade your vibrato rate or evenness — that's by ear.",
+  "pedagogy": "Hold one steady pitch with a straight (vibrato-free) tone for the first half, then release into an even, natural vibrato (~5–7 pulses per second, about a semitone wide) for the second half. Trains conscious control over vibrato onset. Plays as a follow-along: the app guides the target pitch but can't grade your vibrato rate or evenness; that's by ear.",
   "capability": "vibrato",
   "scaleDegrees": [0],
   "syllables": ["ah"],
