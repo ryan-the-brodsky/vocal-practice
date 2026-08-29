@@ -74,9 +74,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="courses"
+        name="curriculum"
         // Courses are static SEO pages at /courses (marketing group). Same
-        // intercept pattern as Learn below so the URL reads /courses.
+        // intercept pattern as Learn below so the URL reads /courses. The screen
+        // is named "curriculum", not "courses", so its stub can't shadow /courses/.
         listeners={{
           tabPress: (e) => {
             e.preventDefault();

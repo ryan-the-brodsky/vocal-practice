@@ -54,7 +54,7 @@ const APP_ROUTE_HEAD: Record<string, { title: string; description: string }> = {
     description:
       'Build a daily vocal-practice routine — browse warm-ups and exercises by capability and choose what you practice. Free, in your browser, no signup.',
   },
-  courses: {
+  curriculum: {
     title: 'Courses — Vocal Habit',
     description:
       'Free, self-paced singing courses with a scored exercise in every lesson. Start with Foundations of Singing.',
