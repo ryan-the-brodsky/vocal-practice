@@ -1,4 +1,4 @@
-# Courses — aggregator submission notes (Class Central, AlternativeTo)
+# Courses: aggregator submission notes (Class Central, AlternativeTo)
 
 **Why:** `analytics/findings-log.md` shows Bing grounding queries for the site are led by "learn to sing online free", "best free online singing course", and "free singing lessons for beginners". `seo/citation-brokers-and-vosci.md` shows Class Central (DR 78, ~3.6k ChatGPT citations) and AlternativeTo (DR 88, ~6k) are the pages ChatGPT quotes for those prompts. They pass no backlinks; treat them as AI-visibility + referral levers.
 
