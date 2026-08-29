@@ -18,8 +18,10 @@ Everything here is free and stays free. Your progress and your routine live in y
 
 ## Who this is for
 
-Singers of pop, rock, R&B, country, and musical theatre. Classical technique shares the same instrument, but the exercises and the language in this course are chosen for contemporary styles. If you have never sung outside the car, start at lesson one. If you have sung for years without any formal work, lessons five through eight (pitch and the registers) are where most self-taught singers find the gaps.
+Singers of pop, rock, R&B, country, and musical theatre. Classical technique shares the same instrument, but the exercises and the language in this course are chosen for contemporary styles. If you have never sung outside the car, start at lesson one. If you have sung for years without any formal work, lessons five through eight (pitch and the registers) are often where self-taught singers find the gaps.
 
 ## How to get the most out of it
 
 Use headphones when you can. The piano and your voice both reach the microphone otherwise, and the scoring gets noisier. Sing at a comfortable volume. And read the "what to notice" section of each lesson before you press play, because knowing what you are listening for is most of the skill.
+
+One health note. Singing should not hurt. If you have hoarseness or pain that lasts more than four weeks, see a doctor or a laryngologist. This course is not medical advice.

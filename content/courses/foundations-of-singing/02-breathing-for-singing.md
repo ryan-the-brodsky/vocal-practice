@@ -5,7 +5,7 @@ articleSlug: breathing-exercises-for-singing
 exerciseIds: ["messa-di-voce"]
 updated: 2026-08-29
 ---
-Breathing comes second because it is the thing most beginners are told about first, and usually told wrong. "Breathe from your diaphragm" is repeated so often that it sounds like a technique. It is closer to a feeling. The diaphragm is the muscle you inhale with, and it relaxes as you sing out. What you control on the way out is how steadily the air leaves, and that steadiness is what singers mean by support.
+Breathing comes second because it is the thing most beginners are told about first, and usually told wrong. "Breathe from your diaphragm" is repeated so often that it sounds like a technique. It is closer to a feeling. The diaphragm is the muscle you inhale with, and it is mostly passive as you sing out (classical appoggio teaching argues for keeping some inhale-muscle engagement; the guide covers that). What you control on the way out is how steadily the air leaves, and that steadiness is close to what most singers mean by support, though each method defines the word a little differently.
 
 The guide behind this lesson goes through the anatomy and the main exercises singers use. This lesson picks one, the messa di voce, because it isolates the skill without anything else to think about.
 

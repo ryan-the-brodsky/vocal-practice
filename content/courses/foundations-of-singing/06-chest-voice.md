@@ -17,7 +17,7 @@ On "mum," the target sensation is a full, connected sound that feels like confid
 
 On "mah," let each note land rather than reaching for it. The bottom of the range is where a lot of singers add weight to feel powerful, and it is exactly where added weight makes the pitch sag. The per-note breakdown will show you if the low notes are going flat, which is the tell.
 
-These exercises sit low on purpose, so the keys will not climb through your break. That is by design. The passaggio gets its own lessons.
+These exercises sit low on purpose, so the keys mostly stay below your break (tenors may feel the top key touch it). That is by design. The passaggio gets its own lessons.
 
 ## What done means
 

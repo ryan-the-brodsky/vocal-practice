@@ -7,13 +7,13 @@ updated: 2026-08-29
 ---
 By now you have sung twelve exercises and, if you have been using the toggle on each lesson, your routine already has some of them in it. This last lesson is about turning that list into a habit, and about the difference between practice that feels productive and practice that changes anything.
 
-The guide behind this lesson goes through the research on deliberate practice and how working teachers structure a session. The short version is that ten focused minutes most days beats an hour on Sunday, and that running through songs is not practice, because a song never isolates the thing you are bad at. The exercises in this course do.
+The guide behind this lesson goes through the research on deliberate practice and how working teachers structure a session. The short version is that ten focused minutes most days beats an hour on Sunday, and that running songs top to bottom is not the same as practice, because a song rarely isolates the thing you are bad at. The exercises in this course do.
 
 ## What to notice
 
-Open the Routine tab and look at what you have added. A workable daily routine for a beginner is four to six exercises and takes ten to fifteen minutes. If yours is longer than that, cut it. You will not do a twenty-five minute routine on a busy Tuesday, and a routine you skip is worth nothing.
+Open the Routine tab and look at what you have added. A workable starting point for a beginner is four to six exercises and takes ten to fifteen minutes. If yours is longer than that, cut it. You will not do a twenty-five minute routine on a busy Tuesday, and a routine you skip is worth nothing.
 
-Order matters more than most people assume. Put the gentle exercises first: the hum, then the trill or the siren. Scored exercises go after, once your voice is moving. Anything that works the top of your range goes last. The two exercises on this page are here as a minimum viable routine in case yours is empty: a hum to start and a "nay" to give you a score to track. Add them, or ignore them if you already have your own picks.
+Order matters more than most people assume. Put the gentle exercises first: the hum, then the trill or the siren. Scored exercises go after, once your voice is moving. Anything loud or open-vowelled at the top of your range goes last (the trill reaches the top too, but gently, which is why it can go early). The two exercises on this page are here as a minimum viable routine in case yours is empty: a hum to start and a "nay" to give you a score to track. Add them, or ignore them if you already have your own picks.
 
 Then look at the Progress tab. Every session you logged during this course is there, per exercise, with a trend line once you have a few. That trend is the point. Your score on a given day will bounce around with sleep, hydration, and mood. The direction over a couple of weeks is what tells you the practice is working.
 
