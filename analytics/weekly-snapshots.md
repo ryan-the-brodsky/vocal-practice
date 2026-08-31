@@ -12,11 +12,12 @@ The current bucket is partial until it fills (see "days"). **Read growth from th
 |---|---|---|---|---|---|---|---|---|---|
 | W1 · Aug 13–19 | 7 | 176 | 52% | 526 | 244 | 162 | 45 | 34.9 | 23.1 |
 | W2 · Aug 20–26 | 7 | 219 | 48% | 479 | 244 | 175 | 79 | 34.9 | 25.0 |
-| W3 · Aug 27– | 2* | n/a | n/a | 172 | 155 | 99 | 30 | 77.5 | 49.5 |
+| W3 · Aug 27–Sep 2 | 3* | n/a | n/a | 238 | 182 | 127 | 32 | 60.7 | 42.3 |
 
-\*W3 is 2 days (Aug 27–28, Aug 28 partial). Both W1 and W2 sat at exactly 34.9 practice/day; W3 is running **77.5/day**,
-roughly double. Aug 27 (64 starts) predates the #20/#21 deploys, so it is organic, not a deploy artifact. Two days is not a
-trend — WATCH. Ahrefs has not ingested the W3 window, hence n/a.
+\*W3 per-day rates computed on the 3 complete days (Aug 27–29); Aug 30 is partial and excluded. The Aug 27–28 spike
+(64, 91 starts) did **not** hold — Aug 29 fell back to 27 and Aug 30 is pacing ~normal — so W3's elevated per-day rate
+is the burst, not a new level. A stray future-dated Aug-31 row (12 pv, clock skew) is excluded. Ahrefs visitors still
+not comparable (see caveat below).
 
 **⚠️ Correction (Aug 27): the "funnel deepening" finding does not survive W2 completing.** Prior runs computed W2 on
 its first 5–6 days and reported practice +14–23%/day. With all 7 days in, **per-day W1→W2 practice is exactly flat
@@ -152,3 +153,18 @@ total, which is exactly the accumulation trap this file warns about. **Only the 
 
 **Reconciliation:** Bing citations are rising fast while live `ChatGPT-User` fetches are flat. Both can be true. Answers are increasingly grounded on Bing's **cached index** rather than fresh page pulls. That also explains
 citations rising while human referrals hold at ~15/day: more consultation, not more clicks.
+
+## Point-in-time snapshot — 2026-08-30
+
+- **Bing AI Performance (3 M):** total **450** citations / avg cited pages 5. Daily series Aug 21–27: 21, 79, 8, 49, 75, 44, 54
+  (≈47.1/day last 7 data days vs ≈12.7 the prior 7 — still accelerating; Bing lags ~2 days). Cited pages (17): /learn/ 224 ·
+  sovt 46 · / 31 · **vocal-warm-ups-for-beginners 31** · freddie-mercury 20 · chappell-roan 13 · ariana-grande 13 ·
+  vocal-range-test 12 · tone-deaf 11 · agility 9 · increase-range 5 · mix 4 · can-anyone 4 · chest 2 · belting 1 · breathing 1 ·
+  how-to-practice 1. Grounding queries (8): learn to sing online free 56 · learn to sing 52 · best free online singing course 32 ·
+  free singing lessons for beginners 31 · range test 9 · free voice lessons for beginners 8 · learning to sing 6 · learning singing 6.
+- **Ahrefs citation sample:** chatgpt 30/5 (fell from 33/5 — stale sample), copilot 7/3, all others 0.
+- **Crawler content hits (cumulative since tap):** ChatGPT-User **435** (≈43/day, flat rate) · OAI-SearchBot 44 · ClaudeBot 9 ·
+  Claude-User/SearchBot **3/3 (frozen 10 days)** · PerplexityBot 2 · GPTBot 0. Course paths: 0 hits from any bot.
+- **Bing index:** 26/42 sitemap URLs; not indexed = 11 /courses/ URLs (submitted Aug 29) + 4 why-* articles (never crawled) + 1.
+- **Bing organic:** ~39–77 impr/day, 0–3 clicks/day, flat. Google branded "vocal habit" (7d): 3 clicks / 5 impr / pos 2.
+- **Courses funnel since deploy:** 18 pv / 4 people; course_viewed 6/3 · lesson_viewed 5/2 · next_pressed 4/2 · completed 1/1 · toggled 0.
