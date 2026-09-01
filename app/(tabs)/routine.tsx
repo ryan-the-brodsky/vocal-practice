@@ -15,6 +15,7 @@ import { listSongs } from "@/lib/songs/store";
 import type { StoredSong } from "@/lib/songs/types";
 import { RoutineEditModal, buildRoutineItems } from "@/components/practice/RoutineEditModal";
 import ImportModal from "@/components/import/ImportModal";
+import ScrollFade, { isAtScrollEnd } from "@/components/ui/scroll-fade";
 import { track } from "@/lib/analytics";
 import { useTheme } from "@/hooks/use-theme";
 import { Spacing, Radii, Typography, Fonts } from "@/constants/theme";
@@ -78,6 +79,9 @@ export default function RoutineScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const [exercises, setExercises] = useState<ExerciseDescriptor[]>([]);
+  // Drives the bottom "more below" fade; the list is long and web scrollbars
+  // are invisible at rest, so nothing else signals that it scrolls.
+  const [atEnd, setAtEnd] = useState(false);
   const [routine, setRoutine] = useState<RoutineConfig | null>(null);
   const [userExercises, setUserExercises] = useState<StoredExtractedExercise[]>([]);
   const [songs, setSongs] = useState<StoredSong[]>([]);
@@ -133,7 +137,14 @@ export default function RoutineScreen() {
 
   return (
     <>
-      <ScrollView style={[styles.container, { backgroundColor: colors.canvas }]} contentContainerStyle={[styles.content, { padding: Spacing.lg, paddingBottom: Spacing['3xl'], gap: Spacing.lg }]}>
+      <View style={styles.scrollWrap}>
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.canvas }]}
+        contentContainerStyle={[styles.content, { padding: Spacing.lg, paddingBottom: Spacing['3xl'], gap: Spacing.lg }]}
+        onScroll={(e) => setAtEnd(isAtScrollEnd(e))}
+        onContentSizeChange={(_w, h) => setAtEnd(h <= 0)}
+        scrollEventThrottle={16}
+      >
         <Text style={{ fontSize: Typography['2xl'].size, lineHeight: Typography['2xl'].lineHeight, fontFamily: Fonts.display, color: colors.textPrimary }}>
           Routine
         </Text>
@@ -141,6 +152,11 @@ export default function RoutineScreen() {
         {/* a. Browse exercises by capability */}
         <View style={{ gap: Spacing.md }}>
           <Eyebrow>Browse exercises</Eyebrow>
+          {exercises.length > 0 && (
+            <Text style={{ fontSize: Typography.sm.size, lineHeight: Typography.sm.lineHeight, fontFamily: Fonts.body, color: colors.textSecondary, marginTop: -Spacing.xs }}>
+              {`${exercises.length} exercises across ${grouped.length} groups. Scroll for more.`}
+            </Text>
+          )}
           {CAPABILITIES.map((cap) => {
             const group = byCapability.get(cap.id);
             const comingSoon = isComingSoon(cap.id);
@@ -299,6 +315,8 @@ export default function RoutineScreen() {
           </View>
         </View>
       </ScrollView>
+      <ScrollFade color={colors.canvas} visible={!atEnd} />
+      </View>
 
       {routine !== null && (
         <RoutineEditModal
@@ -320,6 +338,7 @@ export default function RoutineScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollWrap: { flex: 1 },
   container: { flex: 1 },
   content: {},
   capCard: { borderWidth: 1 },

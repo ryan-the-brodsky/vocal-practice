@@ -206,6 +206,32 @@ ExerciseDescriptor + voicePart → `planExercise()` → `KeyIteration[]` → `fl
 
 **The AI-crawler work did NOT cause the above** — it was authored 2026-08-08 but sat in an unmerged PR until 2026-08-13. Verified against production on 2026-08-13, before that merge: the deployed `robots.txt` was a plain `User-agent: * / Allow: /` with no named crawler groups, and the IndexNow key file served the SPA fallback rather than the key. So the whole measurement window ran on the *default* setup. What was live, and is the plausible cause: statically-exported real HTML, the adversarial fact-check pipeline, JSON-LD (Article on Learn; FAQPage/HowTo/SoftwareApplication on `/vocal-range-test`), and a free ungated tool. **Before crediting any SEO change for a traffic result, `curl` production to confirm it actually deployed** — "committed" and "shipped" have diverged here more than once.
 
+## First paint on `/` (progressive enhancement, 2026-08-31)
+
+`/` must ship crawlable HTML (that is where the citations come from) **and** boot straight into the app for
+real browsers. Both, via progressive enhancement:
+
+- `app/_layout.tsx`'s pre-hydration gate renders `components/home/HomeHeroSEO` inside `<View nativeID="seo-hero">`
+  plus a `<View nativeID="app-boot">` branded boot state.
+- `app/+html.tsx` injects, in `<head>`, a one-line script setting `data-js="1"` on `<html>` (runs before the body
+  paints) and CSS: `#app-boot{display:none}` by default, and under `html[data-js="1"]` the hero is hidden and the
+  boot state shown. So **crawlers and no-JS clients get the full SEO intro; JS browsers never see it** (verified:
+  hidden at the first sampled frame, removed from the DOM ~200 ms in).
+- **The web app is no longer gated on fonts.** `fontsReady = Platform.OS === 'web' ? true : loaded`. The old gate
+  held the app behind ~1 MB of font files (BravuraText alone is 336 KB), which is what left the SEO intro on
+  screen for a second or two. Fonts enhance, never gate (DESIGN.md); native keeps the hold since it has a real
+  splash screen. Accept a brief FOUT on web instead.
+- Don't "simplify" any of this away: dropping the hero costs the only indexable HTML at `/`, and re-adding
+  `loaded` to the web gate brings the flash back. Re-verify after touching either file with
+  `grep -c seo-hero dist/index.html` (must be ≥1) and a JS-on browser check.
+
+**Scroll affordances:** web scroll containers use OS overlay scrollbars (expo-router's `ScrollViewStyleReset`
+makes the document unscrollable, so only the inner RNW div scrolls) and are invisible at rest, so long lists look
+finished. `components/ui/scroll-fade.tsx` (`ScrollFade` + `isAtScrollEnd`) paints a stacked-View fade over the
+bottom edge and hides it at the end; `app/+html.tsx` also styles `::-webkit-scrollbar` for fine-pointer devices.
+Used by the Routine tab, which also states its list size ("22 exercises across 10 groups"). Reuse both on any new
+long list (`RoutineEditModal` is the next candidate).
+
 ## Product analytics (`lib/analytics/`, shipped 2026-08-13)
 
 PostHog via `posthog-js`, **cookieless** (`cookieless_mode: 'always'`) — stores nothing on the device, so the site needs **no consent banner** (matching the cookieless Ahrefs tag in `app/+html.tsx:14`). Session replay is explicitly disabled (`disable_session_recording: true`) because it would require consent-backed storage; that was a deliberate trade, not an oversight.

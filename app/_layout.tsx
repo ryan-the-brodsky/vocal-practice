@@ -17,10 +17,10 @@ import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import 'react-native-reanimated';
 
-import { Colors } from '@/constants/theme';
+import { Colors, Fonts, Spacing, Typography } from '@/constants/theme';
 import FeedbackButton from '@/components/FeedbackButton';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import HomeHeroSEO from '@/components/home/HomeHeroSEO';
@@ -179,6 +179,12 @@ export default function RootLayout() {
     };
   }, [isStaticRoute]);
 
+  // Fonts enhance, they never gate (DESIGN.md). Holding the web app behind
+  // ~1 MB of font files is what kept the static SEO intro on screen for a
+  // second or two before Practice appeared. Native keeps the hold: it has a
+  // real splash screen and no FOUT story.
+  const fontsReady = Platform.OS === 'web' ? true : loaded;
+
   const navReady = !!rootNavState?.key;
   const onOnboarding = segments[0] === 'onboarding';
 
@@ -191,12 +197,12 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
       return;
     }
-    if (!loaded || !onboardingChecked || !navReady) return;
+    if (!fontsReady || !onboardingChecked || !navReady) return;
     if (needsOnboarding && !initialRedirectHandled && !onOnboarding) {
       router.replace('/onboarding');
     }
     SplashScreen.hideAsync();
-  }, [isStaticRoute, loaded, onboardingChecked, navReady, needsOnboarding, initialRedirectHandled, onOnboarding, router]);
+  }, [isStaticRoute, fontsReady, onboardingChecked, navReady, needsOnboarding, initialRedirectHandled, onOnboarding, router]);
 
   // App-shell <head> for non-marketing routes. Rendered even while the body is
   // gated so the title/canonical/OG flush to static HTML (the body stays empty).
@@ -213,7 +219,16 @@ export default function RootLayout() {
         {appHead}
         {onIndex && (
           <View style={{ flex: 1, backgroundColor: c.canvas }}>
-            <HomeHeroSEO />
+            {/* Crawlers and no-JS clients get the real content. Browsers with
+                JS hide this and show the boot state instead, from the first
+                frame — see the data-js rules in app/+html.tsx. */}
+            <View nativeID="seo-hero" style={{ flex: 1 }}>
+              <HomeHeroSEO />
+            </View>
+            <View nativeID="app-boot" style={styles.boot}>
+              <Text style={styles.bootMark}>Vocal Habit</Text>
+              <Text style={styles.bootNote}>Warming up…</Text>
+            </View>
           </View>
         )}
       </>
@@ -264,3 +279,27 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  // Shown only while JS boots (see app/+html.tsx). Deliberately plain: it
+  // renders before the custom fonts resolve, so it must look right in the
+  // system fallback.
+  boot: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.light.canvas,
+  },
+  bootMark: {
+    fontFamily: Fonts.display,
+    fontSize: Typography.xl.size,
+    lineHeight: Typography.xl.lineHeight,
+    color: Colors.light.textPrimary,
+  },
+  bootNote: {
+    fontFamily: Fonts.body,
+    fontSize: Typography.sm.size,
+    color: Colors.light.textSecondary,
+  },
+});
