@@ -2,11 +2,12 @@
 # Each FULL run publishes a NEW date-stamped artifact (never update-in-place, since that hits a false
 # "identical content" conflict). Newest first; this list is the pseudo-historical archive of daily boards.
 dashboards:
+  - 2026-08-31: "https://claude.ai/code/artifact/fa97f3e8-097a-4490-824d-05eb4eb927a6"
   - 2026-08-30: "https://claude.ai/code/artifact/45f5a1fd-decf-4e23-a34a-22b4ea9f045e"
   - 2026-08-28: "https://claude.ai/code/artifact/bc419b0e-0ef6-49d4-8614-c79e5d04c571"
   - 2026-08-27: "https://claude.ai/code/artifact/5d6dd051-7d1e-4c3f-a51f-a600ddbf79a2"
   - 2026-08-26: "https://claude.ai/code/artifact/0be8ed29-bc50-4925-9895-38e45607829e"
-last_run: 2026-08-30
+last_run: 2026-08-31
 window_default: 7d
 ---
 
@@ -28,6 +29,7 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   (c) product funnel course_viewed → lesson_viewed → exercise_toggled → lesson_completed (Aug 30 baseline ≈ smoke-test
   noise: 3/2/0/1 people); (d) Class Central + AlternativeTo listings (submission notes in seo/courses-class-central.md,
   still to be sent). Lesson-1 exercise is in DEFAULT_ROUTINE, so lesson-01 toggles under-count adds.
+  **Update Aug 31 (day 2):** product side growing, distribution side stalled. Course pageviews 18 → **45 / 17 people**; course_viewed 6→**11 (7 people)**, lesson_viewed 5→**11 (6)**, next_pressed 4→**10 (6)**, completions still **1**, `course_exercise_toggled` still **0**. Bing has **not crawled a single /courses/ URL** 2 days after submission (targeted GetUrlInfo: all 0 bytes), and no AI crawler has fetched a course path. So the syllabus cannot enter the cited pool yet, and the funnel's weak step is the routine toggle.
 
 - **[RESOLVED · 2026-08-28] PR-21 analytics coverage (19→61 events) is live and firing.** Deployed 04:16 UTC Aug 28;
   by 21:00 UTC ~18 brand-new events went 0→N exactly at deploy (onboarding_step_viewed 45, exercise_selected 24,
@@ -70,6 +72,7 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   **Update Aug 27:** 7 days on, still frozen. `Claude-SearchBot` 3 / `Claude-User` 3 content hits, zero movement.
   `ClaudeBot` (training) crept 6→9. Brave-index verification is still the blocking action and still has not been done.
   **Update Aug 30:** 10 days on, still frozen at 3/3 content hits. ClaudeBot flat at 9. Brave-index verification remains undone.
+  **Update Aug 31:** 11 days on. Still 3/3. ClaudeBot still 9. Unchanged; Brave-index verification still the blocking action.
 
 - **[OPEN · 2026-08-26 · run 2] Crawler tap is UA-spoofed (a credential scanner).** A scanner sprays secret paths
   (`/.env`, `/.ssh/id_dsa`, `/aws/credentials`, `/Dockerfile`, `/jenkins/.env`, `/proxy`, `/api/*`) while faking
@@ -220,13 +223,15 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   **Update Aug 27:** persists. Cumulative direct **142 @ 89% bounce**; last 7 days 77 @ 92%. Still uncharacterized
   after 5 days of flagging it; this is now the longest-open unactioned item. Break down by UA / `$virt_is_bot` / geo.
   **Update Aug 30:** persists. Last 7 days direct **88 @ 88% bounce**, now the #2 "channel" and nearly equal to LLM (100). Still uncharacterized.
+  **Update Aug 31:** persists. 7d direct **75 @ 88% bounce** vs LLM 83. Ten days flagged, still unactioned.
 
 - **[WATCH · 2026-08-24] Organic / community mentions (WoM).** As the user base grows, public mentions. Reddit
   especially. Are the leading sign word-of-mouth is taking hold, and a more public organic-mention venue than
   branded search. Track each run: reddit.com / HN / forum referrers in Ahrefs Web Analytics + a
   `site:reddit.com "vocal habit"` / `"vocalhabit.com"` sweep. **Baseline Aug 24: 0 Reddit mentions.** Pairs with
   branded search as the WoM gauge on the retention→growth path. Evaluating a metered tool-gateway (see below) for
-  proper social listening. **Update Aug 30: still 0** Reddit/HN/forum referrers; `site:reddit.com` sweep empty. Branded "vocal habit" (Google, 7d) 3 clicks / 5 impr / pos 2. **Update Aug 26: still 0**, no reddit/HN/forum referrers in Ahrefs; `site:reddit.com`
+  proper social listening. **Update Aug 30: still 0** Reddit/HN/forum referrers; `site:reddit.com` sweep empty. Branded "vocal habit" (Google, 7d) 3 clicks / 5 impr / pos 2.
+  **Update Aug 31:** Bing organic had its best click day yet (Aug 28: 6 clicks / 84 impr) but the rate is unchanged overall (~55 impr/day, 0-2 clicks). **Update Aug 26: still 0**, no reddit/HN/forum referrers in Ahrefs; `site:reddit.com`
   sweep empty. First artist-spotlight page (`/artists/chappell-roan`) drew its first 2 AI-referred entries.
   **Update Aug 27: still 0 Reddit/HN/forum referrers**, `site:reddit.com` sweep still empty. One small first:
   Ahrefs logged the **first-ever `social` visitor** (1) in the cumulative window. Branded search flat at 7 clicks /
@@ -235,6 +240,14 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   ("freddie mercury vocal range" 10, "ariana grande vocal range" 10, both 0 clicks).
 
 ## Findings (newest first)
+
+### 2026-08-31
+- **Biggest usage day since launch, by a wide margin.** Aug 31 (complete UTC day): **209 pageviews / 38 DAU / 115 practice starts / 75 reached scoring / 19 range tests / 21 onboardings.** The prior record was Aug 15 (174 pv / 93 starts) and the W1-W2 baseline was 34.9 starts/day, so this is **3.3x baseline**. No deploy or campaign explains it; the course + deck shipped Aug 29-30. W3 (Aug 27-31, 5 complete days) now runs **63.6 practice/day**, so the "spike reverted" read from yesterday was premature: Aug 29-30 was the dip, not the return to baseline.
+- **Citations nearly doubled again: 450 -> 811 total, and the daily rate went ~24/day -> ~83/day.** Bing daily Aug 24-30: 49, 75, 44, 54, **176**, 93, 92. Aug 28 alone (176) beat the entire first week. Cited-page pool 17 -> 18 with the top of it inflating hard: `/learn/` **224 -> 438**, `vocal-warm-ups-for-beginners` **31 -> 79**, `ariana-grande` **13 -> 38**, `can-tone-deaf-people-learn-to-sing` **11 -> 24**, `chest-voice` 2 -> 10, `mix-voice` 4 -> 11.
+- **The grounding-query surface broadened from resource-seeking into technique, which revises an earlier finding.** 8 -> 12 queries, and the four new ones are mostly *exercise* queries: **"voice warmups exercises for students" 36**, **"vocal exercises for singing" 30**, **"singing exercises" 20**, "freddie mercury voice type" 8. "learn to sing" also went 52 -> **124** (now #1, 22.6% share). The Aug-26 lesson ("citations are driven by free/beginner intent, NOT technique") is now **partially superseded**: technique queries contribute ~86 citations. Free/beginner is still the largest cluster, but the technique library is now pulling its own citations.
+- **CORRECTION to yesterday's data-quality note.** I flagged a future-dated `2026-08-31` row as clock skew. It was not: the PostHog project is **UTC**, and yesterday's sweep ran at 04:58 UTC on Aug 31, so that row was simply the current UTC day already in progress. Today's `2026-09-01` row (11 pv) is the same artifact. **Not a bug; the day tables just need the current UTC day labelled partial.**
+- **1B retention: PASSING, and this time not on one identity.** 7d returning volume **18.3 -> 25.1 starts/day**, depth **3.12 -> 3.83 starts/returning visit**, returning share of tagged pageviews **35% -> 43%**, pages/visit 5.57 vs 2.47 new. Both health bars up. ChatGPT activation floor also up: 24 starts / 23 people against Ahrefs' 81 ChatGPT visitors = **>=30% start floor** (was >=27%).
+- **Zero-click still the shape of it.** ChatGPT-User content fetches 435 -> 473 (~38/day, flat) and LLM referrals 83/7d (~12/day, flat) while citations run ~83/day. Consultation keeps rising; clicks do not.
 
 ### 2026-08-30
 - **Courses shipped and instrumented end-to-end.** "Foundations of Singing" (9 lessons, `/courses/…`) deployed Aug 29 ~23:00 UTC

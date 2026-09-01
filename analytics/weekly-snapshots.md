@@ -12,12 +12,13 @@ The current bucket is partial until it fills (see "days"). **Read growth from th
 |---|---|---|---|---|---|---|---|---|---|
 | W1 · Aug 13–19 | 7 | 176 | 52% | 526 | 244 | 162 | 45 | 34.9 | 23.1 |
 | W2 · Aug 20–26 | 7 | 219 | 48% | 479 | 244 | 175 | 79 | 34.9 | 25.0 |
-| W3 · Aug 27–Sep 2 | 3* | n/a | n/a | 238 | 182 | 127 | 32 | 60.7 | 42.3 |
+| W3 · Aug 27–Sep 2 | 5* | n/a | n/a | 524 | 318 | 217 | 46 | 63.6 | 43.4 |
 
-\*W3 per-day rates computed on the 3 complete days (Aug 27–29); Aug 30 is partial and excluded. The Aug 27–28 spike
-(64, 91 starts) did **not** hold — Aug 29 fell back to 27 and Aug 30 is pacing ~normal — so W3's elevated per-day rate
-is the burst, not a new level. A stray future-dated Aug-31 row (12 pv, clock skew) is excluded. Ahrefs visitors still
-not comparable (see caveat below).
+\*W3 per-day rates computed on the 5 complete UTC days Aug 27–31. **Revised Aug 31:** the "spike didn't hold" reading
+from the Aug-30 run was premature. Daily practice starts across W3: 64, 91, 27, 21, **115**. Aug 29–30 was a dip, not a
+return to the 34.9/day W1–W2 baseline; Aug 31 set an all-time high. W3 is running **63.6/day, 1.8x the baseline**.
+Also corrected: the "future-dated row" excluded last run was not clock skew, it was the current UTC day in progress
+(project TZ is UTC, sweep ran 04:58 UTC). Ahrefs visitors still not comparable (see caveat below).
 
 **⚠️ Correction (Aug 27): the "funnel deepening" finding does not survive W2 completing.** Prior runs computed W2 on
 its first 5–6 days and reported practice +14–23%/day. With all 7 days in, **per-day W1→W2 practice is exactly flat
@@ -168,3 +169,21 @@ citations rising while human referrals hold at ~15/day: more consultation, not m
 - **Bing index:** 26/42 sitemap URLs; not indexed = 11 /courses/ URLs (submitted Aug 29) + 4 why-* articles (never crawled) + 1.
 - **Bing organic:** ~39–77 impr/day, 0–3 clicks/day, flat. Google branded "vocal habit" (7d): 3 clicks / 5 impr / pos 2.
 - **Courses funnel since deploy:** 18 pv / 4 people; course_viewed 6/3 · lesson_viewed 5/2 · next_pressed 4/2 · completed 1/1 · toggled 0.
+
+## Point-in-time snapshot — 2026-08-31
+
+- **Bing AI Performance (3 M):** total **811** citations (was 450 on Aug 30), avg cited pages 5. Daily Aug 24–30: 49, 75, 44, 54,
+  **176**, 93, 92 → **~83.3/day over the last 7 data days vs ~24.4/day the 7 before** (+241%). Bing lags ~2 days.
+- **Cited pages (18):** /learn/ **438** · vocal-warm-ups-for-beginners **79** · sovt-exercises 55 · / 45 · ariana-grande 38 ·
+  freddie-mercury 31 · can-tone-deaf 24 · chappell-roan 15 · vocal-range-test 12 · mix-voice 11 · chest-voice 10 · agility 9 ·
+  can-anyone 7 · increase-range 5 · breathing 4 · can-you-learn-as-adult 3 (new) · belting 1 · how-to-practice 1. **No /courses/ page cited.**
+- **Grounding queries (12, was 8):** learn to sing **124** (22.6%) · learn to sing online free 64 · **voice warmups exercises for students 36 (new)** ·
+  free singing lessons for beginners 35 · best free online singing course 32 · **vocal exercises for singing 30 (new)** · **singing exercises 20 (new)** ·
+  learning to sing 15 · learning singing 11 · range test 9 · **freddie mercury voice type 8 (new)** · free voice lessons for beginners 8.
+- **Ahrefs citation sample:** chatgpt 29/5 (down again from 30, then 33 — stale sample, ignore for trend), copilot 7/3, others 0.
+- **Crawler content hits (cumulative):** ChatGPT-User **473** (~38/day, flat) · OAI-SearchBot 52 · ClaudeBot 9 · Claude-User/SearchBot **3/3 (frozen 11 days)** ·
+  PerplexityBot 2 · GPTBot 0. **Course paths: 0 hits from any bot.**
+- **Bing index:** 27/42. Targeted check: `/courses/`, the syllabus, and lesson 01 all **not indexed** 2 days after submission;
+  `why-does-my-voice-crack` still not indexed 5 days after Request Indexing.
+- **Bing organic:** best click day yet Aug 28 (6 clicks / 84 impr); otherwise ~55 impr/day, 0–2 clicks.
+- **Courses funnel (day 2):** 45 pv / 17 people · course_viewed 11/7 · lesson_viewed 11/6 · next_pressed 10/6 · completed 1/1 · **toggled 0**.
