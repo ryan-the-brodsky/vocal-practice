@@ -2,7 +2,7 @@
 # Each FULL run publishes a NEW date-stamped artifact (never update-in-place, since that hits a false
 # "identical content" conflict). Newest first; this list is the pseudo-historical archive of daily boards.
 dashboards:
-  # 2026-09-02: no artifact — browser-dependent steps skipped during a screen recording (user request)
+  - 2026-09-02: "https://claude.ai/code/artifact/9c136383-0f95-427b-892e-84161d09d669"
   - 2026-09-01: "https://claude.ai/code/artifact/f0a64d4a-6c5f-4cb8-b047-0d22adf5a87f"
   - 2026-08-31: "https://claude.ai/code/artifact/fa97f3e8-097a-4490-824d-05eb4eb927a6"
   - 2026-08-30: "https://claude.ai/code/artifact/45f5a1fd-decf-4e23-a34a-22b4ea9f045e"
@@ -331,9 +331,21 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
 
 ### 2026-09-02
 
-⚠️ **Partial sweep — no artifact, and no Bing AI-Performance read.** Both are browser-driven and were skipped at the
-user's request so they would not steal focus during a screen recording. Citation totals, grounding queries and cited
-pages are **point-in-time and cannot be backfilled for Sep 2**; last known is 898 / 18 pages / 12 queries (Sep 1).
+_(Browser steps deferred during a screen recording, then completed 2026-09-03 17:52 UTC. Bing lags ~2 days, so its
+latest point is Sep 1 and nothing was lost. Activity figures below still cover through Sep 2 UTC, the last complete day.)_
+
+- **Citations 898 → 980, running ~89.7/day vs 37.1/day the prior 7 (+142%) — but the shape is a settling plateau,
+  not acceleration.** Daily Aug 26–Sep 1: 44, 54, **176**, 93, 92, 87, 82. Aug 28 was a spike and the four days since
+  step gently down. Call it ~85/day and stop describing it as accelerating.
+- **⚠️ The Sep 1 "concentration, not expansion" finding is REVISED — it was a one-day artifact.** On Sep 1, 62 of ~87
+  new citations (71%) landed on `/learn/`. Today only **29 of ~82 (35%)** did; the rest spread across sovt +18,
+  chappell-roan +15, vocal-range-test +12, freddie-mercury +3, belting +2. The hub's share of cited volume *fell*
+  56% → **54%**. This is the second time a single-day distribution delta has misled a headline (cf. the Aug 27
+  partial-bucket correction). **Rule to hold: distribution claims need two data points minimum.**
+- **The grounding surface widened into technique for the first time in days: 12 → 13 queries.**
+  **`semi occluded vocal tract exercises` 7** entered — pairing with sovt's +18 citations — and **`range test`
+  9 → 21 (+12)** matches `/vocal-range-test`'s +12 exactly, so the tool page now pulls its own query rather than
+  riding the hub. Still **no `/courses/` page cited**, and no courses-shaped query has moved.
 
 - **W3 closed at 72.3 practice/day — 2.07x the W1/W2 baseline of 34.9.** First fully complete post-step-up bucket
   (749 pageviews, 506 starts, 360 scored, 92 logged over 7/7 days). Sep 2 set a new single-day record at 116 starts.

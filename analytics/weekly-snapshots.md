@@ -93,7 +93,7 @@ Flat so far, no inflow experiment shipped yet. Baseline to beat as content/autho
 | 2026-08-30 | 450 | 17 | 30 / 5pg | 7 / 3pg | ~15 | 3 clicks / pos 2 (Google, 7d) | 0 |
 | 2026-08-31 | 811 | 18 | 29 / 5pg | 7 / 3pg | ~15 | — | 0 |
 | 2026-09-01 | **898** | **18** | 26 / 5pg | 7 / 3pg | ~9 | **10 clicks / pos 1.8 (Google, 7d)** | 0 |
-| 2026-09-02 | _not read_ | _not read_ | 22 / 5pg | 7 / 3pg | ~10 | 10 clicks / pos 1.8 (Google, 7d) | 0 |
+| 2026-09-02 | **980** | **18** | 22 / 5pg | 7 / 3pg | ~10 | 10 clicks / pos 1.8 (Google, 7d) | 0 |
 
 **Aug 27: 1A moved for the first time, on the citation lever only.** Bing citations per day: **10.9/day (Aug 11–17)
 → 28.7/day (Aug 18–24)**, +163%; single days of 79 (Aug 22) and 75 (Aug 25). Bing's own "avg cited pages" moved
@@ -234,10 +234,29 @@ citations rising while human referrals hold at ~15/day: more consultation, not m
 
 ## Point-in-time snapshot — 2026-09-02
 
-⚠️ **Partial sweep.** The Bing AI-Performance figures (total citations, grounding queries, cited pages) are the one
-part of this report that is browser-only, and the browser step was deliberately skipped this run so it would not
-steal focus during a screen recording. **Citation totals, grounding queries and cited pages are NOT updated below** —
-they are point-in-time and cannot be recomputed for Sep 2 later. Last known: 898 total / 18 pages / 12 queries (Sep 1).
+**Bing AI-Performance read completed 2026-09-03 17:52 UTC** (deferred from the Sep 2 sweep, which skipped the
+browser step during a screen recording). Bing lags ~2 days, so its latest data point is Sep 1 — nothing was lost.
+
+- **Bing AI Performance (3 M):** total **980** citations (was 898 on Sep 1), avg cited pages 5. Daily Aug 26–Sep 1:
+  44, 54, **176**, 93, 92, 87, 82 → **~89.7/day over the last 7 data days vs ~37.1/day the 7 before** (+142%).
+  Note the shape: Aug 28's 176 was a spike, and the four days since step gently *down* (93, 92, 87, 82). Reading it
+  as a settling ~85/day plateau is more honest than "still accelerating."
+- **⚠️ Yesterday's "concentration, not expansion" finding is REVISED — it was a one-day artifact.** On Sep 1, 62 of
+  ~87 new citations (71%) went to `/learn/`. Today only **29 of ~82 (35%)** did, and the rest spread across
+  **sovt-exercises +18, chappell-roan +15, vocal-range-test +12, freddie-mercury +3, belting +2**. The hub's share of
+  all cited volume actually *fell*, 56% → **54%**. Lesson re-learned: do not headline a distribution delta computed
+  on a single day.
+- **Cited pages (18):** `/learn/` **529** · sovt-exercises **81** · vocal-warm-ups-for-beginners 79 · `/` 46 ·
+  ariana-grande 43 · freddie-mercury 35 · **chappell-roan 30** · **vocal-range-test 24** · can-tone-deaf 24 ·
+  chest-voice 11 · mix-voice 11 · agility 9 · can-anyone 7 · increase-range 5 · breathing 4 · belting 3 ·
+  can-you-learn-as-adult 3 · how-to-practice 1. **Still no `/courses/` page cited.**
+- **Grounding queries: 12 → 13, and the new one is a technique query.** **`semi occluded vocal tract exercises` 7
+  (3.61%)** entered — pairing with sovt-exercises' +18 citations. **`range test` 9 → 21 (+12)**, matching
+  `/vocal-range-test` exactly +12: the tool page is now pulling its own query, not riding the hub. Full list:
+  learn to sing 140 · learn to sing online free 80 · vocal exercises for singing 42 · free singing lessons for
+  beginners 39 · singing exercises 36 · voice warmups exercises for students 36 · best free online singing course 32 ·
+  range test 21 · learning singing 20 · learning to sing 15 · free voice lessons for beginners 12 ·
+  freddie mercury voice type 8 · semi occluded vocal tract exercises 7.
 
 - **Ahrefs citation sample:** chatgpt **22**/5 (33 → 30 → 29 → 26 → 22 across runs, drifting steadily *down* while
   Bing's first-party count climbed 277 → 898). Copilot 7/3. Confirmed useless for trend; keep ignoring it.
