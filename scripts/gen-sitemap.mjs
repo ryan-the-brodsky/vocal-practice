@@ -3,12 +3,39 @@
 // render empty static HTML (client-only). Run: npm run seo:sitemap
 
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+const ROOT = join(HERE, "..");
 const SITE = "https://vocalhabit.com";
-const lastmod = new Date().toISOString().slice(0, 10);
+const TODAY = new Date().toISOString().slice(0, 10);
+
+// Per-URL lastmod from the source file's last commit date. Stamping one build date on
+// every URL tells Bing all 42 pages changed today, which makes lastmod worthless for
+// crawl scheduling — the suspected cause of new URLs never being crawled (2026-09-02).
+function lastmodFor(...relPaths) {
+  const dates = relPaths.map((rel) => {
+    const abs = join(ROOT, rel);
+    try {
+      const out = execFileSync("git", ["log", "-1", "--format=%cs", "--", rel], {
+        cwd: ROOT,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      if (out) return out;
+    } catch {
+      // not a git checkout, or shallow clone without this file's history
+    }
+    try {
+      return statSync(abs).mtime.toISOString().slice(0, 10);
+    } catch {
+      return TODAY;
+    }
+  });
+  return dates.sort().pop() ?? TODAY; // newest wins for multi-source routes
+}
 
 const slugs = readdirSync(join(HERE, "..", "content", "learn"))
   .filter((f) => f.endsWith(".md"))
@@ -43,27 +70,55 @@ const artistSlugs = readdirSync(artistDir)
 const coursesDir = join(HERE, "..", "content", "courses");
 const courseIds = readdirSync(coursesDir).filter((f) => statSync(join(coursesDir, f)).isDirectory()).sort();
 const courseUrls = courseIds.flatMap((id) => [
-  { loc: `${SITE}/courses/${id}/`, priority: "0.8" },
+  {
+    loc: `${SITE}/courses/${id}/`,
+    priority: "0.8",
+    lastmod: lastmodFor(`content/courses/${id}/course.md`),
+  },
   ...readdirSync(join(coursesDir, id))
     .filter((f) => /^\d{2}-.+\.md$/.test(f))
     .sort()
-    .map((f) => ({ loc: `${SITE}/courses/${id}/${f.replace(/\.md$/, "")}`, priority: "0.6" })),
+    .map((f) => ({
+      loc: `${SITE}/courses/${id}/${f.replace(/\.md$/, "")}`,
+      priority: "0.6",
+      lastmod: lastmodFor(`content/courses/${id}/${f}`),
+    })),
 ]);
 
 const urls = [
-  { loc: `${SITE}/`, priority: "1.0" },
-  { loc: `${SITE}/vocal-range-test`, priority: "0.9" },
-  { loc: `${SITE}/learn/`, priority: "0.7" },
-  { loc: `${SITE}/courses/`, priority: "0.7" },
+  { loc: `${SITE}/`, priority: "1.0", lastmod: lastmodFor("components/home/HomeHeroSEO.tsx") },
+  {
+    loc: `${SITE}/vocal-range-test`,
+    priority: "0.9",
+    lastmod: lastmodFor("app/(marketing)/vocal-range-test.tsx"),
+  },
+  {
+    loc: `${SITE}/learn/`,
+    priority: "0.7",
+    lastmod: lastmodFor("components/learn/LearnHub.tsx", "app/(marketing)/learn/index.tsx"),
+  },
+  {
+    loc: `${SITE}/courses/`,
+    priority: "0.7",
+    lastmod: lastmodFor("app/(marketing)/courses/index.tsx"),
+  },
   ...courseUrls,
-  ...slugs.map((s) => ({ loc: `${SITE}/learn/${s}`, priority: "0.6" })),
-  ...artistSlugs.map((s) => ({ loc: `${SITE}/artists/${s}`, priority: "0.6" })),
+  ...slugs.map((s) => ({
+    loc: `${SITE}/learn/${s}`,
+    priority: "0.6",
+    lastmod: lastmodFor(`content/learn/${s}.md`),
+  })),
+  ...artistSlugs.map((s) => ({
+    loc: `${SITE}/artists/${s}`,
+    priority: "0.6",
+    lastmod: lastmodFor(`content/artist-profiles/${s}.md`),
+  })),
 ];
 
 const body = urls
   .map(
     (u) =>
-      `  <url>\n    <loc>${u.loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <priority>${u.priority}</priority>\n  </url>`,
+      `  <url>\n    <loc>${u.loc}</loc>\n    <lastmod>${u.lastmod}</lastmod>\n    <priority>${u.priority}</priority>\n  </url>`,
   )
   .join("\n");
 

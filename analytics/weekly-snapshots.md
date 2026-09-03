@@ -12,13 +12,15 @@ The current bucket is partial until it fills (see "days"). **Read growth from th
 |---|---|---|---|---|---|---|---|---|---|
 | W1 · Aug 13–19 | 7 | 176 | 52% | 526 | 244 | 162 | 45 | 34.9 | 23.1 |
 | W2 · Aug 20–26 | 7 | 219 | 48% | 479 | 244 | 175 | 79 | 34.9 | 25.0 |
-| W3 · Aug 27–Sep 2 | 5* | n/a | n/a | 524 | 318 | 217 | 46 | 63.6 | 43.4 |
+| W3 · Aug 27–Sep 2 | 7 | n/a | n/a | 749 | 506 | 360 | 92 | **72.3** | **51.4** |
+| W4 · Sep 3–9 | 0* | — | — | — | — | — | — | — | — |
 
-\*W3 per-day rates computed on the 5 complete UTC days Aug 27–31. **Revised Aug 31:** the "spike didn't hold" reading
-from the Aug-30 run was premature. Daily practice starts across W3: 64, 91, 27, 21, **115**. Aug 29–30 was a dip, not a
-return to the 34.9/day W1–W2 baseline; Aug 31 set an all-time high. W3 is running **63.6/day, 1.8x the baseline**.
-Also corrected: the "future-dated row" excluded last run was not clock skew, it was the current UTC day in progress
-(project TZ is UTC, sweep ran 04:58 UTC). Ahrefs visitors still not comparable (see caveat below).
+\***W3 is now COMPLETE (7/7 days).** Daily practice starts: 64, 91, 27, 21, 115, 72, **116**. W3 finished at
+**72.3 practice/day — 2.07x the flat 34.9/day W1–W2 baseline** — with pageviews 107.0/day (vs 75.1 / 68.4) and
+logging 13.1/day (vs 6.4 / 11.3). The step-up held all seven days; Aug 29–30 was a trough inside a raised plateau.
+W4 opens Sep 3. ⚠️ **Read the W3 tail with care:** Sep 2's record 116 starts is ~62% two identities (45 starts from
+one device with `practiceNumber` running 1→45 in a single day — the known dev-test signature — plus 27 from another).
+Ahrefs visitors still not comparable (see caveat below).
 
 **⚠️ Correction (Aug 27): the "funnel deepening" finding does not survive W2 completing.** Prior runs computed W2 on
 its first 5–6 days and reported practice +14–23%/day. With all 7 days in, **per-day W1→W2 practice is exactly flat
@@ -35,44 +37,46 @@ treat Ahrefs visitors as channel-mix only.
 
 | Metric | Returning | New |
 |---|---|---|
-| Pages / visit | 6.84 | 3.27 |
-| Practice starts / visitor-day (**depth**) | 3.21 | 1.11 |
+| Pages / visit | 5.60 | 2.76 |
+| Practice starts / visitor-day (**depth**) | 3.96 | 1.79 |
 
-**Health bar = both rising. Status Aug 28: PASSING (6th run), still LOW CONFIDENCE — the Aug 27–28 volume spike inflates the returning series; see the caveat.**
-- **Volume** (returning practice-starts/day): **7.75 → 10.9 → 12.3 → 13.9 → 14.9 → 19.7/day** ✓ (Aug 28; note the Aug 27–28 volume spike lifts this — read with the WATCH)
-- **Depth** (practice-starts/returning visit): **1.89 → 2.10 → 2.14 → 2.32 → 2.49 → 2.60 → 3.21** ✓
-- Returning share of tagged pageviews: 22.5% → 20.2% → 23.0% → 29.7% → **35.9%**. Untagged still 0 (resolved).
-- Visit-number tail this window: 1→329 pv, 2→100, 3→6, 4→7, 5→7, 6→4, 7→15.
+**Health bar = both rising. Status Sep 2: PASSING (8th run), and now passing under a CONSISTENT exclusion rule —
+the strongest read yet.**
+- **Volume** (returning practice-starts/day, raw): 7.75 → 10.9 → 12.3 → 13.9 → 14.9 → 19.7 → 25.0 → **32.3/day** ✓
+- **Depth** (practice-starts/returning visit, raw): 1.89 → 2.10 → 2.14 → 2.32 → 2.49 → 2.60 → 3.21 → 3.50 → **3.96** ✓
+- Returning share of tagged pageviews: 22.5% → 20.2% → 23.0% → 29.7% → 35.9% → 41.6% → **42.6%**. Untagged still 0.
 
-**⚠️ One identity decides the verdict.** A single person logged 26 practice starts on Aug 27 with `practiceNumber`
-running 1→24 on deploy day while toggling Guided mode. Almost certainly developer testing of the new nudge. It sits
-in the `returning=true` cohort and supplies **24 of that cohort's 104 starts**. Excluding it, the same two bars read
-**11.4/day volume and 2.05 depth, both DOWN**. Heavy single-day identities appear in every prior week too (30 starts
-wk of Aug 10, 24 wk of Aug 17; cookieless ids rotate daily, so one human = one id per day), so excluding would break
-the series and was not done. At this n the pass/fail flips on one person.
+**✅ Sep 2: the verdict now survives a like-for-like exclusion, which is the test that mattered.** Earlier runs
+compared a raw number against a differently-adjusted one. Applying ONE rule to BOTH weeks — drop any person_id with
+**≥20 practice starts in a single day** (the dev-test signature) — gives:
 
-**The practice-returner curve** (`practiceNumber`, Aug 25+, 100% coverage, dev identity excluded).
-Lead with this from here; it counts genuine practice-returners, not site-visit returners:
+| Week (heavy identities excluded) | Returning starts/day | Depth |
+|---|---|---|
+| Aug 20–26 | 9.6 | 1.76 |
+| **Aug 27–Sep 2** | **17.9** ✓ | **2.36** ✓ |
 
-| Milestone | Devices (raw) | Genuine (−1 dev) | Share | vs Aug 25–27 |
+Volume +86%, depth +34%, both directions confirmed without leaning on any single device. ⚠️ But note the raw
+headline is inflated ~44% by those heavy identities — quote the excluded figures when the number has to be robust.
+
+**The practice-returner curve** (`practiceNumber`, cumulative from Aug 25, 100% coverage). Raw devices; the
+share column is the growth-free read:
+
+| Milestone | Devices | Share | Share Sep 1 | Share Aug 28 |
 |---|---|---|---|---|
-| Practiced ≥1 | 28 | 27 | 100% | +9 (was 18) |
-| Reached #2 | 21 | 20 | 74% | +7 (was 13, 72%) |
-| Reached #3 | 15 | 14 | 52% | +4 (was 10, 56%) |
-| Reached #5 | 10 | 9 | 33% | +4 (was 5, 28%) |
-| Reached #10 | 5 | 4 | 15% | new tier |
-| Reached #16 | 4 | 3 | 11% | new tier |
+| Practiced ≥1 | 94 | 100% | 100% | 100% |
+| Reached #2 | 70 | 74% | 72% | 74% |
+| Reached #3 | 58 | 62% | 59% | 52% |
+| Reached #5 | 41 | 44% | 41% | 33% |
+| Reached #10 | 24 | 26% | 24% | 15% |
+| Reached #16 | 12 | 13% | 10% | 11% |
 
-**Aug 28 read: the deep-returner cohort roughly doubled.** #5-reachers went **5 → 10** (genuine 9) and a #10 tier
-(4 genuine) and #16 tier (3 genuine) now exist where before the curve ran out. The *rates* held (72→74% at #2,
-28→33% at #5), so the growth is more people entering the funnel (Aug 28 added ~10 practicers) with retention shape
-stable-to-improving, not just window-widening. That is the "growing habit-builder cohort" signal.
+Base 83 → 94 devices; every share held or improved for a third straight run, and the #5 and #10 tiers have now
+roughly doubled off the Aug-28 shape (33% → 44%, 15% → 26%). The n≥40 tail is 3 devices (pn 43, 45, 54), two of
+them new on Sep 2 — treat that tail as probable dev testing, not power users.
 
-Caveats: (1) `practiceNumber` is a localStorage per-device counter — a fresh device or cleared storage restarts at
-1, so every tier is a **floor**. (2) One dev device reached **54** (30 starts on Aug 28 alone) and passes through
-every bucket, so it inflates each tier by exactly 1 and **owns the entire n≥21 tail** — subtracted in the "genuine"
-column. (3) Window is cumulative from Aug 25 (4 days), so the vs-prior counts partly reflect one more (big) day, not
-pure retention. Re-cut weekly.
+Caveats: (1) `practiceNumber` is a per-device localStorage counter — a fresh device or cleared storage restarts at
+1, so every tier is a **floor**. (2) The window is cumulative from Aug 25 (now 9 days), so raw counts partly reflect
+window-widening; the share column is the honest read. Re-cut weekly.
 
 ## Inflow (1A): lever gauges (mostly point-in-time)
 
@@ -86,6 +90,10 @@ Flat so far, no inflow experiment shipped yet. Baseline to beat as content/autho
 | 2026-08-26 | 277 | ~5 (top reported) | 33 / 4pg | 5 / 3pg | ~18 | 8 clicks / pos 2 (Google, 7d) | 0 |
 | 2026-08-27 | **352** | **17** | 33 / 4pg | 5 / 3pg | ~15 | 7 clicks / pos 2 (Google, 7d) | 0 |
 | 2026-08-28 | 352* | 17* | 33 / 4pg | 5 / 3pg | ~15 | 37 clicks / pos 2.7 (Google, 30d) | 0 |
+| 2026-08-30 | 450 | 17 | 30 / 5pg | 7 / 3pg | ~15 | 3 clicks / pos 2 (Google, 7d) | 0 |
+| 2026-08-31 | 811 | 18 | 29 / 5pg | 7 / 3pg | ~15 | — | 0 |
+| 2026-09-01 | **898** | **18** | 26 / 5pg | 7 / 3pg | ~9 | **10 clicks / pos 1.8 (Google, 7d)** | 0 |
+| 2026-09-02 | **980** | **18** | 22 / 5pg | 7 / 3pg | ~10 | 10 clicks / pos 1.8 (Google, 7d) | 0 |
 
 **Aug 27: 1A moved for the first time, on the citation lever only.** Bing citations per day: **10.9/day (Aug 11–17)
 → 28.7/day (Aug 18–24)**, +163%; single days of 79 (Aug 22) and 75 (Aug 25). Bing's own "avg cited pages" moved
@@ -187,3 +195,93 @@ citations rising while human referrals hold at ~15/day: more consultation, not m
   `why-does-my-voice-crack` still not indexed 5 days after Request Indexing.
 - **Bing organic:** best click day yet Aug 28 (6 clicks / 84 impr); otherwise ~55 impr/day, 0–2 clicks.
 - **Courses funnel (day 2):** 45 pv / 17 people · course_viewed 11/7 · lesson_viewed 11/6 · next_pressed 10/6 · completed 1/1 · **toggled 0**.
+
+## Point-in-time snapshot — 2026-09-01
+
+- **Bing AI Performance (3 M):** total **898** citations (was 811 on Aug 31), avg cited pages 5. Daily Aug 25–31:
+  75, 44, 54, **176**, 93, 92, 87 → **~88.7/day over the last 7 data days vs ~28.7/day the 7 before** (+209%).
+  Aug 28 remains the single-day peak; the four days since have settled into a **~90/day plateau**, roughly 3x the
+  W2 rate and no longer accelerating. Bing lags ~2 days.
+- **Cited pages (18, unchanged count):** `/learn/` **500** · vocal-warm-ups-for-beginners 79 · sovt-exercises 63 ·
+  `/` 46 · ariana-grande 43 · freddie-mercury 32 · can-tone-deaf 24 · chappell-roan 15 · vocal-range-test 12 ·
+  chest-voice 11 · mix-voice 11 · agility 9 · can-anyone 7 · increase-range 5 · breathing 4 · can-you-learn-as-adult 3 ·
+  belting 1 · how-to-practice 1. **No /courses/ page cited.** ⚠️ **Concentration is increasing, not the surface:**
+  of the ~87 citations added since Aug 31, **62 went to the `/learn/` hub alone** (438 → 500). The hub is now 56% of
+  all cited volume; 11 of the 18 pages were exactly flat.
+- **Grounding queries (12, unchanged set — no new query entered):** learn to sing **138** (23.2%) · learn to sing
+  online free 72 · vocal exercises for singing 42 · free singing lessons for beginners 39 · voice warmups exercises
+  for students 36 (flat) · best free online singing course 32 (flat) · singing exercises 28 · learning singing 17 ·
+  learning to sing 15 · free voice lessons for beginners 12 · range test 9 (flat) · freddie mercury voice type 8 (flat).
+- **Ahrefs citation sample:** chatgpt 26/5 (33 → 30 → 29 → 26 across runs while Bing went 277 → 898 — the panel is
+  drifting *down* as first-party climbs; treat as noise, not a trend).
+- **Crawler content hits (cumulative):** ChatGPT-User **525** · OAI-SearchBot 55 · ClaudeBot 9 ·
+  Claude-User/SearchBot **3/3 (frozen 13 days)** · PerplexityBot 3 · GPTBot 0. Per-day ChatGPT-User Aug 26–Sep 1:
+  36, 38, 37, 41, 36, 37, 45 = **38.6/day, flat** (prior 7: 39.9/day). **Course paths: still 0 hits from any bot.**
+- **Bing index: 27/42, unchanged from Aug 31.** All **11 `/courses/` URLs still uncrawled** (4 days after submission,
+  0 bytes) and all 4 `why-*` articles still never crawled. `/learn/` itself was re-crawled Aug 31.
+- **Bing organic:** 11 clicks / 359 impr over Aug 26–31 (~60 impr/day) vs 6 clicks / 325 impr the prior 6 days —
+  clicks up, impressions flat. Top queries "vocal warm ups" 52 impr and "vocal warm up" 43 impr are **still 0 clicks**.
+- **Google branded (7 d):** "vocal habit" 8 clicks / 10 impr / pos 1.8 + "vocal habits" 2 clicks → **10 branded
+  clicks**, up from 3 on Aug 30. First real move on the word-of-mouth gauge.
+- **Community mentions:** still **0** (Reddit sweep + referrer scan). DR still **0**.
+- **Courses funnel (day 3):** cooling. Course pageviews by day 17 → 28 → 10; course_viewed 6 → 5 → 2;
+  lesson_viewed 5 → 6 → 2; next_pressed 4 → 6 → 2. All-time: course_viewed 15/10 people · lesson_viewed 13/8 ·
+  next_pressed 12/8 · **lesson_completed 1** · **`course_exercise_toggled` has never fired** (absent from the
+  project taxonomy entirely).
+- **Article → app conversion is working:** `embed_exercise_played` 7 → **31 (17 people)**, `embed_exercise_open_full`
+  1 → **13 (12 people)** since Aug 28. Both were near-zero blockers a week ago.
+- **Guided nudge:** `guided_nudge_shown` 10 → **28 (27 people)**, `guided_nudge_accepted` 2 → **4**. Accept rate ~14%.
+
+## Point-in-time snapshot — 2026-09-02
+
+**Bing AI-Performance read completed 2026-09-03 17:52 UTC** (deferred from the Sep 2 sweep, which skipped the
+browser step during a screen recording). Bing lags ~2 days, so its latest data point is Sep 1 — nothing was lost.
+
+- **Bing AI Performance (3 M):** total **980** citations (was 898 on Sep 1), avg cited pages 5. Daily Aug 26–Sep 1:
+  44, 54, **176**, 93, 92, 87, 82 → **~89.7/day over the last 7 data days vs ~37.1/day the 7 before** (+142%).
+  Note the shape: Aug 28's 176 was a spike, and the four days since step gently *down* (93, 92, 87, 82). Reading it
+  as a settling ~85/day plateau is more honest than "still accelerating."
+- **⚠️ Yesterday's "concentration, not expansion" finding is REVISED — it was a one-day artifact.** On Sep 1, 62 of
+  ~87 new citations (71%) went to `/learn/`. Today only **29 of ~82 (35%)** did, and the rest spread across
+  **sovt-exercises +18, chappell-roan +15, vocal-range-test +12, freddie-mercury +3, belting +2**. The hub's share of
+  all cited volume actually *fell*, 56% → **54%**. Lesson re-learned: do not headline a distribution delta computed
+  on a single day.
+- **Cited pages (18):** `/learn/` **529** · sovt-exercises **81** · vocal-warm-ups-for-beginners 79 · `/` 46 ·
+  ariana-grande 43 · freddie-mercury 35 · **chappell-roan 30** · **vocal-range-test 24** · can-tone-deaf 24 ·
+  chest-voice 11 · mix-voice 11 · agility 9 · can-anyone 7 · increase-range 5 · breathing 4 · belting 3 ·
+  can-you-learn-as-adult 3 · how-to-practice 1. **Still no `/courses/` page cited.**
+- **Grounding queries: 12 → 13, and the new one is a technique query.** **`semi occluded vocal tract exercises` 7
+  (3.61%)** entered — pairing with sovt-exercises' +18 citations. **`range test` 9 → 21 (+12)**, matching
+  `/vocal-range-test` exactly +12: the tool page is now pulling its own query, not riding the hub. Full list:
+  learn to sing 140 · learn to sing online free 80 · vocal exercises for singing 42 · free singing lessons for
+  beginners 39 · singing exercises 36 · voice warmups exercises for students 36 · best free online singing course 32 ·
+  range test 21 · learning singing 20 · learning to sing 15 · free voice lessons for beginners 12 ·
+  freddie mercury voice type 8 · semi occluded vocal tract exercises 7.
+
+- **Ahrefs citation sample:** chatgpt **22**/5 (33 → 30 → 29 → 26 → 22 across runs, drifting steadily *down* while
+  Bing's first-party count climbed 277 → 898). Copilot 7/3. Confirmed useless for trend; keep ignoring it.
+- **Crawler content hits (cumulative):** ChatGPT-User **572** · OAI-SearchBot 64 · ClaudeBot 9 ·
+  Claude-User/SearchBot **3/3 (frozen 14 days)** · PerplexityBot 4 · GPTBot 0. Per-day ChatGPT-User Aug 27–Sep 2:
+  38, 37, 41, 36, 37, 45, **50** = **40.6/day** vs 39.9/day the prior 7 — still essentially flat, though Sep 1–2
+  (45, 50) are the two highest days on record. Watch whether that becomes a trend. **Course paths: still 0 from any bot.**
+- **Sitemap feeds registered with Bing** (new gauge, from `GetFeeds`):
+  | Property | Feed | URLs Bing sees | Last read |
+  |---|---|---|---|
+  | vocalhabit.com | `/sitemap.xml` | 42 | 2026-09-01 22:34 UTC |
+  | vocalhabit.com | `www./sitemap.xml` | 42 | 2026-09-01 21:15 UTC |
+  | gradical.app | `/sitemap.xml` | **16** | **2026-09-02 16:18 UTC** |
+  ✅ **The Sep 1 gradical `SubmitFeed` worked** — Bing re-read that sitemap ~12 h later and now sees all 16 URLs
+  (previously 9, stale since Aug 14). vocalhabit's duplicate apex/`www` registration still stands.
+- **Bing organic:** Aug 27–31 = 11 clicks / 320 impr (~64 impr/day). Aug 28 (6 clicks / 84 impr) still the best day.
+  Bing's reporting lags ~2 days, so Sep 1–2 are not in yet.
+- **Google branded (7 d):** unchanged at **10 clicks** — "vocal habit" 8 / 9 impr / pos 1.8 (CTR 89%) + "vocal habits" 2.
+- **Google is indexing what Bing refuses.** `why-does-my-voice-crack` (published Aug 24, **never crawled by Bing**)
+  is drawing Google impressions across 6 queries at positions 38–51. The four `why-*` pages are demonstrably
+  crawlable and indexable — this is a **Bing-specific crawl decision**, which rules out page-level defects entirely
+  and is consistent with the lastmod/IndexNow signal theory.
+- **Community mentions:** still **0** (Reddit + web sweep). DR **0**.
+- **ChatGPT activation (7 d):** 33 tagged people → 19 started → 13 scored → 5 logged. Against Ahrefs' 70 ChatGPT
+  visitors the floors are 27% / 19% / 7%; against tagged people alone, 58% / 39% / 15%.
+- **Traffic mix (7 d):** direct 82 · LLM 72 · search 38 (LLM share 37.5%). ChatGPT 70 of the 72 LLM visitors.
+- **Odd entry page worth a look:** `https://vocalhabit.com/learn/%EF%BC%89` — a full-width `）` — took 2 visitors
+  with a ~996 s session. Looks like a malformed link in an AI answer or an article; worth confirming it 404s cleanly.

@@ -2,12 +2,14 @@
 # Each FULL run publishes a NEW date-stamped artifact (never update-in-place, since that hits a false
 # "identical content" conflict). Newest first; this list is the pseudo-historical archive of daily boards.
 dashboards:
+  - 2026-09-02: "https://claude.ai/code/artifact/9c136383-0f95-427b-892e-84161d09d669"
+  - 2026-09-01: "https://claude.ai/code/artifact/f0a64d4a-6c5f-4cb8-b047-0d22adf5a87f"
   - 2026-08-31: "https://claude.ai/code/artifact/fa97f3e8-097a-4490-824d-05eb4eb927a6"
   - 2026-08-30: "https://claude.ai/code/artifact/45f5a1fd-decf-4e23-a34a-22b4ea9f045e"
   - 2026-08-28: "https://claude.ai/code/artifact/bc419b0e-0ef6-49d4-8614-c79e5d04c571"
   - 2026-08-27: "https://claude.ai/code/artifact/5d6dd051-7d1e-4c3f-a51f-a600ddbf79a2"
   - 2026-08-26: "https://claude.ai/code/artifact/0be8ed29-bc50-4925-9895-38e45607829e"
-last_run: 2026-08-31
+last_run: 2026-09-02
 window_default: 7d
 ---
 
@@ -23,6 +25,69 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
 
 ## Active investigations
 
+- **[OPEN · 2026-09-02] Bing crawl gate on new URLs — technical cause identified and fixed; awaiting verification.**
+  **The split is perfectly clean: 27/27 URLs published before 2026-08-13 are indexed; 0/15 published after have EVER
+  been crawled** (4 `why-*` articles Aug 24–26, 11 `/courses/` URLs Aug 29). Ariana Grande (published Jul 23) crawled
+  fine. Bing is not slow — it re-crawled `/learn/`, `/`, `vocal-warm-ups-for-beginners`, `chappell-roan` and
+  `/vocal-range-test` all on Sep 1. It visits daily and specifically refuses new URLs.
+  Ruled out as causes: HTTP status (all 200, one clean 301), payload (41–62 KB real HTML), canonicals (correct,
+  self-referencing), `noindex` (none), robots.txt (allows all but `?exerciseId=`), sitemap presence (all 15), and
+  internal linking (**all 4 `why-*` and the syllabus are linked from `/learn/`, the page Bing crawls most**).
+  Manual portal Request Indexing was already tried on `why-does-my-voice-crack` (Aug 26) and failed — still uncrawled
+  7 days later. All 15 resubmitted via the API Sep 2; expect that alone to fail too.
+  **Cause found — two defects that destroyed the freshness signal, both ours:**
+  (1) `scripts/gen-sitemap.mjs:11` stamped `new Date()` on every URL, so the live sitemap carried
+  `<lastmod>2026-08-29</lastmod>` on **all 42 URLs** — every regeneration asserts all 42 pages changed today.
+  (2) `scripts/indexnow-submit.mjs:28` submitted **every** sitemap URL on **every production deploy**, unfiltered —
+  the exact pattern IndexNow's spec warns against. Together Bing had no way to distinguish a genuinely new URL from
+  41 crying wolf. The cutoff date matches the IndexNow plugin going live (commit `c058035`, Aug 13) to within days.
+  **Fixed Sep 2 (uncommitted):** sitemap lastmod is now per-URL from each source file's last git commit date
+  (6 distinct dates; regeneration is now byte-idempotent), and IndexNow submits only URLs whose lastmod falls inside
+  a `--days` window (default 14, `--all` escape hatch, clean no-op exit 0 when nothing changed).
+  ⚠️ **Causality is not proven** — clean correlation and a documented mechanism, but confounded with DR 0, domain age,
+  and the 379 spam referring domains. **Verification: after the next production deploy, re-run `bwt.py check` at
+  ~5 and ~10 days.** If the 15 start crawling, this was it. If they don't, the cause is authority, not signalling,
+  and the content pipeline stays blocked until DR moves.
+  **Update Sep 2 — baseline holds (27/42, unchanged) and this is the expected reading: the fixes are still
+  uncommitted, so nothing has deployed.** The verification clock has not started. Do not read today's flat result
+  as evidence against the theory.
+  **New evidence that sharpens the diagnosis: Google indexes what Bing refuses.** `why-does-my-voice-crack`
+  (published Aug 24, never once crawled by Bing) is drawing Google impressions across **6 queries at positions
+  38–51**. So the pages are demonstrably crawlable, indexable and rankable — this is a **Bing-specific crawl
+  decision**, not a page defect. That eliminates the whole class of page-level causes and is consistent with the
+  lastmod/IndexNow signal theory, since Bing leans on IndexNow + lastmod far harder than Google does.
+  **Gradical cross-check: the sitemap resubmission WORKED.** Bing re-read `gradical.app/sitemap.xml` on
+  **2026-09-02 16:18 UTC**, ~12 h after the Sep 1 `SubmitFeed`, and now records **16 URLs (was 9, stale since
+  Aug 14)**. Feed re-registration is therefore a live, fast lever — worth remembering as distinct from URL submission,
+  which has never moved anything here.
+  **Cross-check Sep 2 — gradical.app carries the identical defect (same copied scripts), fixed there too.**
+  `gradical-app/scripts/gen-sitemap.mjs:11` had the same `new Date()` stamp (all 16 URLs read `2026-09-01`) and
+  `scripts/indexnow.mjs:22` submitted every `<loc>` on every `npm run deploy`. **But it is NOT the cause of
+  gradical's 0/16 indexed** — that site's first commit is Aug 14 (19 days old) and Bing only began crawling it
+  Sep 1–2 (2 URLs, both still size=0). The vocalhabit failure needs an established crawl relationship to corrupt;
+  gradical has none yet, so its state is ordinary DR-0 cold start and the defect is a latent landmine that would
+  bite at exactly the moment new content starts shipping. **The real gradical blocker was different:** Bing had
+  read its sitemap exactly once, on **2026-08-14**, and recorded **9 URLs** against the 16 now live — 7 articles
+  were unknown to Bing entirely. Fixed by `SubmitFeed` + `SubmitUrlBatch` (both HTTP 200; quota 100 → 84).
+  Both scripts ported and verified (5 distinct lastmods, byte-idempotent, URL list unchanged).
+  Incidental: **vocalhabit has two sitemaps registered with Bing** (apex + `www.`), both 42 URLs — probably benign
+  host-variant tracking, worth tidying.
+
+- **[OPEN · 2026-09-02] Nobody browses the Learn section, and content landers convert 4.5x worse than app landers.**
+  Over 2 weeks, **114 sessions touched a Learn page: 107 read exactly one article, 2 read two, and ZERO read three
+  or more** (avg 0.97 distinct articles/session; 0.75–2.1 pageviews/session vs 3.85 on `/` and 5.45 on the range test).
+  Consequence: an article earns nothing from internal navigation — **its entire value is being the landing page**, so
+  an uncrawled article is worth exactly zero. Conversion by landing page: `/onboarding` 54%, `/` 45%,
+  `/vocal-range-test` 45%, but across all Learn + artist landings only **10 of 99 sessions reached practice (10.1%)**
+  — `mix-voice-exercises` 36% and `vocal-agility-exercises` 30% at the top, and `how-to-increase-vocal-range`,
+  `vocal-warm-ups-for-beginners`, `chest-voice-exercises`, `ariana-grande`, `chappell-roan` all at **0%**
+  (per-page n is too small to rank; the aggregate is the trustworthy figure).
+  **Two corrections this forces:** (a) "people land on Learn with a question and browse" is not happening — the
+  `/learn/` hub is an *AI retrieval* surface (500 Bing citations) not a human browsing surface (3 Ahrefs entries vs
+  97 on `/`); (b) "they're getting to practice, so that's good" holds for `/` arrivals, not content arrivals.
+  **Implication:** content→practice conversion (10% → 45%) is a larger available multiplier than article count, and
+  unlike crawling it is not externally blocked. Hold new articles until the crawl gate is verified fixed.
+
 - **[WATCH · 2026-08-30] Courses launch ("Foundations of Singing").** The direct play for the #2/#4 grounding queries
   ("best free online singing course" 32, "free singing lessons for beginners" 31). Track weekly: (a) Bing crawl/index of
   the 11 `/courses/` URLs (submitted Aug 29; 0 crawled Aug 30); (b) the syllabus entering Bing's cited-page pool;
@@ -30,6 +95,18 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   noise: 3/2/0/1 people); (d) Class Central + AlternativeTo listings (submission notes in seo/courses-class-central.md,
   still to be sent). Lesson-1 exercise is in DEFAULT_ROUTINE, so lesson-01 toggles under-count adds.
   **Update Aug 31 (day 2):** product side growing, distribution side stalled. Course pageviews 18 → **45 / 17 people**; course_viewed 6→**11 (7 people)**, lesson_viewed 5→**11 (6)**, next_pressed 4→**10 (6)**, completions still **1**, `course_exercise_toggled` still **0**. Bing has **not crawled a single /courses/ URL** 2 days after submission (targeted GetUrlInfo: all 0 bytes), and no AI crawler has fetched a course path. So the syllabus cannot enter the cited pool yet, and the funnel's weak step is the routine toggle.
+  **Update Sep 1 (day 3): the product side has now cooled too, and one instrumentation gap is confirmed.** Course pageviews by day
+  17 → 28 → **10**; course_viewed 6 → 5 → **2**, lesson_viewed 5 → 6 → **2**, next_pressed 4 → 6 → **2**. All-time completions still **1**.
+  `course_exercise_toggled` is **absent from the PostHog taxonomy entirely** — it has never fired once, 4 days after launch, so the
+  routine-add step is unmeasured as well as unused; worth a wiring check on `LessonExerciseBlock` before concluding users ignore it.
+  Distribution is still fully blocked: **all 11 `/courses/` URLs remain uncrawled by Bing** (0 bytes, 4 days after submission), **no AI
+  crawler has fetched a course path**, and no course URL appears in Bing's cited-page or grounding-query lists. The two courses-shaped
+  grounding queries ("best free online singing course" 32, "free singing lessons for beginners" 39) are both being answered from `/learn/`.
+  **Update Sep 2 (day 4): still cooling, and the funnel is now leaking at the top.** Daily course_viewed 6 → 5 → 2 → **2**;
+  lesson_viewed 5 → 6 → 2 → **1**; next_pressed 4 → 6 → 2 → **0**. Course pageviews ticked back up (10 → 17) while
+  in-page events fell, so people are reaching course URLs and not engaging. All-time completions still **1**;
+  `course_exercise_toggled` still absent from the taxonomy. Distribution unchanged: 11 `/courses/` URLs uncrawled,
+  0 AI-crawler fetches, no course URL cited.
 
 - **[RESOLVED · 2026-08-28] PR-21 analytics coverage (19→61 events) is live and firing.** Deployed 04:16 UTC Aug 28;
   by 21:00 UTC ~18 brand-new events went 0→N exactly at deploy (onboarding_step_viewed 45, exercise_selected 24,
@@ -46,9 +123,14 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   modestly more *people* on weekends, but depth/visitor flat (~1.5 starts) all week. No "weekday = deeper" signal.
   Re-cut monthly; need several clean weeks before calling it.
 
-- **[WATCH · 2026-08-28] Practice volume spiked Aug 27–28 above the flat W1/W2 baseline.** W1 & W2 were both exactly
-  34.9 practice/day; Aug 27 = 64, Aug 28 = 91 (partial) → W3 running 77.5/day. Aug 27 predates the #20/#21 deploys, so
-  not attributable to them. Two days ≠ a trend — watch whether it holds into next week.
+- **[RESOLVED · 2026-09-01] The Aug-27 practice-volume step-up is real and has held.** W1 & W2 were both exactly
+  34.9 practice/day. W3 (Aug 27–Sep 1, six complete UTC days: 64, 91, 27, 21, 115, 72) runs **65.0/day — 1.86x the
+  baseline**, with pageviews 103.0/day (vs 75.1 / 68.4) and logging 12.0/day. The Aug 29–30 dip that prompted the
+  Aug-30 "spike didn't hold" call was a two-day trough inside a raised plateau, not a reversion. **Cause is still
+  unattributed**: Aug 27 predates the #20/#21 deploys, inflow (ChatGPT referrals, crawler retrieval) is flat, and no
+  single identity explains it — the extra volume is spread across many devices. The most likely reading is that the
+  Aug-25-onward practicer cohort is compounding (see the retention curve), i.e. this is a *retention* effect showing
+  up as volume, not an acquisition one. Re-open if W4 falls back toward 35/day.
 
 
 - **[OPEN · 2026-08-20] Claude citation tracking.** No dashboard reports Claude citations (it rides Brave, not
@@ -73,6 +155,8 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   `ClaudeBot` (training) crept 6→9. Brave-index verification is still the blocking action and still has not been done.
   **Update Aug 30:** 10 days on, still frozen at 3/3 content hits. ClaudeBot flat at 9. Brave-index verification remains undone.
   **Update Aug 31:** 11 days on. Still 3/3. ClaudeBot still 9. Unchanged; Brave-index verification still the blocking action.
+  **Update Sep 1:** 13 days on. Still **3/3** content hits, ClaudeBot still 9. Unchanged for two weeks. Brave-index verification has now been the named blocking action for 11 consecutive runs and still has not been done — either do it or downgrade this to PARKED.
+  **Update Sep 2:** 14 days. Still 3/3, ClaudeBot still 9. Twelfth run with the same blocking action outstanding. Recommend PARKING this until someone actually checks search.brave.com — logging an unchanged 3/3 every night adds nothing.
 
 - **[OPEN · 2026-08-26 · run 2] Crawler tap is UA-spoofed (a credential scanner).** A scanner sprays secret paths
   (`/.env`, `/.ssh/id_dsa`, `/aws/credentials`, `/Dockerfile`, `/jenkins/.env`, `/proxy`, `/api/*`) while faking
@@ -93,6 +177,10 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   why-do-i-sing-flat, why-does-my-recorded-voice-sound-bad all uncrawled), so they cannot enter the cited pool yet.
   **Update Aug 28:** `embed_exercise_played` climbed 2 → **7** all-time; `embed_exercise_open_full` got its **first fire**
   (1, at 02:20 UTC). Article→app conversion is alive but still thin.
+  **Update Sep 1: this one has turned. Article→app conversion is no longer the blocker.** `embed_exercise_played` **7 → 31 (17 people)**
+  and `embed_exercise_open_full` **1 → 13 (12 people)**. Both moved from near-zero to routine in four days, and the open-full step is now
+  converting at ~42% of plays. The *other* half of this watch is unchanged: **all 4 `why-*` pain-point articles have still never been
+  crawled by Bing**, so none of them can enter the cited pool. The embed works; the pages it lives on aren't being retrieved.
 
 - **[WATCH · 2026-08-27] Guided-mode nudge (deployed ~Aug 26 night).** `guided_nudge_shown` **5 impressions / 4
   people**, first at 2026-08-27T08:54:48Z, last 21:02:42Z. **Every impression was `reason: "rough"`** (the
@@ -240,6 +328,80 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   ("freddie mercury vocal range" 10, "ariana grande vocal range" 10, both 0 clicks).
 
 ## Findings (newest first)
+
+### 2026-09-02
+
+_(Browser steps deferred during a screen recording, then completed 2026-09-03 17:52 UTC. Bing lags ~2 days, so its
+latest point is Sep 1 and nothing was lost. Activity figures below still cover through Sep 2 UTC, the last complete day.)_
+
+- **Citations 898 → 980, running ~89.7/day vs 37.1/day the prior 7 (+142%) — but the shape is a settling plateau,
+  not acceleration.** Daily Aug 26–Sep 1: 44, 54, **176**, 93, 92, 87, 82. Aug 28 was a spike and the four days since
+  step gently down. Call it ~85/day and stop describing it as accelerating.
+- **⚠️ The Sep 1 "concentration, not expansion" finding is REVISED — it was a one-day artifact.** On Sep 1, 62 of ~87
+  new citations (71%) landed on `/learn/`. Today only **29 of ~82 (35%)** did; the rest spread across sovt +18,
+  chappell-roan +15, vocal-range-test +12, freddie-mercury +3, belting +2. The hub's share of cited volume *fell*
+  56% → **54%**. This is the second time a single-day distribution delta has misled a headline (cf. the Aug 27
+  partial-bucket correction). **Rule to hold: distribution claims need two data points minimum.**
+- **The grounding surface widened into technique for the first time in days: 12 → 13 queries.**
+  **`semi occluded vocal tract exercises` 7** entered — pairing with sovt's +18 citations — and **`range test`
+  9 → 21 (+12)** matches `/vocal-range-test`'s +12 exactly, so the tool page now pulls its own query rather than
+  riding the hub. Still **no `/courses/` page cited**, and no courses-shaped query has moved.
+
+- **W3 closed at 72.3 practice/day — 2.07x the W1/W2 baseline of 34.9.** First fully complete post-step-up bucket
+  (749 pageviews, 506 starts, 360 scored, 92 logged over 7/7 days). Sep 2 set a new single-day record at 116 starts.
+  ⚠️ **But that record is ~62% two identities** — one device did 45 starts with `practiceNumber` running 1→45 in a
+  single day (the dev-test signature), another 27. Quote the week, not the day.
+- **1B passed a like-for-like test for the first time, which is the result that actually matters.** Previous runs
+  compared a raw figure against a differently-adjusted one. Applying one rule to both weeks — drop any person_id
+  with ≥20 starts in a single day — gives volume **9.6 → 17.9/day (+86%)** and depth **1.76 → 2.36 (+34%)**, both
+  up without leaning on any single device. Raw bars (32.3/day, 3.96) are inflated ~44% by heavy identities; use the
+  excluded pair whenever the number needs to be robust.
+- **Retention curve improved for a third straight run.** Base 83 → 94 devices, and every share held or rose:
+  #3 59% → 62%, #5 41% → 44%, #10 24% → 26%, #16 10% → 13%. Against Aug 28 the #5 and #10 tiers have roughly
+  doubled (33% → 44%, 15% → 26%).
+- **Google indexes the pages Bing won't touch.** `why-does-my-voice-crack` — never crawled by Bing since publishing
+  Aug 24 — is pulling Google impressions across 6 queries at positions 38–51. The pages are fine; the blocker is
+  Bing-specific. This eliminates page-level causes from the crawl-gate investigation.
+- **The gradical sitemap resubmission worked, fast.** Bing re-read that feed ~12 h after `SubmitFeed` and went from
+  seeing **9 URLs to 16**. Feed re-registration is a real lever and is distinct from URL submission, which has never
+  moved anything on either property. Worth trying on vocalhabit once the lastmod fix is deployed.
+- **ChatGPT retrieval may finally be ticking up.** Per-day content hits Aug 27–Sep 2: 38, 37, 41, 36, 37, **45, 50** —
+  the two highest days on record, against a 40.6/day week average that is still nominally flat vs 39.9 prior.
+  Two days is not a trend; flag it and re-check.
+- **Courses day 4: pageviews up, engagement down** (17 pv but course_viewed 2, next_pressed **0**). People reach the
+  URLs and bounce. Article embeds remain healthy by comparison (4 plays / 1 open-full on Sep 2).
+
+### 2026-09-01
+
+- **Both co-primary hypotheses moved in the same direction for the first time, and 1B finally survives its own caveat.**
+  **1A (inflow): PASSING on citations, still failing everywhere else.** Bing citations **88.7/day** over the last 7 data
+  days vs 28.7/day the 7 before (+209%), total 811 → **898**. But DR is still **0**, community mentions still **0**, and
+  ChatGPT *referrals* are ~9/day (down from ~15) while ChatGPT-User *retrieval* holds flat at 38.6/day — the zero-click
+  gap is widening, not closing. **1B (retention): PASSING (7th run) and, for the first time, it survives excluding the
+  heavy dev identity** — 20.7/day volume and 2.96 depth without it, vs 11.4 / 2.05 (both down) at the same test on Aug 28.
+  Confidence upgraded LOW → MODERATE.
+- **⚠️ The citation growth is concentration, not surface expansion.** Of the ~87 citations added since yesterday,
+  **62 went to the `/learn/` hub alone** (438 → 500). The hub is now **56% of all cited volume**; 11 of the 18 cited pages
+  were exactly flat, the page count did not move (18 → 18), and the grounding-query set did not move (12 → 12, no new
+  query). Bing is answering more questions from the same one page. That is a fragile shape: a single URL carries the
+  citation business, and the pages built to widen it (courses, `why-*` articles) are not in the pool at all.
+- **The practicer base tripled and the deep tiers improved faster than the shallow ones.** Devices with ≥1 practice since
+  Aug 25: 27 → **83 genuine**. The *shares* (growth-free) improved at depth: #5-reachers 33% → **41%**, #10-reachers
+  15% → **24%**, while the #2 rate held (74% → 72%). Eight devices other than the dev identity have now reached #16,
+  and the visit-number tail runs continuously to 14 (it stopped at 7 on Aug 28).
+- **Article → app conversion flipped from blocker to working.** `embed_exercise_played` **7 → 31 (17 people)** and
+  `embed_exercise_open_full` **1 → 13 (12 people)** in four days; open-full now converts at ~42% of plays. The
+  constraint on the pain-point articles is no longer the embed — it is that **all 4 `why-*` articles have still never
+  been crawled by Bing**, so nothing retrieves them.
+- **Courses: cooling on the product side, still fully blocked on distribution — and one step is unmeasured.**
+  Day 1→3 course pageviews 17 → 28 → **10**; course_viewed 6 → 5 → **2**; completions still **1** all-time.
+  `course_exercise_toggled` is **absent from the PostHog taxonomy entirely** — never fired once — so "the routine
+  toggle is the weak step" is currently unprovable; check the wiring on `LessonExerciseBlock` first. Meanwhile all
+  **11 `/courses/` URLs remain uncrawled by Bing** 4 days after submission (0 bytes), no AI crawler has touched a
+  course path, and the two courses-shaped grounding queries are both being served from `/learn/`.
+- **Branded search made its first real move:** 10 Google branded clicks over 7 days ("vocal habit" 8 @ pos 1.8 +
+  "vocal habits" 2), up from 3 on Aug 30. Bing organic clicks also roughly doubled (6 → 11 over comparable 6-day
+  windows) on flat impressions. Still 0 Reddit/community mentions.
 
 ### 2026-08-31
 - **Biggest usage day since launch, by a wide margin.** Aug 31 (complete UTC day): **209 pageviews / 38 DAU / 115 practice starts / 75 reached scoring / 19 range tests / 21 onboardings.** The prior record was Aug 15 (174 pv / 93 starts) and the W1-W2 baseline was 34.9 starts/day, so this is **3.3x baseline**. No deploy or campaign explains it; the course + deck shipped Aug 29-30. W3 (Aug 27-31, 5 complete days) now runs **63.6 practice/day**, so the "spike reverted" read from yesterday was premature: Aug 29-30 was the dip, not the return to baseline.
