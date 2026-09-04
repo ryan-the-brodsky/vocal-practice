@@ -2,6 +2,7 @@
 # Each FULL run publishes a NEW date-stamped artifact (never update-in-place, since that hits a false
 # "identical content" conflict). Newest first; this list is the pseudo-historical archive of daily boards.
 dashboards:
+  - 2026-09-04: "https://claude.ai/code/artifact/56d0c1ce-a0be-4187-966e-873a12e53982"
   - 2026-09-02: "https://claude.ai/code/artifact/9c136383-0f95-427b-892e-84161d09d669"
   - 2026-09-01: "https://claude.ai/code/artifact/f0a64d4a-6c5f-4cb8-b047-0d22adf5a87f"
   - 2026-08-31: "https://claude.ai/code/artifact/fa97f3e8-097a-4490-824d-05eb4eb927a6"
@@ -9,7 +10,7 @@ dashboards:
   - 2026-08-28: "https://claude.ai/code/artifact/bc419b0e-0ef6-49d4-8614-c79e5d04c571"
   - 2026-08-27: "https://claude.ai/code/artifact/5d6dd051-7d1e-4c3f-a51f-a600ddbf79a2"
   - 2026-08-26: "https://claude.ai/code/artifact/0be8ed29-bc50-4925-9895-38e45607829e"
-last_run: 2026-09-02
+last_run: 2026-09-04
 window_default: 7d
 ---
 
@@ -72,6 +73,18 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   Both scripts ported and verified (5 distinct lastmods, byte-idempotent, URL list unchanged).
   Incidental: **vocalhabit has two sitemaps registered with Bing** (apex + `www.`), both 42 URLs — probably benign
   host-variant tracking, worth tidying.
+  **🔓 Update Sep 4 — THE FIX IS DEPLOYED AND THE FIRST NEW URL HAS BEEN CRAWLED.** Commit `75ca50b` shipped to
+  production; the live sitemap now serves **6 distinct lastmod dates** across its 42 URLs (25× Aug 27, 12× Aug 29,
+  one each Jul 3/6/15/23) where it previously served one date on all 42. The verification clock started **Sep 3**.
+  On **Sep 4 at 18:41 UTC**, `https://vocalhabit.com/courses/` picked up a **real crawl timestamp** — every
+  post-Aug-13 URL had carried the never-crawled sentinel on every prior run, including two days ago.
+  **This is one URL, `size=0` (a fetch, not an index), and the headline is still 27/42.** It is the first movement
+  in three weeks and it landed ~1.5 days after the deploy, which is what the theory predicted, but a single URL is
+  correlation on n=1. **Hold the protocol: re-run `bwt.py check` on Sep 8 (~5 d) and Sep 13 (~10 d).** If the other
+  14 start crawling, the signalling theory is confirmed; if `/courses/` stays alone, it was coincidence and the
+  cause is authority. Do not close this on today's reading, and do not ship new content on the strength of it.
+  Also worth trying now that lastmod is honest: a `SubmitFeed` re-registration, which is the one lever that
+  demonstrably worked on gradical (9 → 16 URLs in ~12 h).
 
 - **[OPEN · 2026-09-02] Nobody browses the Learn section, and content landers convert 4.5x worse than app landers.**
   Over 2 weeks, **114 sessions touched a Learn page: 107 read exactly one article, 2 read two, and ZERO read three
@@ -133,7 +146,7 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   up as volume, not an acquisition one. Re-open if W4 falls back toward 35/day.
 
 
-- **[OPEN · 2026-08-20] Claude citation tracking.** No dashboard reports Claude citations (it rides Brave, not
+- **[PARKED · 2026-08-20 → parked 2026-09-04] Claude citation tracking.** No dashboard reports Claude citations (it rides Brave, not
   Bing). We allowed `Claude-User`/`Claude-SearchBot` in robots.txt and submitted 4 URLs to Brave on Aug 20.
   Signal to watch: `ai_crawler_hit` where `vendor='anthropic' AND kind IN ('index','user')` growing *beyond* the
   ~5 setup test hits; and vocalhabit.com appearing on search.brave.com for target queries.
@@ -157,6 +170,10 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   **Update Aug 31:** 11 days on. Still 3/3. ClaudeBot still 9. Unchanged; Brave-index verification still the blocking action.
   **Update Sep 1:** 13 days on. Still **3/3** content hits, ClaudeBot still 9. Unchanged for two weeks. Brave-index verification has now been the named blocking action for 11 consecutive runs and still has not been done — either do it or downgrade this to PARKED.
   **Update Sep 2:** 14 days. Still 3/3, ClaudeBot still 9. Twelfth run with the same blocking action outstanding. Recommend PARKING this until someone actually checks search.brave.com — logging an unchanged 3/3 every night adds nothing.
+  **Update Sep 4 — PARKED.** 15 days, still **3/3**, ClaudeBot still 9. Thirteenth consecutive run with the same
+  unexecuted blocking action. Parking it: nothing will change in this log until someone verifies whether Brave has
+  indexed the site. Re-open on a `search.brave.com` check or on any `Claude-User`/`Claude-SearchBot` content hit
+  above 3. Not worth a line in the nightly sweep until then.
 
 - **[OPEN · 2026-08-26 · run 2] Crawler tap is UA-spoofed (a credential scanner).** A scanner sprays secret paths
   (`/.env`, `/.ssh/id_dsa`, `/aws/credentials`, `/Dockerfile`, `/jenkins/.env`, `/proxy`, `/api/*`) while faking
@@ -250,6 +267,16 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   Bing's **cached index** rather than fresh `ChatGPT-User` pulls, which is consistent with both numbers being right.
   **Correction to prior runs:** the "+12%/+13% ChatGPT-User retrieval growth" reported Aug 24–26 was cumulative-total
   growth, i.e. days accumulating. The per-day rate was flat the whole time. Read rates only.
+- **[VERDICT · 2026-09-04] 1A inflow: MIXED — search moved, citations unmeasured, everything else flat.**
+  The citation gauge has **no data point this run** (BWT signed out), so the headline lever is simply unknown for
+  Sep 3–4. What is measurable: **Bing organic rose on both bars** — 67.3 impr/day and 2.0 clicks/day over the last
+  7 data days vs 52.0 and 0.86 the prior 7 (+29% / +133%), with a 94-impression record on Sep 2 — and **Google
+  search visitors hit 20, the highest yet**, lifting total search to 41 against LLM's 73 (the narrowest gap since
+  launch). Against that: **ChatGPT referrals ~10/day and falling** (W1 5.7 → W2 5.7 → W3 4.7 → W4 5.5 people/day),
+  **DR still 0**, **community mentions still 0**, branded search flat at 9 clicks. `ChatGPT-User` retrieval is
+  41.7/day vs 40.6 — flat with a tilt. The zero-click gap is unchanged: consultation without clicks.
+  One structural positive: `why-does-my-voice-crack` went from 6 to **~22 distinct Google queries** in two days.
+
 - **[PRIMARY · 1B · 2026-08-22] Retention: do they stick & deepen.** Co-equal with inflow (1A). Growth =
   inflow × retention × word-of-mouth; with inflow flat, retention decides whether the trickle compounds.
   **Success criterion (Ryan): we're healthy iff BOTH
@@ -281,6 +308,16 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   too (30 starts wk of Aug 10, 24 wk of Aug 17; cookieless ids rotate daily so one human = one id per day), so
   excluding would break the series and was not done, but at this n the pass/fail flips on one person. Treat the
   PASSING verdict as low-confidence this run.
+  **Update Sep 4: PASSING (9th run), and a NEW depth gauge fired.** Under the consistent ≥20-starts/day exclusion,
+  W4 (2 days) reads volume **17.9 → 19.5/day** and depth **2.36 → 3.00**; both bars up. But the result worth
+  reporting is a different one: **keys scored per practice start jumped from a three-week-flat ~0.7 to 1.03**
+  (W1 0.67 · W2 0.73 · W3 0.72 · W4 **1.03**), i.e. people are now getting *further into each exercise*, not just
+  starting more of them. It is not one device — several separate people scored more keys than they started runs —
+  and it survives the exclusion rule. ⚠️ Two days; re-cut when W4 closes.
+  ⚠️ **The retention-curve shares moved DOWN for the first time and that is dilution, not decay.** Base 94 → **122
+  devices (+30%)** in two days; every absolute tier grew (#2 70→87, #3 58→73, #5 41→50, #10 24→28, #16 12→15) while
+  every share slipped 1–3 points (#3 62%→60%, #5 44%→41%, #10 26%→23%). Twenty-eight devices entered the window
+  with no time to reach #5. Do not report this as retention weakening; re-cut once the new cohort ages a week.
   **First clean read on the honest counter** (Aug 25+, 100% coverage, dev identity excluded): of **18 distinct
   singers**, **13 reached practice #2 (72%)**, **10 reached #3 (56%)**, **5 reached #5 (28%)**. That is a genuinely
   healthy practice-retention curve and is the metric to lead with from here. Caveat: `practiceNumber` is a
@@ -312,6 +349,10 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   after 5 days of flagging it; this is now the longest-open unactioned item. Break down by UA / `$virt_is_bot` / geo.
   **Update Aug 30:** persists. Last 7 days direct **88 @ 88% bounce**, now the #2 "channel" and nearly equal to LLM (100). Still uncharacterized.
   **Update Aug 31:** persists. 7d direct **75 @ 88% bounce** vs LLM 83. Ten days flagged, still unactioned.
+  **Update Sep 4:** persists. 7d direct **62 @ 82% bounce** vs LLM 73; cumulative **236 @ 88%**. Thirteen days
+  flagged, still unactioned — the longest-open item in this file. Bounce did soften 88% → 82%, which is the first
+  hint some of it may be real referrer-stripped humans, but that is one window. Break it down by UA /
+  `$virt_is_bot` / geo or stop carrying it.
 
 - **[WATCH · 2026-08-24] Organic / community mentions (WoM).** As the user base grows, public mentions. Reddit
   especially. Are the leading sign word-of-mouth is taking hold, and a more public organic-mention venue than
@@ -328,6 +369,104 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   ("freddie mercury vocal range" 10, "ariana grande vocal range" 10, both 0 clicks).
 
 ## Findings (newest first)
+
+### 2026-09-04
+
+_(Covers Sep 3 and the partial Sep 4 UTC day. The Bing AI-Performance read was initially blocked by a signed-out
+automation browser and was **completed later in the run** after the user signed in. Bing lags ~2 days, so its newest
+point is Sep 2 and only one new day landed.)_
+
+- **⚠️ RETRACTION, same run: the "keys per practice start jumped 0.72 → 1.03" finding is withdrawn.** It was a
+  Guided-mode artifact. `pattern_completed` fires **once per run** in Standard but **once per key** in Guided
+  (`handleGuidedPatternComplete` is called per pattern while `handleGuidedStart` fires once), so the ratio reads
+  0.67 for standard and **1.33 for guided**. Guided instrumentation only landed ~Aug 26, taking guided from 0% of
+  starts in W1–W2 to ~20% in W3–W4 — the mix shift *is* the entire "jump." **Standard-mode only: 0.67 · 0.73 · 0.60 ·
+  0.77 across W1–W4. Flat.** Rule banked: never build a ratio across modes when one mode emits numerator and
+  denominator at different granularities. **Open defect:** make Guided emit `pattern_completed` once per run (with
+  `keys` = keys completed) or add a separate per-key event; until then every mode-blind ratio on this event is wrong.
+
+- **The replacement finding confirms Ryan's read of new-user behaviour — at about half the amplitude I first
+  reported.** Standard mode since Aug 25, **restricted to full-length plans on the same exercise** (see the
+  confound below): finish-the-exercise runs **13.5% (1st) → 25.0% (2nd) → 33.3% (3rd–4th) → 33.3% (5th–9th) →
+  45.5% (10th+)**, and keys actually scored **7.2 → 8.0 → 10.5 → 12.3 → 14.8**. The uncorrected figures
+  (13.3% → 77.2%) were inflated; use these. Both cohorts *score* a pattern at nearly the same rate (72% vs 67%),
+  so **first-timers do sing — they stop partway.** Curiosity satisfied, not the tool failing.
+  **Refinement: the jump is NOT at visit 2.** Keys scored is flat 1st → 2nd (7.2 → 8.0) and only climbs from the
+  3rd practice on. The "come back and actually practise" effect builds over several sessions rather than switching
+  on at the return visit.
+
+- **✅ RESOLVED (same run): tonic memory does NOT leak across visits — the feared bug does not exist.**
+  Ryan flagged the resume behaviour as undesired if it survived leaving the app. It doesn't. `exerciseTonicMap`
+  (`app/(tabs)/index.tsx:122`) is plain `useState` with **no AsyncStorage backing anywhere** — it dies on reload.
+  Empirically decisive: of **95 first-runs-in-a-browser-session, 95 planned the full range and 0 resumed (0.0%)**,
+  while 2nd+ runs in the same session resume 46% of the time. So resume is scoped to exactly one continuous
+  sitting, which is the intended "pause and carry on" case. PostHog's `$session_id` expires after ~30 min idle
+  while React state would survive an open tab, so a stale-tab leak *could* surface as a reduced first run — it
+  appears **zero** times in 95. No fix needed; noted in CLAUDE.md so nobody adds persistence without deciding an
+  expiry rule first.
+  **Framing correction to the entry below:** reduced plans are *not* returning visitors resuming across days.
+  They are people running the same exercise a second time in one sitting. The full-plan restriction is still the
+  right method for cross-tier comparison, for that reason instead.
+
+- **⚠️ Second correction, same run: `completedAllKeys` is not comparable across practice numbers, and `plannedKeys`
+  is not a user choice.** `plannedKeys` = tonic iterations planned = `(highest − lowest)/step + 1`, doubled minus
+  one for `direction: "both"` (15 baritone / 19 alto+soprano / 21 tenor on `five-note-scale`). It falls with
+  practice number because of **per-exercise tonic memory**: `startTonicMidi` (`index.tsx:323`) reads the saved
+  tonic for `(exerciseId, voicePart)` and the engine plans from there (`engine.ts:64`), so a returner resuming
+  mid-range gets only the **remainder** — as few as 1 key. The UI says "Resuming at F4" vs "Starting at C4".
+  **Nobody is altering their routine.** Structural bias this creates: 100% of first practices get a full plan by
+  construction, against 44–67% at practices 2–9, so any raw cross-tier finish-rate comparison pits long plans
+  against short remainders. **Always restrict to full-length plans, or use keys scored.**
+  Possible quirk worth a look: the advance (`index.tsx:967`) is `lastCompleted.tonicMidi + step`, but with
+  `direction: "both"` the last completed iteration can be on the descending leg, so quitting late resumes low and
+  finishing the run lands memory one step above `range.lowest`. May be intended; it is why 10th+ is 92% full plans.
+
+- **Product note (Ryan, Sep 4): the 19-key default is NOT being treated as a problem.** 18 keys at ~5 s each is a
+  normal run up and down the range. Exercise ordering is an A/B candidate at most; leave it alone for now. The
+  earlier "shorten the first run" suggestion is withdrawn.
+
+- **Bing citations 980 → 1.1K, running ~95.7/day vs 40.9/day the prior 7 (+134%) — still a plateau, not acceleration.**
+  Daily Aug 27–Sep 2: 54, 176, 93, 92, 87, 82, 86. Aug 28 was the spike; the five days since sit at 82–93. ~88/day.
+- **Grounding queries 13 → 14, and technique intent is compounding.** `semi occluded vocal tract exercises`
+  **7 → 21 (+200%)** and `singing exercises` 36 → 48. The SOVT page's citations went 81 → **102**, and it is
+  simultaneously the only page converting Bing organic impressions to clicks (36 impr / 2 clicks). It is the
+  clearest second engine after the `/learn/` hub. **Still no `/courses/` page cited**, 7 days after launch.
+
+- **🔓 The Bing crawl gate cracked — one URL, ~1.5 days after the fix deployed.** `https://vocalhabit.com/courses/`
+  carries a real crawl timestamp of **2026-09-04 18:41 UTC**; every post-Aug-13 URL had shown the never-crawled
+  sentinel on every prior run. The per-URL `lastmod` fix went live **Sep 3** (prod sitemap now serves 6 distinct
+  dates, not one date on all 42 URLs). `size=0` means fetched-not-indexed and the headline is still **27/42**, so
+  this is n=1 and could be coincidence. **The protocol holds: re-check Sep 8 and Sep 13.** Worth pairing with a
+  `SubmitFeed` re-registration now that lastmod is honest — that is the lever that moved gradical 9 → 16 URLs in 12 h.
+- **New depth gauge, and it is the best product result of the week: keys scored per practice start went 0.72 → 1.03.**
+  `pattern_completed` fires once per *scored key*, so this ratio measures how far into an exercise people get
+  before quitting. It sat at 0.64–0.89 every single day from Aug 20 to Sep 2, then read **1.20 (Sep 3)** and
+  **1.13 (Sep 4)**. Several distinct people scored more keys than they started runs (51 from 25, 25 from 8, 15
+  from 4), and the jump survives the heavy-identity exclusion. W3's story was *more* practice; W4's opening story
+  is *deeper* practice. Two days — re-cut when W4 closes.
+  **Corollary correction to how this log has been reporting the funnel:** because the event is per-key, "reached
+  scoring" is a count of keys, not a subset of `practice_started`, and it now legitimately exceeds it. Session-level
+  funnel (the honest subset): W1 74→57→21, W2 78→59→32, W3 89→69→27, W4 (2 d) 30→22→10.
+- **Retention shares fell for the first time, and it is dilution.** Base 94 → **122 devices (+30%)** in two days;
+  every absolute tier grew, every share slipped 1–3 points. Twenty-eight devices entered the window with no time to
+  reach #5. Reporting that as weakening retention would be the same partial-bucket error this log has already
+  banked twice.
+- **Search is the channel that moved, not LLM.** 7-day mix: LLM 73 · direct 62 · **search 41** (Google alone **20**,
+  the highest yet) — the narrowest LLM:search gap since launch (1.78:1). Bing organic is up on both bars,
+  **67.3 impr/day and 2.0 clicks/day vs 52.0 and 0.86 the prior 7** (+29% / +133%), with a 94-impression record on
+  Sep 2. Meanwhile ChatGPT referrals are ~10/day and drifting down. If this holds it is a genuine shift in where
+  the trickle comes from.
+- **Google breadth on the `why-*` pages roughly quadrupled in two days.** `why-does-my-voice-crack` — still never
+  crawled by Bing — now takes impressions on **~22 distinct queries** (was 6 on Sep 2) at positions 25–60. Zero
+  clicks, since nothing ranks above ~25, but it further confirms the pages are fine and the blocker is Bing-specific.
+- **`semi occluded vocal tract exercises` is now converting in Bing organic** — 36 impressions / **2 clicks**, the
+  only query on the site turning impressions into clicks ("vocal warm ups" 52 and "vocal warm up" 43 are both still
+  at 0). It is the same query that entered Bing's AI grounding set on Sep 2. The SOVT page is doing double duty.
+- **Courses turned back up on both sides.** course_viewed hit **7** (best since launch) and `/courses` was the #3
+  page by pageviews over Sep 3–4 (18 pv / 10 people). Still 1 lifetime completion, `course_exercise_toggled` still
+  absent from the taxonomy after 6 days (wiring check overdue), and no course URL cited or AI-crawled.
+- **Claude citation tracking is now PARKED** after 13 consecutive runs logging an unchanged 3/3 against the same
+  unexecuted blocking action (verify Brave indexed us). Re-open on a `search.brave.com` check or any content hit above 3.
 
 ### 2026-09-02
 

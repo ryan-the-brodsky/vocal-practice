@@ -13,7 +13,15 @@ The current bucket is partial until it fills (see "days"). **Read growth from th
 | W1 · Aug 13–19 | 7 | 176 | 52% | 526 | 244 | 162 | 45 | 34.9 | 23.1 |
 | W2 · Aug 20–26 | 7 | 219 | 48% | 479 | 244 | 175 | 79 | 34.9 | 25.0 |
 | W3 · Aug 27–Sep 2 | 7 | n/a | n/a | 749 | 506 | 360 | 92 | **72.3** | **51.4** |
-| W4 · Sep 3–9 | 0* | — | — | — | — | — | — | — | — |
+| W4 · Sep 3–9 | **2** | — | — | 213 | 153 | 178* | 43 | **76.5** | — |
+
+**W4 (2 of 7 days) opens ABOVE W3: 76.5 practice/day, logging 21.5/day (vs 13.1).** ⚠️ Two days is not a week —
+do not headline it.
+
+\*⚠️ **The "Reached scoring" column is mode-contaminated and its per-day rate has been removed.** `pattern_completed`
+fires once per *run* in Standard but once per *key* in Guided, so the column mixes granularities and the W4 figure
+exceeds `practice_started` for that reason alone. See the retraction below. The mode-clean funnel is session-level:
+W1 74→57→21, W2 78→59→32, W3 89→69→27, W4 (2 d) 30→22→10.
 
 \***W3 is now COMPLETE (7/7 days).** Daily practice starts: 64, 91, 27, 21, 115, 72, **116**. W3 finished at
 **72.3 practice/day — 2.07x the flat 34.9/day W1–W2 baseline** — with pageviews 107.0/day (vs 75.1 / 68.4) and
@@ -33,18 +41,105 @@ recorded on Aug 21, and the cumulative Aug 13–27 call returns **449**, more th
 counts are neither stable across refreshes nor additive across ranges. Use PostHog pageviews for volume trend and
 treat Ahrefs visitors as channel-mix only.
 
+## ⚠️ RETRACTED: "keys scored per practice start" (posted and withdrawn, Sep 4)
+
+**The 0.72 → 1.03 jump was a Guided-mode artifact, not a depth improvement. Do not cite it.**
+
+`pattern_completed` is **not** a per-key event. It fires **once per practice run that scored at least one key**,
+carrying `keys` (keys actually scored), `plannedKeys`, and `completedAllKeys`. Three mutually-exclusive emit sites
+in `app/(tabs)/index.tsx`: guided (`:527`), standard scored (`:929`), follow-along unscored (`:1009`).
+
+But **in Guided mode it fires once per key anyway**, because `handleGuidedPatternComplete` is invoked by
+`GuidedSession` on each pattern (= each key) while `handleGuidedStart` fires `practice_started` once per run.
+So the ratio splits hard by mode:
+
+| Mode (since Aug 27) | Starts | pattern_completed | Ratio |
+|---|---|---|---|
+| standard | 511 | 341 | **0.67** |
+| guided | 148 | 197 | **1.33** |
+
+Guided-mode instrumentation only landed ~Aug 26, so guided's share of starts went 0% (W1–W2) → ~20% (W3–W4).
+That mix shift alone produced the entire "jump." **Standard-mode only, heavy identities excluded:**
+
+| Week | Standard starts | Standard completions | Ratio |
+|---|---|---|---|
+| W1 · Aug 13–19 | 214 | 143 | 0.67 |
+| W2 · Aug 20–26 | 220 | 160 | 0.73 |
+| W3 · Aug 27–Sep 2 | 322 | 194 | 0.60 |
+| W4 · Sep 3–4 (2 d) | 86 | 66 | 0.77 |
+
+Flat and noisy. There is no depth jump. **Rule to hold: never mix modes in a ratio when one mode's numerator
+and denominator are emitted at different granularities.** Any cross-mode funnel must filter `mode='standard'`
+or use session-level counts.
+
+**Open instrumentation defect:** Guided's `pattern_completed` granularity disagrees with Standard's. Either make
+Guided emit once per run (with `keys` = keys completed, matching Standard) or add a per-key event and leave
+`pattern_completed` per-run. Until then every mode-blind ratio on this event is wrong.
+
+**What the metric was reaching for is real, and lives here instead:** see "How far new users get" below.
+
+## How far new users get (Sep 4, corrected same day)
+
+Standard mode, since Aug 25. **`plannedKeys` = the number of tonic iterations the engine planned**, i.e.
+`(highest − lowest)/step + 1`, doubled minus one because `five-note-scale` sets `direction: "both"` (up the range,
+then back down). For that exercise the full plan is **15 (baritone) / 19 (alto, soprano) / 21 (tenor)**.
+
+**✅ Scope check (Sep 4): tonic memory is in-memory only and does NOT survive leaving the app.** `exerciseTonicMap`
+is plain `useState` with no AsyncStorage backing. Of **95 first-runs-in-a-browser-session, 95 planned the full
+range and 0 resumed**; resumes appear only on 2nd+ runs within one session (46% of them). So a reduced plan means
+"second run in one sitting," never "came back next day."
+
+**⚠️ `plannedKeys` is NOT a user choice, and `completedAllKeys` is NOT comparable across practice numbers.**
+The plan starts from **per-exercise tonic memory**, not the range floor: `startTonicMidi`
+(`app/(tabs)/index.tsx:323`) reads the saved tonic for `(exerciseId, voicePart)` and falls back to `range.lowest`;
+the engine then plans from there (`engine.ts:64`, `startTonicOverride`). The UI says so out loud —
+"Resuming at F4" vs "Starting at C4". So someone running the exercise a **second time in the same sitting**
+gets a plan containing only the **remainder**, sometimes as few as 1 key. Nobody is editing their routine, and
+nobody is carrying state across visits; this is the resume feature working as designed.
+
+Consequence: **100% of first practices get a full-length plan** (no memory yet, by construction) while only
+44–67% of runs at practices 2–9 do. Comparing raw finish rates across tiers therefore compares long plans against
+short remainders. Restricting to full-length plans (≥15 keys) on the same exercise removes it:
+
+| Practice # | Runs | Full-plan runs | Keys scored (full plans) | Finished (full plans) |
+|---|---|---|---|---|
+| 1st practice | 74 | 74 (100%) | 7.2 | **13.5%** |
+| 2nd | 26 | 16 (62%) | 8.0 | 25.0% |
+| 3rd–4th | 27 | 12 (44%) | 10.5 | 33.3% |
+| 5th–9th | 9 | 6 (67%) | 12.3 | 33.3% |
+| 10th+ | 24 | 22 (92%) | 14.8 | **45.5%** |
+
+**Like-for-like the gap is 13.5% → 45.5%, not the 13.3% → 77.2% first reported.** The effect is real and roughly
+halved. Keys actually scored (plan-independent) **7.2 → 14.8** is the cleanest statement of it.
+
+Two refinements that change the story's shape:
+- **The jump is not at visit 2.** Keys scored is essentially flat from the 1st to the 2nd practice (7.2 → 8.0)
+  and only climbs from the 3rd onward. "They come back and then practise properly" is right, but it builds
+  gradually over several sessions rather than switching on at the return visit.
+- **First runs stop at ~7 keys with striking consistency**, ≈35–45 s of singing at ~5 s per key. Worth knowing as
+  a baseline; **not** currently read as an exercise-length problem — 18 keys up and down the range is a normal run
+  (Ryan, Sep 4). Any change here would be an A/B on ordering, not a fix.
+
+**Possible quirk worth a look (not yet a bug report):** the tonic advance (`index.tsx:967`) sets memory to
+`lastCompletedIteration.tonicMidi + step`, but with `direction: "both"` the last completed iteration may be on the
+*descending* leg, so quitting late resumes low rather than where they left off in the sequence — and completing the
+whole run lands memory one step above `range.lowest`. That is why the 10th+ tier is back to 92% full plans. It may
+well be intended; flagging it because it is what makes `plannedKeys` non-monotonic in progress.
+
 ## Retention (1B): the health bar
+
+
 
 | Metric | Returning | New |
 |---|---|---|
-| Pages / visit | 5.60 | 2.76 |
-| Practice starts / visitor-day (**depth**) | 3.96 | 1.79 |
+| Pages / visit | 5.69 | 2.85 |
+| Practice starts / visitor-day (**depth**) | 4.08 | 1.65 |
 
-**Health bar = both rising. Status Sep 2: PASSING (8th run), and now passing under a CONSISTENT exclusion rule —
-the strongest read yet.**
-- **Volume** (returning practice-starts/day, raw): 7.75 → 10.9 → 12.3 → 13.9 → 14.9 → 19.7 → 25.0 → **32.3/day** ✓
-- **Depth** (practice-starts/returning visit, raw): 1.89 → 2.10 → 2.14 → 2.32 → 2.49 → 2.60 → 3.21 → 3.50 → **3.96** ✓
-- Returning share of tagged pageviews: 22.5% → 20.2% → 23.0% → 29.7% → 35.9% → 41.6% → **42.6%**. Untagged still 0.
+**Health bar = both rising. Status Sep 4: PASSING (9th run) — both bars up again under the consistent exclusion rule,
+though W4 is only 2 days deep.**
+- **Volume** (returning practice-starts/day, raw): 7.75 → 10.9 → 12.3 → 13.9 → 14.9 → 19.7 → 25.0 → 32.3 → **34.4/day** ✓
+- **Depth** (practice-starts/returning visit, raw): 1.89 → 2.10 → 2.14 → 2.32 → 2.49 → 2.60 → 3.21 → 3.50 → 3.96 → **4.08** ✓
+- Returning share of tagged pageviews: 22.5% → 20.2% → 23.0% → 29.7% → 35.9% → 41.6% → 42.6% → **42.2%**. Untagged still 0.
 
 **✅ Sep 2: the verdict now survives a like-for-like exclusion, which is the test that mattered.** Earlier runs
 compared a raw number against a differently-adjusted one. Applying ONE rule to BOTH weeks — drop any person_id with
@@ -52,8 +147,10 @@ compared a raw number against a differently-adjusted one. Applying ONE rule to B
 
 | Week (heavy identities excluded) | Returning starts/day | Depth |
 |---|---|---|
-| Aug 20–26 | 9.6 | 1.76 |
-| **Aug 27–Sep 2** | **17.9** ✓ | **2.36** ✓ |
+| W1 · Aug 13–19 | 6.6 | 1.70 |
+| W2 · Aug 20–26 | 9.6 | 1.76 |
+| W3 · Aug 27–Sep 2 | 17.9 | 2.36 |
+| **W4 · Sep 3–4 (2 d)** | **19.5** ✓ | **3.00** ✓ |
 
 Volume +86%, depth +34%, both directions confirmed without leaning on any single device. ⚠️ But note the raw
 headline is inflated ~44% by those heavy identities — quote the excluded figures when the number has to be robust.
@@ -61,18 +158,20 @@ headline is inflated ~44% by those heavy identities — quote the excluded figur
 **The practice-returner curve** (`practiceNumber`, cumulative from Aug 25, 100% coverage). Raw devices; the
 share column is the growth-free read:
 
-| Milestone | Devices | Share | Share Sep 1 | Share Aug 28 |
-|---|---|---|---|---|
-| Practiced ≥1 | 94 | 100% | 100% | 100% |
-| Reached #2 | 70 | 74% | 72% | 74% |
-| Reached #3 | 58 | 62% | 59% | 52% |
-| Reached #5 | 41 | 44% | 41% | 33% |
-| Reached #10 | 24 | 26% | 24% | 15% |
-| Reached #16 | 12 | 13% | 10% | 11% |
+| Milestone | Devices (Sep 4) | Share | Share Sep 2 | Share Sep 1 | Share Aug 28 |
+|---|---|---|---|---|---|
+| Practiced ≥1 | **122** | 100% | 100% | 100% | 100% |
+| Reached #2 | 87 | 71% | 74% | 72% | 74% |
+| Reached #3 | 73 | 60% | 62% | 59% | 52% |
+| Reached #5 | 50 | 41% | 44% | 41% | 33% |
+| Reached #10 | 28 | 23% | 26% | 24% | 15% |
+| Reached #16 | 15 | 12% | 13% | 10% | 11% |
 
-Base 83 → 94 devices; every share held or improved for a third straight run, and the #5 and #10 tiers have now
-roughly doubled off the Aug-28 shape (33% → 44%, 15% → 26%). The n≥40 tail is 3 devices (pn 43, 45, 54), two of
-them new on Sep 2 — treat that tail as probable dev testing, not power users.
+**Sep 4: base 94 → 122 devices (+30%) and every absolute tier grew (70→87, 58→73, 41→50, 24→28, 12→15), but every
+*share* slipped 1–3 points.** That is dilution, not decay: 28 devices entered the window in two days and none of
+them has had time to reach #5, let alone #16. The honest reading is "the curve held its shape while the base grew
+a third" — this is the first run where the share column moves *down*, and it should not be reported as retention
+weakening. Re-cut once the new cohort has aged a week.
 
 Caveats: (1) `practiceNumber` is a per-device localStorage counter — a fresh device or cleared storage restarts at
 1, so every tier is a **floor**. (2) The window is cumulative from Aug 25 (now 9 days), so raw counts partly reflect
@@ -94,6 +193,7 @@ Flat so far, no inflow experiment shipped yet. Baseline to beat as content/autho
 | 2026-08-31 | 811 | 18 | 29 / 5pg | 7 / 3pg | ~15 | — | 0 |
 | 2026-09-01 | **898** | **18** | 26 / 5pg | 7 / 3pg | ~9 | **10 clicks / pos 1.8 (Google, 7d)** | 0 |
 | 2026-09-02 | **980** | **18** | 22 / 5pg | 7 / 3pg | ~10 | 10 clicks / pos 1.8 (Google, 7d) | 0 |
+| 2026-09-04 | **1.1K (~1024 attrib.)** | **18** | 21 / 5pg | **10 / 3pg** | ~10 | 9 clicks / pos 1.6 (Google, 7d) | 0 |
 
 **Aug 27: 1A moved for the first time, on the citation lever only.** Bing citations per day: **10.9/day (Aug 11–17)
 → 28.7/day (Aug 18–24)**, +163%; single days of 79 (Aug 22) and 75 (Aug 25). Bing's own "avg cited pages" moved
@@ -285,3 +385,79 @@ browser step during a screen recording). Bing lags ~2 days, so its latest data p
 - **Traffic mix (7 d):** direct 82 · LLM 72 · search 38 (LLM share 37.5%). ChatGPT 70 of the 72 LLM visitors.
 - **Odd entry page worth a look:** `https://vocalhabit.com/learn/%EF%BC%89` — a full-width `）` — took 2 visitors
   with a ~996 s session. Looks like a malformed link in an AI answer or an article; worth confirming it 404s cleanly.
+
+
+## Point-in-time snapshot — 2026-09-04
+
+**Bing AI-Performance read completed** after the user signed in mid-run (the automation browser holds its own
+session; it also defaulted to gradical.app, as always — the property was switched to vocalhabit.com before reading).
+
+- **Bing AI Performance (3 M): total 1.1K citations** (was 980), avg cited pages 5. Bing lags ~2 days, so Sep 2 is
+  the newest point and only **one new day** landed since the last read. Daily Aug 27–Sep 2: 54, **176**, 93, 92, 87,
+  82, **86** → **95.7/day over the last 7 data days vs 40.9/day the 7 before (+134%)**. Shape is unchanged: Aug 28's
+  176 was a spike and the five days since sit at 82–93. **Call it a ~88/day plateau, not acceleration.**
+- **Grounding queries: 13 → 14.** The new entry is `learning singing ideas` 3. The real movement is
+  **`semi occluded vocal tract exercises` 7 → 21 (+200%)** and `singing exercises` 36 → 48; `range test` 21 → 25.
+  Full list: learn to sing **151** (23.1% share) · learn to sing online free 84 · singing exercises 48 ·
+  vocal exercises for singing 44 · free singing lessons for beginners 43 · voice warmups exercises for students 36 ·
+  best free online singing course 32 · range test 25 · learning singing 25 · semi occluded vocal tract exercises 21 ·
+  learning to sing 15 · free voice lessons for beginners 12 · freddie mercury voice type 8 · learning singing ideas 3.
+- **Cited pages: 18 (count unchanged), 1024 citations attributed.** `/learn/` **573** (+44) · sovt-exercises **102**
+  (+21) · vocal-warm-ups-for-beginners 79 · `/` 46 · **ariana-grande 46** (+3) · freddie-mercury 35 · chappell-roan 30 ·
+  **vocal-range-test 28** (+4) · can-tone-deaf 24 · **vocal-agility 16** (+7) · chest-voice 11 · mix-voice 11 ·
+  can-anyone 7 · increase-range 5 · breathing 4 · belting 3 · can-you-learn-as-adult 3 · how-to-practice 1.
+  Hub share 54% → **56%**. **Still no `/courses/` page cited**, 7 days after launch.
+- **The SOVT page is now the clearest second engine.** Its citations went 81 → 102 while its grounding query tripled
+  7 → 21, and it is simultaneously the only page converting Bing *organic* impressions to clicks (36 impr / 2 clicks).
+  Technique intent is finally pulling its own weight next to the free/beginner intent that drives the hub.
+
+- **🔓 FIRST CRACK IN THE BING CRAWL GATE.** `https://vocalhabit.com/courses/` carries a real crawl timestamp of
+  **2026-09-04 18:41 UTC** — about 35 minutes before this check. Every post-Aug-13 URL had carried the
+  never-crawled sentinel (`/Date(-62135568000000-0800)/`) on every prior run. The per-URL `lastmod` + filtered
+  IndexNow fix went to production **Sep 3** (commit `75ca50b`, Sep 2 22:00 MDT; live sitemap now serves **6
+  distinct lastmod dates** — 25× Aug 27, 12× Aug 29, and one each Jul 3/6/15/23 — where it previously served one
+  date on all 42 URLs). So: fix deployed Sep 3, first new-URL crawl Sep 4. **`size=0`, so it is a fetch, not yet an
+  index, and the headline is still 27/42.** One URL is not a verdict; the skill's own protocol is to re-check at
+  ~5 and ~10 days after deploy (Sep 8 and Sep 13). Do not close the investigation on this.
+- **Bing index: 27/42, unchanged.** Still uncrawled: 10 remaining `/courses/` URLs and all 4 `why-*` articles.
+  Most recent Bing crawls of indexed pages: `pitch-training-for-singers` Sep 4 00:11, `how-to-sing-in-tune`
+  Sep 3 19:53, `can-tone-deaf` Sep 3 19:04, `/learn/` Sep 3 18:26. Bing visits daily, as always.
+- **Bing organic is genuinely up, on both bars.** Last 7 data days (Aug 27–Sep 2): **471 impr / 14 clicks =
+  67.3 impr/day, 2.0 clicks/day**, against the prior 7 (Aug 20–26) 364 impr / 6 clicks = 52.0 impr/day,
+  0.86 clicks/day → **+29% impressions/day, +133% clicks/day**. **Sep 2 set an impressions record at 94.**
+  Bing lags ~2 days, so Sep 3–4 are not in yet. Top organic queries: "vocal warm ups" 52 impr / 0 clicks ·
+  "vocal warm up" 43 / 0 · **"semi occluded vocal tract exercises" 36 impr / 2 clicks** — the SOVT page is the
+  only one converting impressions to clicks, and it is the same query that entered Bing's grounding set on Sep 2.
+- **Google is broadening fast on a page Bing has never crawled.** `why-does-my-voice-crack` now draws impressions
+  across **~22 distinct queries** (was 6 on Sep 2) at positions 25–60 — "why does my voice crack when i sing"
+  pos 25, "voice cracking when singing" pos 27, "when will my voice stop cracking" pos 29. Zero clicks (nothing
+  ranks above ~25), but the breadth roughly quadrupled in two days. Reinforces that the `why-*` articles are fine
+  and the blocker is Bing-specific.
+- **Ahrefs citation sample:** chatgpt **21**/5 (33 → 30 → 29 → 26 → 22 → 21, still drifting down while Bing's
+  first-party count climbed 277 → 980). Copilot **7 → 10**/3, its first move in a week. Still a stale sample;
+  reported only for continuity.
+- **Crawler content hits (cumulative since tap):** ChatGPT-User **641** · OAI-SearchBot 82 · ClaudeBot 9 ·
+  PerplexityBot 6 · Claude-User/SearchBot **3/3 (frozen 15 days)** · GPTBot 0. Per-day ChatGPT-User Aug 28–Sep 3:
+  37, 41, 36, 37, 45, 50, 46 = **41.7/day** vs 40.6 the prior 7 — flat with a mild upward tilt; the Sep 1–2 pair
+  (45, 50) held into Sep 3 (46). **Course paths: still 0 hits from any AI crawler** (the Sep 4 `/courses/` crawl
+  was bingbot, which the AI tap does not record).
+- **Traffic mix (7 d, Aug 29–Sep 4):** LLM **73** · direct 62 · search **41** · internal 14 · unknown 2 →
+  **LLM share 41.0%** (ex-internal), LLM:search 1.78:1. ChatGPT is 71 of the 73 LLM visitors. **Search is the
+  channel that moved**: 41 visitors vs 38 the prior window, and Google alone is 20 — the highest yet.
+  Cumulative since launch: ChatGPT 315 · direct 236 · Google 71 · Bing 28.
+- **Direct is still uncharacterized, 13 days after first flagging:** 62 visitors at **82% bounce** over 7 days
+  (cumulative 236 at 88%). Longest-open unactioned item in the log.
+- **ChatGPT activation floors (cumulative, vs Ahrefs' 315 ChatGPT visitors):** 72 started / 58 scored / 26 logged
+  = **≥23% start · ≥18% scoring · ≥8% logged**. Holding at the long-run level. Against the 124 PostHog-tagged
+  ChatGPT people alone: 58% / 47% / 21%.
+- **Google branded (7 d):** "vocal habit" 7 clicks / 8 impr / **pos 1.6** + "vocal habits" 2 clicks = **9 branded
+  clicks**, vs 10 last run. Flat.
+- **Community mentions:** still **0** — no reddit/HN/forum referrer in Ahrefs, `site:reddit.com` sweep empty. DR **0**.
+- **Courses (day 6–7): the product side turned back up.** Daily course_viewed 6 → 5 → 2 → 2 → 3 → **7** and
+  lesson_viewed 5 → 6 → 2 → 1 → 3 → **6**, next_pressed back to 5. `/courses` was the **#3 page by pageviews**
+  over Sep 3–4 (18 pv / 10 people), behind only `/` and `/onboarding`. Lesson completions still **1 all-time**
+  and `course_exercise_toggled` still absent from the taxonomy. Distribution: `/courses/` got its first bingbot
+  crawl today (above) but no course URL is cited or AI-crawled yet.
+- **Article → app conversion holding:** `embed_exercise_played` 5 (Sep 3) + 3 (Sep 4); `embed_exercise_open_full`
+  3 + 2. Steady at roughly the level it reached on Sep 1, not growing.
+- **Visit-number tail (7 d):** 1→461 pv, 2→144, 3→66, 4→47, then a continuous tail to **14**. Untagged **0**.
