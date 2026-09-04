@@ -101,6 +101,22 @@ Status tags: `OPEN` (actively digging) · `WATCH` (monitoring a trend) · `RESOL
   **Implication:** content→practice conversion (10% → 45%) is a larger available multiplier than article count, and
   unlike crawling it is not externally blocked. Hold new articles until the crawl gate is verified fixed.
 
+- **[PINNED · 2026-09-04] Content -> practicer conversion is the biggest unworked lever. Full write-up in
+  ROADMAP.md "Slice F".** Entry-page -> `practice_started` since launch, session-level: `/` 52.9% and
+  `/vocal-range-test` 41.7% against **10.1% aggregate for all Learn + artist landings**. The split inside Learn is
+  the finding: exercise-shaped pages convert (`vocal-agility` 30%, `mix-voice` 25%, `belting` 20%) and
+  question-shaped ones do not (`can-tone-deaf`, `can-you-learn-as-an-adult`, `how-to-increase-vocal-range` = **0%
+  across 24 sessions**). **Intent-to-do converts, intent-to-know does not.**
+  ⚠️ **The most-cited page is the worst converter:** `/learn/sovt-exercises` has 102 Bing citations and the site's
+  only organic click-through, and converts at **6.7%**. Citation engine and acquisition engine point at different
+  pages. Artist spotlights are pure top-of-funnel: 17 sessions, 0 practices, 76 citations.
+  Ryan's theory to test (deferred, next sessions): embedded exercises that lead into the routine, plus better
+  hybrid topics/framing, A/B'd between Learn articles that already get traffic. The embed itself already works —
+  `embed_exercise_played` 31 / `embed_exercise_open_full` 13 (~42% of plays) — so placement, framing and topic fit
+  are the untested variables, not the widget.
+  **Not being worked now.** Re-cut the conversion table when picking it up; per-page n is small (5-30 sessions), so
+  the exercise-vs-question grouping is the trustworthy unit, not any single page's rate.
+
 - **[WATCH · 2026-08-30] Courses launch ("Foundations of Singing").** The direct play for the #2/#4 grounding queries
   ("best free online singing course" 32, "free singing lessons for beginners" 31). Track weekly: (a) Bing crawl/index of
   the 11 `/courses/` URLs (submitted Aug 29; 0 crawled Aug 30); (b) the syllabus entering Bing's cited-page pool;

@@ -400,6 +400,73 @@ pitch-detection techniques and scoring them against expected targets.
 | 1 — In-app raw capture | `__DEV__`-gated "Record raw audio" toggle on Practice. Web detector taps the mic source with a continuous `ScriptProcessorNode`; on session end the screen downloads a 16-bit WAV (`lib/capture/wav.ts`) + a `CaptureSidecar` JSON (`lib/capture/types.ts`). Naming `<exerciseId>__<voicePart>__<tonic>__<timestamp>.{wav,json}`. Corpus folder `test/fixtures/audio/corpus/` (gitignored except README). Capture is purely additive — disabled = byte-identical live detection. Native gets no-op stubs. | shipped |
 | 2+ — Offline eval harness | Replay corpus WAVs through candidate detectors, align to `expectedTargets`, compare accuracy | open |
 
+### Slice F: Turn cited Learn pages into practicers (content -> app conversion)
+
+**Status: PINNED 2026-09-04. Not started — this is the write-up so a later session can pick it up cold.**
+
+**Why this and not more articles.** Measured entry-page -> practice conversion since launch (PostHog, session-level:
+entry page = first `$pageview` `$pathname` of a session; converted = that session fired `practice_started`):
+
+| Entry page | Sessions | Practiced | Rate | First-ever practice |
+|---|---|---|---|---|
+| `/onboarding` | 371 | 204 | 55.0% | 88 |
+| `/` (app) | 70 | 37 | 52.9% | 10 |
+| `/vocal-range-test` | 12 | 5 | 41.7% | 3 |
+| `/learn/vocal-agility-exercises` | 10 | 3 | 30.0% | 1 |
+| `/learn/mix-voice-exercises` | 20 | 5 | 25.0% | 2 |
+| `/learn/belting-exercises` | 5 | 1 | 20.0% | 0 |
+| `/learn/vocal-warm-ups-for-beginners` | 12 | 1 | 8.3% | 0 |
+| `/learn/sovt-exercises` | 30 | 2 | **6.7%** | 2 |
+| `/artists/ariana-grande` | 11 | **0** | 0% | 0 |
+| `/learn/how-to-increase-vocal-range` | 10 | **0** | 0% | 0 |
+| `/learn/can-tone-deaf-people-learn-to-sing` | 7 | 0 | 0% | 0 |
+| `/learn/can-you-learn-to-sing-as-an-adult` | 7 | 0 | 0% | 0 |
+| `/learn/chest-voice-exercises` | 6 | 0 | 0% | 0 |
+| `/artists/chappell-roan` | 6 | 0 | 0% | 0 |
+| `/learn/how-to-warm-up-your-voice` | 5 | 0 | 0% | 0 |
+
+Three readings, in confidence order:
+1. **Intent-to-DO converts; intent-to-KNOW does not.** Exercise-shaped pages (agility 30%, mix 25%, belting 20%)
+   convert; question-shaped pages (`can-tone-deaf`, `can-you-learn-as-an-adult`, `how-to-increase-vocal-range`)
+   convert at **0% across 24 sessions**. Someone asking "can I even do this" is not ready to sing into a mic.
+2. **The most-cited page is the worst converter.** `/learn/sovt-exercises` is the #2 cited page (102 Bing citations)
+   and the only page converting Bing organic impressions to clicks — and it converts to practice at 6.7%. The
+   citation engine and the acquisition engine currently point at different pages. That gap is the opportunity.
+3. **Artist spotlights are pure top-of-funnel.** 17 sessions across Ariana Grande + Chappell Roan, zero practices,
+   while earning 46 + 30 citations.
+
+**Hypothesis to test:** an embedded exercise that leads into the user's routine converts a reader into a practicer,
+and the framing/topic hybrid matters more than article count. Supporting evidence: `EmbeddedExercise` already fires
+`embed_exercise_played` (31 / 17 people) and `embed_exercise_open_full` (13 / 12 people, ~42% of plays), so the
+in-article widget works — it is placement, framing and topic fit that are untested.
+
+**Shape of the work (A/B between Learn articles that already get traffic):**
+- Pick the arms from pages with real traffic, not from the whole library: `sovt-exercises` (high citations, low
+  conversion) is the flagship arm; `mix-voice-exercises` / `vocal-agility-exercises` are the already-converting
+  controls; one 0%-converting question-shaped page to test whether framing alone can move it.
+- Variables worth separating: embed **placement** (above vs below the fold), the **CTA wording** into
+  routine/practice, and **topic framing** (rewriting a question-shaped page to open with a do-this-now block).
+- Instrumentation mostly exists. `embed_exercise_played` / `embed_exercise_open_full` are wired at
+  `components/learn/EmbeddedExercise.tsx:76` and `:119`; entry-page conversion is queryable as above. What is
+  missing is a variant assignment — PostHog experiments are set up on the project but no feature flag exists for
+  this yet, and the pages are statically exported, so the arm has to be chosen client-side after hydration
+  (or built as separate URLs, which splits the citation surface and is probably worse).
+
+**Watch out for:**
+- **n is small per page.** Trust the exercise-vs-question grouping, not any single page's rate. A real A/B needs
+  weeks at current traffic, so prefer big framing swings over subtle copy tweaks.
+- **Do not compare against `/onboarding`'s 55%** — that is where first-run users get routed, not a content lander.
+  `/` at 52.9% is the fair app-side benchmark.
+- **Nobody browses Learn** (107 of 114 sessions read exactly one article, zero read three), so an article's whole
+  value is being the landing page. Internal cross-linking is not a lever here; the embed is.
+- Changing a page's opening framing can move its citations, which are the thing bringing the traffic in the first
+  place. Watch the Bing cited-page counts for the arm, not just conversion.
+
+**Done looks like:** one arm demonstrably beats its control on session-level entry -> `practice_started`, with the
+result written into `analytics/findings-log.md` and the winning pattern applied to the rest of the library.
+
+---
+
 ### Slice D: Four More PRD Exercises + Direction-Reversal Toggle (M4)
 
 **Scope:** Add four high-value PRD exercises (octave arpeggio #9, octave leap on `wee` #10, messa di voce #12, mum sirens #14) as JSON descriptors. Add a per-session "ascending only / ascending + descending" toggle that uses the existing `direction` field on the descriptor.
