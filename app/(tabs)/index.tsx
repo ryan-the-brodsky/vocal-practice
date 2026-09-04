@@ -256,6 +256,8 @@ export default function PracticeScreen() {
   // The tonic this run started from — so "Try again" replays the same span
   // rather than the post-completion advanced tonic.
   const sessionStartTonicRef = useRef<number | null>(null);
+  // Guided reports per pattern; we emit one run-level `pattern_completed`.
+  const guidedRunAttemptsRef = useRef<SessionRecord["keyAttempts"]>([]);
   const iterationsRef = useRef<KeyIteration[]>([]);
   // Per-exercise session-end state. Switching exercises stashes the current
   // exercise's bucket here and rehydrates the destination's, so each exercise
@@ -493,6 +495,7 @@ export default function PracticeScreen() {
   // iterations on completion. Reuse the Standard mode's Log/Discard +
   // Coaching CTA wiring so Guided gets the same coaching payoff.
   const handleGuidedStart = useCallback(() => {
+    guidedRunAttemptsRef.current = [];
     track("practice_started", {
       exerciseId: exercise.id,
       voicePart,
@@ -518,26 +521,12 @@ export default function PracticeScreen() {
       setPendingSession(record);
       setLoggedMessage(null);
 
-      const keys = record.keyAttempts.length;
-      const plannedKeys = iterations.length;
-      const completedAllKeys = keys > 0 && keys >= plannedKeys;
-      const meanAccuracyPct = keys
-        ? Math.round(record.keyAttempts.reduce((a, k) => a + k.meanAccuracyPct, 0) / keys)
-        : null;
-      track("pattern_completed", {
-        exerciseId: exercise.id,
-        voicePart,
-        mode: "guided",
-        scored: true,
-        keys,
-        plannedKeys,
-        completedAllKeys,
-        sungKeys: keys,
-        sangAnything: keys > 0,
-        meanAccuracyPct,
-        ...readPracticeContext(),
-        ...(completedAllKeys ? recordFinish() : {}),
-      });
+      // Analytics deliberately does NOT fire here. Guided calls this once per
+      // pattern (= per key); Standard emits one `pattern_completed` per run with
+      // the key count embedded. Accumulate and emit at run end so both modes
+      // report the same shape — a mode-blind ratio on this event is otherwise
+      // wrong (it read 0.67 standard vs 1.33 guided before this was fixed).
+      guidedRunAttemptsRef.current.push(...record.keyAttempts);
 
       const sessionInput = fromKeyAttempts(record.keyAttempts, iterations);
       const ranked = diagnoseSession(sessionInput);
@@ -553,6 +542,37 @@ export default function PracticeScreen() {
           previewSubline: symptomTitle ? top.evidenceText : undefined,
         });
       }
+    },
+    [exercise, voicePart],
+  );
+
+  /** One `pattern_completed` per guided run, matching Standard's contract. */
+  const handleGuidedRunEnd = useCallback(
+    ({ plannedKeys }: { plannedKeys: number }) => {
+      const attempts = guidedRunAttemptsRef.current;
+      guidedRunAttemptsRef.current = [];
+      // Standard only reports a run that scored something; a bare Stop is
+      // already covered by `practice_stopped`.
+      if (attempts.length === 0) return;
+
+      const keys = attempts.length;
+      const completedAllKeys = keys >= plannedKeys;
+      track("pattern_completed", {
+        exerciseId: exercise.id,
+        voicePart,
+        mode: "guided",
+        scored: true,
+        keys,
+        plannedKeys,
+        completedAllKeys,
+        sungKeys: keys,
+        sangAnything: true,
+        meanAccuracyPct: Math.round(
+          attempts.reduce((a, k) => a + k.meanAccuracyPct, 0) / keys,
+        ),
+        ...readPracticeContext(),
+        ...(completedAllKeys ? recordFinish() : {}),
+      });
     },
     [exercise, voicePart],
   );
@@ -1184,6 +1204,7 @@ export default function PracticeScreen() {
                   voicePart={voicePart}
                   octaveShift={octaveShift}
                   onPatternComplete={handleGuidedPatternComplete}
+                  onRunEnd={handleGuidedRunEnd}
                   onStart={handleGuidedStart}
                 />
               </View>
@@ -1195,6 +1216,7 @@ export default function PracticeScreen() {
                 voicePart={voicePart}
                 octaveShift={octaveShift}
                 onPatternComplete={handleGuidedPatternComplete}
+                onRunEnd={handleGuidedRunEnd}
                 onStart={handleGuidedStart}
               />
               {practiceControls}

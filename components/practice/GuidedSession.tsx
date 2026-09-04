@@ -1,3 +1,4 @@
+// COMPONENT TEST: components/practice/__tests__/GuidedSession.runEnd.test.tsx
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Fonts, Radii, Spacing, Typography } from "@/constants/theme";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -69,6 +70,7 @@ export default function GuidedSession({
   voicePart,
   octaveShift = 0,
   onPatternComplete,
+  onRunEnd,
   onStart,
 }: {
   exercise: ExerciseDescriptor;
@@ -82,6 +84,10 @@ export default function GuidedSession({
    *  Log/Discard + Coaching CTA flow. iterations is a synthesized stub the
    *  coaching engine's `fromKeyAttempts` adapter consumes for syllables. */
   onPatternComplete?: (record: SessionRecord, iterations: KeyIteration[]) => void;
+  /** Fires once when a guided run ends (Stop, Done, or unmount), never per
+   *  pattern. Standard mode emits one `pattern_completed` per run with the key
+   *  count embedded; this is the hook that lets Guided match it. */
+  onRunEnd?: (info: { plannedKeys: number }) => void;
 }) {
   const { colors, scheme } = useTheme();
   const [phase, setPhase] = useState<Phase>("idle");
@@ -111,6 +117,10 @@ export default function GuidedSession({
   // Captured at the start of each pattern so the synthesized SessionRecord
   // carries an accurate startedAt.
   const patternStartedAtRef = useRef<number>(0);
+  // A guided "run" spans Start through Stop/Done, across however many tonics
+  // Next-Tonic walks through. Guards onRunEnd against double-firing.
+  const runActiveRef = useRef(false);
+  const plannedKeysRef = useRef(1);
 
   useEffect(() => {
     repeatModeRef.current = repeatMode;
@@ -168,9 +178,22 @@ export default function GuidedSession({
     currentTonicMidi + stepSemis <= highestTonicMidi;
   const nextTonicMidi = canAdvanceTonic ? (currentTonicMidi as number) + stepSemis : null;
 
+  const onRunEndRef = useRef(onRunEnd);
+  useEffect(() => {
+    onRunEndRef.current = onRunEnd;
+  }, [onRunEnd]);
+
+  function endRun() {
+    if (!runActiveRef.current) return;
+    runActiveRef.current = false;
+    onRunEndRef.current?.({ plannedKeys: plannedKeysRef.current });
+  }
+
   useEffect(() => {
     return () => {
       abortRef.current.aborted = true;
+      // Navigating away ends the run too, or a walked-away session never reports.
+      endRun();
       detectorUnsubRef.current?.();
       noteHandleRef.current?.release();
       detectorRef.current?.stop().catch(() => {});
@@ -193,6 +216,12 @@ export default function GuidedSession({
     setBestPerNoteArr([]);
     setCurrentTonicMidi(startTonicMidi);
     abortRef.current = { aborted: false };
+    // Guided only ever ascends by step, so the plan is what Next-Tonic can reach.
+    plannedKeysRef.current =
+      highestTonicMidi != null
+        ? Math.max(1, Math.floor((highestTonicMidi - startTonicMidi) / stepSemis) + 1)
+        : 1;
+    runActiveRef.current = true;
     onStart?.();
 
     try {
@@ -252,6 +281,7 @@ export default function GuidedSession({
     abortRef.current.aborted = true;
     noteHandleRef.current?.release();
     noteHandleRef.current = null;
+    endRun();
     await teardown();
     setPhase("idle");
     setMatchProgress(0);

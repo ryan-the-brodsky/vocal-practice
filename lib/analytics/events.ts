@@ -6,6 +6,10 @@
 export type AnalyticsEvent =
   // ── Practice loop ─────────────────────────────────────────────────────────
   | 'practice_started'
+  // ONE per practice run (not per key), in BOTH modes, with the key count in
+  // `keys` and the plan in `plannedKeys`. Guided used to emit one per key —
+  // fixed 2026-09-04; data before that deploy reads 1.33 guided vs 0.67 standard,
+  // so any historical mode-blind ratio on this event is wrong.
   | 'pattern_completed'
   | 'mic_error_shown'
   | 'session_logged'

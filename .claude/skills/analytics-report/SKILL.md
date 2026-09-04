@@ -109,7 +109,14 @@ Load deferred tools first: `mcp__posthog__exec`; and
   **FULL runs use `dateRange.date_from: "2026-08-13"` (launch) so the dashboard trend ACCUMULATES** — never a
   rolling 7-day window (that loses history). QUICK runs may use `-7d`. PostHog + Ahrefs both retain full history.
 - **B2 Practice funnel** — `practice_started` → `pattern_completed` → `session_logged`. **`pattern_completed`
-  = first scored key, NOT completion** (read `completedAllKeys` for true completion). Call it "reached scoring."
+  ≠ completion** (read `completedAllKeys` for true completion). Call it "reached scoring."
+  ⚠️ **Granularity differed by mode until 2026-09-04.** Standard has always emitted `pattern_completed` **once per
+  run**; **Guided emitted it once per KEY**, so ratios read 0.67 standard vs 1.33 guided. Guided's share of starts
+  jumped 0% → ~20% when its instrumentation landed ~Aug 26, and that mix shift alone fabricated a "depth
+  improvement" on 2026-09-04 that had to be retracted the same run. **Fixed in code 2026-09-04** (Guided now emits
+  once per run via `onRunEnd`, key count in `keys`), but **every event before that deploy is still contaminated** —
+  so for any window spanning it, filter `mode='standard'` or count sessions. For per-run depth use
+  `completedAllKeys` and `keys` / `plannedKeys`, which are mode-consistent in both eras.
 - **B3 ChatGPT activation funnel** — `query-trends -7d day`, each series `math dau` filtered
   `$referring_domain = chatgpt.com`: pageview → practice_started → pattern_completed → session_logged. Sum days.
   **Present rates as FLOORS against Ahrefs' A2 ChatGPT visitor count** (referer-stripped ChatGPT hides in `$direct`).
