@@ -440,17 +440,48 @@ and the framing/topic hybrid matters more than article count. Supporting evidenc
 `embed_exercise_played` (31 / 17 people) and `embed_exercise_open_full` (13 / 12 people, ~42% of plays), so the
 in-article widget works — it is placement, framing and topic fit that are untested.
 
-**Shape of the work (A/B between Learn articles that already get traffic):**
-- Pick the arms from pages with real traffic, not from the whole library: `sovt-exercises` (high citations, low
-  conversion) is the flagship arm; `mix-voice-exercises` / `vocal-agility-exercises` are the already-converting
-  controls; one 0%-converting question-shaped page to test whether framing alone can move it.
-- Variables worth separating: embed **placement** (above vs below the fold), the **CTA wording** into
-  routine/practice, and **topic framing** (rewriting a question-shaped page to open with a do-this-now block).
-- Instrumentation mostly exists. `embed_exercise_played` / `embed_exercise_open_full` are wired at
-  `components/learn/EmbeddedExercise.tsx:76` and `:119`; entry-page conversion is queryable as above. What is
-  missing is a variant assignment — PostHog experiments are set up on the project but no feature flag exists for
-  this yet, and the pages are statically exported, so the arm has to be chosen client-side after hydration
-  (or built as separate URLs, which splits the citation surface and is probably worse).
+**Shape of the work — use the artist profiles as the test bed (Ryan, 2026-09-04).** Comparing conversion between
+*different* Learn articles confounds the tweak with the topic: `sovt-exercises` vs `mix-voice-exercises` differ in
+subject, intent and audience, so a delta cannot be attributed to a placement change. **Artist profiles are all built
+from one template and one intent class (fan curiosity about a singer), so they are a controlled family** — hold the
+shape fixed, vary one thing, and the difference is the thing you varied. They are also the biggest headroom on the
+site: **0% conversion across 18 landing sessions.**
+
+⚠️ **One correction to the design: randomize per VISITOR within the family, not per PAGE.** Assigning Ariana =
+treatment and Chappell = control re-introduces exactly the confound the family was meant to remove (different
+artists, different audience size and intent) and splits an already-thin sample into 3.8 and 1.9 sessions/week.
+Assign the arm client-side per visitor across *every* profile and pool the family's traffic — same template, one
+shared experiment, double the usable n.
+
+⚠️ **Volume is the binding constraint, and it is severe.** Artist-profile landings since launch: ariana-grande 12,
+chappell-roan 6, **freddie-mercury 0** — about **5.7 sessions/week for the whole family**. Sessions per arm needed
+for 80% power at alpha 0.05 off a ~2% baseline:
+
+| Lift to | Per arm | Total | At 5.7/wk (today) | At ~19/wk (~10 profiles) |
+|---|---|---|---|---|
+| 10% | 134 | 268 | 47 weeks | 14 weeks |
+| 15% | 68 | 136 | 24 weeks | 7 weeks |
+| 20% | 44 | 88 | 15 weeks | 5 weeks |
+| 30% | 23 | 46 | 8 weeks | 2 weeks |
+
+So: **only test big, structural swings** (embed above the fold with a do-this-now block vs the current prose-first
+page), never copy tweaks — a 5-point lift is unmeasurable here for the better part of a year. And **ship more
+profiles first**; ~10 makes a large-effect test readable in 2-5 weeks.
+
+⚠️ **Citations do not reliably become landings, so more profiles is not automatically more test volume.**
+`freddie-mercury` holds **35 Bing citations and 0 landing sessions**, while ariana-grande has 46 citations and 12
+sessions. Track landings per new profile, not citations, when judging whether the test bed is ready.
+
+**Variables worth separating** (one per experiment, largest first): embed **placement** (above vs below the fold),
+**topic framing** (open with a do-this-now block vs prose), then **CTA wording** into routine/practice.
+
+**Instrumentation status.** `embed_exercise_played` / `embed_exercise_open_full` are wired at
+`components/learn/EmbeddedExercise.tsx:76` and `:119` and work sitewide (31 plays / 13 open-full, ~42%) — but on the
+artist family specifically they are near-dead: **1 embed play, 0 open-full, 0 practices across 18 sessions**, which
+is the baseline the experiment has to beat. Entry-page conversion is queryable as above. What is missing is variant
+assignment: PostHog experiments are set up on the project but no feature flag exists for this yet, and the pages are
+statically exported, so the arm must be chosen client-side after hydration (separate URLs per arm would split the
+citation surface and is probably worse).
 
 **Watch out for:**
 - **n is small per page.** Trust the exercise-vs-question grouping, not any single page's rate. A real A/B needs
